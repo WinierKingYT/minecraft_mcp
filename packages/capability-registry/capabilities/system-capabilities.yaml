@@ -1,0 +1,38 @@
+id: system.capabilities
+version: 1
+milestone: M0
+summary: Aktif tool profilini, uyumluluk profilini ve protokol sürümlerini bildirir.
+status: planned
+
+exposure:
+  developer_tool: system_capabilities
+  debug_tool: null
+  bridge_operation: null
+  dsl_step: null
+
+risk:
+  effect: read
+  scope: disposable_runtime
+  reversibility: reversible
+  approval: none
+  exposure: agent_visible
+  cost: low
+  level: R0
+
+contracts:
+  input: schemas/system-capabilities.input.json
+  output: schemas/system-capabilities.output.json
+
+limits:
+  timeout_ms: 5000
+
+errors:
+  - CONFIG_INVALID
+
+tests:
+  unit: [UT-SYSTEM-CAPS-001]
+  contract: [CT-SYSTEM-CAPS-001, CT-MCP-TOOLLIST-001]
+
+notes: >
+  Bu tool, uyumluluk profilinin verification durumunu da döndürür. Profil
+  unverified ise yanıt warnings dizisinde açık bir uyarı taşır.

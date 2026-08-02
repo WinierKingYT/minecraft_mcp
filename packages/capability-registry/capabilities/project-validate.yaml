@@ -1,0 +1,63 @@
+id: project.validate
+version: 1
+milestone: M1
+summary: Gradle wrapper bütünlüğünü, dependency lock/verification durumunu ve Java/Paper/API uyumluluğunu doğrular.
+status: planned
+
+exposure:
+  developer_tool: project_validate
+  debug_tool: null
+  bridge_operation: null
+  dsl_step: null
+
+risk:
+  effect: read
+  scope: project
+  reversibility: reversible
+  approval: profile
+  exposure: agent_visible
+  cost: bounded
+  level: R1
+
+contracts:
+  input: schemas/project-validate.input.json
+  output: schemas/project-validate.output.json
+
+limits:
+  timeout_ms: 60000
+
+requires:
+  trust_level:
+    - developer-workspace
+    - pinned-source
+    - approved-fixture
+
+errors:
+  - PROJECT_NOT_REGISTERED
+  - TRUST_LEVEL_INSUFFICIENT
+  - GRADLE_WRAPPER_NOT_FOUND
+  - GRADLE_WRAPPER_JAR_UNVERIFIED
+  - GRADLE_DISTRIBUTION_URL_UNAPPROVED
+  - GRADLE_DISTRIBUTION_CHECKSUM_MISSING
+  - GRADLE_DISTRIBUTION_CHECKSUM_INVALID
+  - GRADLE_VERSION_INCOMPATIBLE
+  - DEPENDENCY_LOCK_MISSING
+  - DEPENDENCY_VERIFICATION_MISSING
+  - DYNAMIC_DEPENDENCY_FORBIDDEN
+  - CHANGING_MODULE_FORBIDDEN
+  - UNAPPROVED_REPOSITORY
+  - PLUGIN_API_VERSION_MISSING
+  - PLUGIN_API_VERSION_INCOMPATIBLE
+  - COMPATIBILITY_PROFILE_UNVERIFIED
+
+tests:
+  unit: [UT-PROJECT-VALIDATE-001]
+  contract: [CT-PROJECT-VALIDATE-001]
+  integration: [IT-PROJECT-VALIDATE-001]
+  security:
+    - ST-GRADLE-001
+    - ST-GRADLE-002
+    - ST-GRADLE-003
+    - ST-GRADLE-004
+    - ST-GRADLE-006
+    - ST-GRADLE-007

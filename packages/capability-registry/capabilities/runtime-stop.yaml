@@ -1,0 +1,48 @@
+id: runtime.stop
+version: 1
+milestone: M1
+summary: Paper'ı graceful biçimde kapatır; timeout aşılırsa force termination ayrı durum ve audit event üretir.
+status: planned
+
+exposure:
+  developer_tool: plugin_stop
+  debug_tool: runtime_stop
+  bridge_operation: null
+  dsl_step: null
+
+risk:
+  effect: process
+  scope: disposable_runtime
+  reversibility: runtime_discard
+  approval: none
+  exposure: agent_visible
+  cost: low
+  level: R1
+
+contracts:
+  input: schemas/runtime-stop.input.json
+  output: schemas/runtime-stop.output.json
+
+limits:
+  timeout_ms: 30000
+  requires_idempotency: true
+
+requires:
+  runtime_state: [READY, STARTING]
+
+errors:
+  - RUNTIME_NOT_FOUND
+  - RUNTIME_INVALID_STATE
+  - HANDLE_NOT_OWNED
+  - PROCESS_OWNERSHIP_MISMATCH
+  - SHUTDOWN_TIMEOUT
+  - CLEANUP_FAILED
+
+tests:
+  contract: [CT-RUNTIME-STOP-001]
+  integration: [IT-PAPER-LIFECYCLE-001]
+  security: [ST-PROC-003, ST-CLEANUP-001, ST-CLEANUP-002, ST-CLEANUP-003]
+
+notes: >
+  CLEANUP_FAILED ana sonucu gizlemez; run DIRTY terminal durumuna geçer ve
+  rapor cleanup alanını ayrı taşır (KPI-12).

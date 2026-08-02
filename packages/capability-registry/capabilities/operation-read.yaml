@@ -1,0 +1,36 @@
+id: operation.read
+version: 1
+milestone: M0
+summary: Uzun süren bir operation'ın durumunu, ilerlemesini ve sonucunu döndürür.
+status: planned
+
+exposure:
+  developer_tool: operation_get
+  debug_tool: null
+  bridge_operation: null
+  dsl_step: null
+
+risk:
+  effect: read
+  scope: disposable_runtime
+  reversibility: reversible
+  approval: none
+  exposure: agent_visible
+  cost: low
+  level: R0
+
+contracts:
+  input: schemas/operation-read.input.json
+  output: schemas/operation-read.output.json
+
+limits:
+  timeout_ms: 5000
+
+errors:
+  - OPERATION_NOT_FOUND
+  - HANDLE_NOT_OWNED
+  - HANDLE_EXPIRED
+
+tests:
+  unit: [UT-OPERATION-STATE-001]
+  contract: [CT-OPERATION-READ-001]

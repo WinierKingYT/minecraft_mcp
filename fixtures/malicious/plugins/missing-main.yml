@@ -1,0 +1,6 @@
+name: "malicious-plugin"
+version: "1.0.0"
+main: "com.example.NonExistentClass"
+api-version: "1.21"
+# main class defined but NOT present in JAR — triggers PLUGIN_MAIN_CLASS_MISSING
+description: "Plugin with non-existent main class"

@@ -1,0 +1,39 @@
+id: scenario.step_catalog
+version: 1
+milestone: M2A
+summary: Aktif profilde kullanılabilir DSL step'lerini, argüman şemalarını ve risk seviyelerini listeler.
+status: planned
+
+exposure:
+  developer_tool: null
+  debug_tool: null
+  authoring_tool: scenario_step_catalog
+  bridge_operation: null
+  dsl_step: null
+
+risk:
+  effect: read
+  scope: fixture
+  reversibility: reversible
+  approval: none
+  exposure: agent_visible
+  cost: low
+  level: R0
+
+contracts:
+  input: schemas/scenario-step-catalog.input.json
+  output: schemas/scenario-step-catalog.output.json
+
+limits:
+  timeout_ms: 5000
+
+errors:
+  - CONFIG_INVALID
+
+tests:
+  unit: [UT-STEP-CATALOG-001]
+  contract: [CT-STEP-CATALOG-001]
+
+notes: >
+  Katalog capability registry'den üretilir; elle tutulan bir liste yoktur.
+  M2B kapalıysa actor step'leri katalogda unavailable olarak işaretlenir.

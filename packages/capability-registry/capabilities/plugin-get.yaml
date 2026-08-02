@@ -1,0 +1,41 @@
+id: plugin.get
+version: 1
+milestone: M0
+summary: Tek bir plugin'in metadata'sını, bağımlılıklarını ve enable durumunu döndürür.
+status: planned
+
+exposure:
+  developer_tool: null
+  debug_tool: minecraft_plugin_get
+  bridge_operation: plugin.get
+  dsl_step: null
+
+risk:
+  effect: read
+  scope: disposable_runtime
+  reversibility: reversible
+  approval: none
+  exposure: agent_visible
+  cost: low
+  level: R0
+
+contracts:
+  input: schemas/plugin-get.input.json
+  output: schemas/plugin-get.output.json
+
+limits:
+  timeout_ms: 2000
+
+requires:
+  runtime_state: [READY]
+
+errors:
+  - RUNTIME_NOT_RUNNING
+  - PLUGIN_NOT_FOUND
+  - BRIDGE_UNAVAILABLE
+  - BRIDGE_TIMEOUT
+  - CAPABILITY_UNAVAILABLE
+
+tests:
+  contract: [CT-PLUGIN-GET-001, CT-PLUGIN-METADATA-001, CT-PLUGIN-METADATA-002, CT-PLUGIN-METADATA-003]
+  integration: [IT-PLUGIN-GET-001]

@@ -1,0 +1,61 @@
+id: scenario.run
+version: 1
+milestone: M2A
+summary: Scenario'yu kendi disposable runtime'ında çalıştırır, assertion'ları değerlendirir ve evidence toplar.
+status: planned
+
+exposure:
+  developer_tool: scenario_run
+  debug_tool: null
+  authoring_tool: scenario_run
+  bridge_operation: null
+  dsl_step: null
+
+risk:
+  effect: process
+  scope: disposable_runtime
+  reversibility: runtime_discard
+  approval: profile
+  exposure: agent_visible
+  cost: high
+  level: R1
+
+contracts:
+  input: schemas/scenario-run.input.json
+  output: schemas/scenario-run.output.json
+
+limits:
+  timeout_ms: 600000
+  requires_idempotency: true
+
+requires:
+  capabilities:
+    - scenario.validate
+    - runtime.create
+    - runtime.launch
+    - runtime.stop
+    - runtime.release
+    - evidence.read
+
+errors:
+  - SCENARIO_SCHEMA_INVALID
+  - SCENARIO_STEP_NOT_ALLOWED
+  - CAPABILITY_UNAVAILABLE
+  - SCENARIO_TIMEOUT
+  - ASSERTION_FAILED
+  - RUNTIME_CRASHED
+  - CLEANUP_FAILED
+  - EVIDENCE_WRITE_FAILED
+  - MUTATION_UNKNOWN_OUTCOME
+
+tests:
+  contract: [CT-SCENARIO-RUN-001]
+  integration: [IT-SCENARIO-001]
+  security: [ST-CLEANUP-001]
+  e2e: [E2E-SCENARIO-001]
+
+notes: >
+  Her scenario kendi runtime'ında çalışır; runtime paylaşımı yoktur
+  (contracts/determinism.md). ASSERTION_FAILED bir hata kodu olmakla birlikte
+  run'ı FAILED'a değil, scenario sonucunu FAILED'a taşır; cleanup sonucu
+  ayrı alanda raporlanır.

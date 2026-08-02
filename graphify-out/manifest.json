@@ -1,0 +1,602 @@
+{
+  "apps/mcp-server/package.json": {
+    "mtime": 1785535190.869799,
+    "ast_hash": "848eeac94d43b1573342b6abc20066e0",
+    "semantic_hash": "848eeac94d43b1573342b6abc20066e0"
+  },
+  "apps/mcp-server/src/index.ts": {
+    "mtime": 1785620508.1210816,
+    "ast_hash": "8c6ca2ef30dddda6c0b346fc765b6502",
+    "semantic_hash": "8c6ca2ef30dddda6c0b346fc765b6502"
+  },
+  "apps/mcp-server/src/logging.ts": {
+    "mtime": 1785434213.3488295,
+    "ast_hash": "1ab6b419059975a43250001c663d2d6e",
+    "semantic_hash": "1ab6b419059975a43250001c663d2d6e"
+  },
+  "apps/mcp-server/src/server.ts": {
+    "mtime": 1785435156.1044858,
+    "ast_hash": "762396b72bef7c18b9157b888b623b12",
+    "semantic_hash": "762396b72bef7c18b9157b888b623b12"
+  },
+  "apps/mcp-server/src/supervisor-client.ts": {
+    "mtime": 1785534585.8991923,
+    "ast_hash": "95c04da6720a698032e59f62421b36f0",
+    "semantic_hash": "95c04da6720a698032e59f62421b36f0"
+  },
+  "apps/mcp-server/src/tools/facade.ts": {
+    "mtime": 1785435611.7257292,
+    "ast_hash": "ce2c1aa65738b5f1b5c0bd573c8f106d",
+    "semantic_hash": "ce2c1aa65738b5f1b5c0bd573c8f106d"
+  },
+  "apps/mcp-server/src/tools/system.ts": {
+    "mtime": 1785535051.3261774,
+    "ast_hash": "a44e7494df1b45bfd051533ed0547c06",
+    "semantic_hash": "a44e7494df1b45bfd051533ed0547c06"
+  },
+  "apps/mcp-server/src/transport/stdio-transport.ts": {
+    "mtime": 1785434206.0565832,
+    "ast_hash": "78bcd029c4e0eaf774ec0524695e02ce",
+    "semantic_hash": "78bcd029c4e0eaf774ec0524695e02ce"
+  },
+  "apps/mcp-server/src/transport/stdout-guard.ts": {
+    "mtime": 1785434179.1951988,
+    "ast_hash": "5ce149a732f4b9104b12cfcc1217411c",
+    "semantic_hash": "5ce149a732f4b9104b12cfcc1217411c"
+  },
+  "apps/mcp-server/src/transport/types.ts": {
+    "mtime": 1785434193.3191988,
+    "ast_hash": "0ce48ce0ee38150fe981b152924aed24",
+    "semantic_hash": "0ce48ce0ee38150fe981b152924aed24"
+  },
+  "apps/mcp-server/test/stdout-purity.test.ts": {
+    "mtime": 1785620718.9451947,
+    "ast_hash": "0b1412d7b81711c3a66a086829d1f9c4",
+    "semantic_hash": "0b1412d7b81711c3a66a086829d1f9c4"
+  },
+  "apps/mcp-server/test/tool-surface.test.ts": {
+    "mtime": 1785534053.383061,
+    "ast_hash": "c021923a7077c42b764de813d15570aa",
+    "semantic_hash": "c021923a7077c42b764de813d15570aa"
+  },
+  "apps/mcp-server/tsconfig.json": {
+    "mtime": 1785434160.9088254,
+    "ast_hash": "0aaf3e2803258f8764d6c5197a080df8",
+    "semantic_hash": "0aaf3e2803258f8764d6c5197a080df8"
+  },
+  "apps/run-supervisor/package.json": {
+    "mtime": 1785613277.0234952,
+    "ast_hash": "5278c601d6ee29535a0e127ffc420c5a",
+    "semantic_hash": "5278c601d6ee29535a0e127ffc420c5a"
+  },
+  "apps/run-supervisor/src/artifact-selection.ts": {
+    "mtime": 1785561714.4857852,
+    "ast_hash": "90c07a7f16bb2239752938c4781cb292",
+    "semantic_hash": "90c07a7f16bb2239752938c4781cb292"
+  },
+  "apps/run-supervisor/src/backend.ts": {
+    "mtime": 1785435722.2499778,
+    "ast_hash": "76f9c179387e88d98fba7573208d35be",
+    "semantic_hash": "76f9c179387e88d98fba7573208d35be"
+  },
+  "apps/run-supervisor/src/bridge-client.ts": {
+    "mtime": 1785653700.838055,
+    "ast_hash": "7ba16b9720406cfa2665b7708a1081d4",
+    "semantic_hash": "7ba16b9720406cfa2665b7708a1081d4"
+  },
+  "apps/run-supervisor/src/build-executor.ts": {
+    "mtime": 1785613329.3254845,
+    "ast_hash": "f93e7e126c95ed59086a41e434f96442",
+    "semantic_hash": "f93e7e126c95ed59086a41e434f96442"
+  },
+  "apps/run-supervisor/src/build-plan.ts": {
+    "mtime": 1785561645.4448702,
+    "ast_hash": "a8bdca5907f87d57e124ea2aa4b0d392",
+    "semantic_hash": "a8bdca5907f87d57e124ea2aa4b0d392"
+  },
+  "apps/run-supervisor/src/compatibility.ts": {
+    "mtime": 1785515863.9741204,
+    "ast_hash": "a6c9f6d62afd4f9144032b91dfe62257",
+    "semantic_hash": "a6c9f6d62afd4f9144032b91dfe62257"
+  },
+  "apps/run-supervisor/src/diagnostics.ts": {
+    "mtime": 1785561684.874412,
+    "ast_hash": "709a91faf6383e8f5021ca5408d647b8",
+    "semantic_hash": "709a91faf6383e8f5021ca5408d647b8"
+  },
+  "apps/run-supervisor/src/endpoint.ts": {
+    "mtime": 1785535094.367372,
+    "ast_hash": "7b1404d4fbad368cc4c9701adbc56016",
+    "semantic_hash": "7b1404d4fbad368cc4c9701adbc56016"
+  },
+  "apps/run-supervisor/src/gradle-validation.ts": {
+    "mtime": 1785560917.5444982,
+    "ast_hash": "4b0a4c4227c3183cb89d2fe60b66e09c",
+    "semantic_hash": "4b0a4c4227c3183cb89d2fe60b66e09c"
+  },
+  "apps/run-supervisor/src/index.ts": {
+    "mtime": 1785534525.7836275,
+    "ast_hash": "e7e31d42523fa986d6fe9d219274eeb6",
+    "semantic_hash": "e7e31d42523fa986d6fe9d219274eeb6"
+  },
+  "apps/run-supervisor/src/ipc-server.ts": {
+    "mtime": 1785650986.787452,
+    "ast_hash": "6ad93fca80e896c3c5ad51375bbe7f8f",
+    "semantic_hash": "6ad93fca80e896c3c5ad51375bbe7f8f"
+  },
+  "apps/run-supervisor/src/java-toolchain.ts": {
+    "mtime": 1785515931.4221385,
+    "ast_hash": "d0a8d5630f2038d5f92d5680b6fd280a",
+    "semantic_hash": "d0a8d5630f2038d5f92d5680b6fd280a"
+  },
+  "apps/run-supervisor/src/m0-smoke.ts": {
+    "mtime": 1785533673.2247188,
+    "ast_hash": "12a9695b4eaafa1f16a479057aa77d51",
+    "semantic_hash": "12a9695b4eaafa1f16a479057aa77d51"
+  },
+  "apps/run-supervisor/src/ownership.ts": {
+    "mtime": 1785434430.6185737,
+    "ast_hash": "f370df539be7708bf8d6101ba1b0e867",
+    "semantic_hash": "f370df539be7708bf8d6101ba1b0e867"
+  },
+  "apps/run-supervisor/src/paper-download.ts": {
+    "mtime": 1785515906.6203938,
+    "ast_hash": "faf5b2d477ffe9438c658fd5e196ef10",
+    "semantic_hash": "faf5b2d477ffe9438c658fd5e196ef10"
+  },
+  "apps/run-supervisor/src/plugin-metadata.ts": {
+    "mtime": 1785651698.6703167,
+    "ast_hash": "5a3dc89c2111f7282c8596cc74f04358",
+    "semantic_hash": "5a3dc89c2111f7282c8596cc74f04358"
+  },
+  "apps/run-supervisor/src/project-registry.ts": {
+    "mtime": 1785560681.8848445,
+    "ast_hash": "9a408541a5a10cd451e1e1af0980a529",
+    "semantic_hash": "9a408541a5a10cd451e1e1af0980a529"
+  },
+  "apps/run-supervisor/src/runtime-image.ts": {
+    "mtime": 1785533852.0023005,
+    "ast_hash": "cfeb2c5b97b84e7803e1d36323eede27",
+    "semantic_hash": "cfeb2c5b97b84e7803e1d36323eede27"
+  },
+  "apps/run-supervisor/src/runtime-launch.ts": {
+    "mtime": 1785533085.5677948,
+    "ast_hash": "f2a1930f88a4db6f44baf0a03ce7e31b",
+    "semantic_hash": "f2a1930f88a4db6f44baf0a03ce7e31b"
+  },
+  "apps/run-supervisor/src/runtime-registry.ts": {
+    "mtime": 1785534412.3188307,
+    "ast_hash": "5a50b15a6a5c17c3532e7bda3e6ab7cc",
+    "semantic_hash": "5a50b15a6a5c17c3532e7bda3e6ab7cc"
+  },
+  "apps/run-supervisor/src/service.ts": {
+    "mtime": 1785652667.0184839,
+    "ast_hash": "376d5594c97e3eced3b59f0434773ac0",
+    "semantic_hash": "376d5594c97e3eced3b59f0434773ac0"
+  },
+  "apps/run-supervisor/src/source-snapshot.ts": {
+    "mtime": 1785560735.2731762,
+    "ast_hash": "9929daa318cbfddcc8f23ae252d76a4b",
+    "semantic_hash": "9929daa318cbfddcc8f23ae252d76a4b"
+  },
+  "apps/run-supervisor/src/trusted-local-backend.ts": {
+    "mtime": 1785562343.8165684,
+    "ast_hash": "61c040f6ddb5f6ecd1cc6c0505b066fa",
+    "semantic_hash": "61c040f6ddb5f6ecd1cc6c0505b066fa"
+  },
+  "apps/run-supervisor/src/zip-reader.ts": {
+    "mtime": 1785613106.5765529,
+    "ast_hash": "e192f656fe8b108554a3b94c3b144634",
+    "semantic_hash": "e192f656fe8b108554a3b94c3b144634"
+  },
+  "apps/run-supervisor/test/build-pipeline.test.ts": {
+    "mtime": 1785612810.3698812,
+    "ast_hash": "d411b7beccef8b98340f22fc4e0f956e",
+    "semantic_hash": "d411b7beccef8b98340f22fc4e0f956e"
+  },
+  "apps/run-supervisor/test/error-fidelity.test.ts": {
+    "mtime": 1785534814.7858398,
+    "ast_hash": "91bd9c2f12b828a1964a52b567f0581d",
+    "semantic_hash": "91bd9c2f12b828a1964a52b567f0581d"
+  },
+  "apps/run-supervisor/test/gradle-validation.test.ts": {
+    "mtime": 1785560974.720407,
+    "ast_hash": "80bd741b461f179a5fc88f5a98276688",
+    "semantic_hash": "80bd741b461f179a5fc88f5a98276688"
+  },
+  "apps/run-supervisor/test/ipc.test.ts": {
+    "mtime": 1785651180.2902558,
+    "ast_hash": "54e7ac4f62ecd21b9de3e2a674543ead",
+    "semantic_hash": "54e7ac4f62ecd21b9de3e2a674543ead"
+  },
+  "apps/run-supervisor/test/java-toolchain.test.ts": {
+    "mtime": 1785515984.4673629,
+    "ast_hash": "06ae4ab270b85746e445e2e6f5181485",
+    "semantic_hash": "06ae4ab270b85746e445e2e6f5181485"
+  },
+  "apps/run-supervisor/test/ownership.test.ts": {
+    "mtime": 1785434503.9947565,
+    "ast_hash": "e3da49013fbf3343b53725a87b225bbe",
+    "semantic_hash": "e3da49013fbf3343b53725a87b225bbe"
+  },
+  "apps/run-supervisor/test/paper-download.test.ts": {
+    "mtime": 1785516030.404127,
+    "ast_hash": "2e92e0a9fb7bb58dc589fbdb099c5871",
+    "semantic_hash": "2e92e0a9fb7bb58dc589fbdb099c5871"
+  },
+  "apps/run-supervisor/test/plugin-metadata.test.ts": {
+    "mtime": 1785613227.505126,
+    "ast_hash": "16599219c79d2a144318289738265ba0",
+    "semantic_hash": "16599219c79d2a144318289738265ba0"
+  },
+  "apps/run-supervisor/test/project-registry.test.ts": {
+    "mtime": 1785560774.7254362,
+    "ast_hash": "b90a7802b14b91adddbb01cc82d01072",
+    "semantic_hash": "b90a7802b14b91adddbb01cc82d01072"
+  },
+  "apps/run-supervisor/test/runtime-image.test.ts": {
+    "mtime": 1785533155.184975,
+    "ast_hash": "8ce834c18cf4ede7fa6c865767f2e7d5",
+    "semantic_hash": "8ce834c18cf4ede7fa6c865767f2e7d5"
+  },
+  "apps/run-supervisor/test/source-snapshot.test.ts": {
+    "mtime": 1785560816.3743675,
+    "ast_hash": "fdf8c9bcad46158cd5e1fdf61e22db8d",
+    "semantic_hash": "fdf8c9bcad46158cd5e1fdf61e22db8d"
+  },
+  "apps/run-supervisor/tsconfig.json": {
+    "mtime": 1785613278.5464394,
+    "ast_hash": "9f2da9e7c633830caa274a5ffd9d854d",
+    "semantic_hash": "9f2da9e7c633830caa274a5ffd9d854d"
+  },
+  "bridge/paper/build.gradle.kts": {
+    "mtime": 1785437150.4705756,
+    "ast_hash": "68d2ab66771883b381b2e2375cdf30f8",
+    "semantic_hash": "68d2ab66771883b381b2e2375cdf30f8"
+  },
+  "bridge/paper/gradlew": {
+    "mtime": 1785436941.8483772,
+    "ast_hash": "a43be8432bac3ffd05b3769aa42fe996",
+    "semantic_hash": "a43be8432bac3ffd05b3769aa42fe996"
+  },
+  "bridge/paper/settings.gradle.kts": {
+    "mtime": 1785434513.1897316,
+    "ast_hash": "90498f5f8d6eaf582ee610779cd6d2ee",
+    "semantic_hash": "90498f5f8d6eaf582ee610779cd6d2ee"
+  },
+  "bridge/paper/src/main/java/io/github/mcpdev/bridge/BridgeBoot.java": {
+    "mtime": 1785434601.7443812,
+    "ast_hash": "b7ef1eb2505fbf774d9e8f3134b67a84",
+    "semantic_hash": "b7ef1eb2505fbf774d9e8f3134b67a84"
+  },
+  "bridge/paper/src/main/java/io/github/mcpdev/bridge/BridgeRuntimeContext.java": {
+    "mtime": 1785516430.994453,
+    "ast_hash": "d54e1dcf498b0e4cca56ab08865a1a6a",
+    "semantic_hash": "d54e1dcf498b0e4cca56ab08865a1a6a"
+  },
+  "bridge/paper/src/main/java/io/github/mcpdev/bridge/HandshakeFile.java": {
+    "mtime": 1785516317.9274895,
+    "ast_hash": "54e4160f09034783f592998279b10f2a",
+    "semantic_hash": "54e4160f09034783f592998279b10f2a"
+  },
+  "bridge/paper/src/main/java/io/github/mcpdev/bridge/PaperBridgePlugin.java": {
+    "mtime": 1785518050.7938373,
+    "ast_hash": "3e5ef7c9416f9aecb4cc44883ae2139f",
+    "semantic_hash": "3e5ef7c9416f9aecb4cc44883ae2139f"
+  },
+  "bridge/paper/src/main/java/io/github/mcpdev/bridge/events/BridgeEvent.java": {
+    "mtime": 1785517557.994315,
+    "ast_hash": "b71c4038c46aa513d819a8af18a1b256",
+    "semantic_hash": "b71c4038c46aa513d819a8af18a1b256"
+  },
+  "bridge/paper/src/main/java/io/github/mcpdev/bridge/events/EventCursorException.java": {
+    "mtime": 1785517602.213862,
+    "ast_hash": "5b0e98947c74f7b4b985cdf7f911eee1",
+    "semantic_hash": "5b0e98947c74f7b4b985cdf7f911eee1"
+  },
+  "bridge/paper/src/main/java/io/github/mcpdev/bridge/events/EventRingBuffer.java": {
+    "mtime": 1785517589.699792,
+    "ast_hash": "a19da878227713a366735ed341e8413c",
+    "semantic_hash": "a19da878227713a366735ed341e8413c"
+  },
+  "bridge/paper/src/main/java/io/github/mcpdev/bridge/generated/BridgeOperation.java": {
+    "mtime": 1785653793.3227212,
+    "ast_hash": "1f074a16b63ebe64c65f4eb3f45f6c9e",
+    "semantic_hash": "1f074a16b63ebe64c65f4eb3f45f6c9e"
+  },
+  "bridge/paper/src/main/java/io/github/mcpdev/bridge/generated/ErrorCode.java": {
+    "mtime": 1785435336.6405835,
+    "ast_hash": "a86fa307422f9cf0fd29ab4fc1b6c10c",
+    "semantic_hash": "a86fa307422f9cf0fd29ab4fc1b6c10c"
+  },
+  "bridge/paper/src/main/java/io/github/mcpdev/bridge/http/BridgeCredentials.java": {
+    "mtime": 1785516176.1597564,
+    "ast_hash": "e12ad12bbf16a197a7c5fe4575da7650",
+    "semantic_hash": "e12ad12bbf16a197a7c5fe4575da7650"
+  },
+  "bridge/paper/src/main/java/io/github/mcpdev/bridge/http/BridgeEndpoints.java": {
+    "mtime": 1785653716.9577472,
+    "ast_hash": "c8881edd3f0602efa3272df0371b451e",
+    "semantic_hash": "c8881edd3f0602efa3272df0371b451e"
+  },
+  "bridge/paper/src/main/java/io/github/mcpdev/bridge/http/BridgeHttpServer.java": {
+    "mtime": 1785653751.4676402,
+    "ast_hash": "e6e66068d77d2d9a07f9eed3b260dcef",
+    "semantic_hash": "e6e66068d77d2d9a07f9eed3b260dcef"
+  },
+  "bridge/paper/src/main/java/io/github/mcpdev/bridge/http/Json.java": {
+    "mtime": 1785516247.4925013,
+    "ast_hash": "230b2226c19e8f64fcfb3c2f4ec40491",
+    "semantic_hash": "230b2226c19e8f64fcfb3c2f4ec40491"
+  },
+  "bridge/paper/src/main/java/io/github/mcpdev/bridge/http/JsonReader.java": {
+    "mtime": 1785517859.9140143,
+    "ast_hash": "85bbf74d34ed36d237d73384f7623485",
+    "semantic_hash": "85bbf74d34ed36d237d73384f7623485"
+  },
+  "bridge/paper/src/main/java/io/github/mcpdev/bridge/ops/BridgeOperationException.java": {
+    "mtime": 1785517721.0145922,
+    "ast_hash": "d27dce2363a66e8c6a0a01ef98dd330c",
+    "semantic_hash": "d27dce2363a66e8c6a0a01ef98dd330c"
+  },
+  "bridge/paper/src/main/java/io/github/mcpdev/bridge/ops/PaperReadOperations.java": {
+    "mtime": 1785533667.4047265,
+    "ast_hash": "2fb02fd5fe4ec83e0eb05feaace8c3fe",
+    "semantic_hash": "2fb02fd5fe4ec83e0eb05feaace8c3fe"
+  },
+  "bridge/paper/src/main/java/io/github/mcpdev/bridge/ops/QueryDispatcher.java": {
+    "mtime": 1785517752.969728,
+    "ast_hash": "7135ee3ca39d91e0d4d880cce010052e",
+    "semantic_hash": "7135ee3ca39d91e0d4d880cce010052e"
+  },
+  "bridge/paper/src/main/java/io/github/mcpdev/bridge/ops/ReadOperations.java": {
+    "mtime": 1785517727.7043736,
+    "ast_hash": "d20bf5ee2d995ad95fbb439944649473",
+    "semantic_hash": "d20bf5ee2d995ad95fbb439944649473"
+  },
+  "bridge/paper/src/main/java/io/github/mcpdev/bridge/scheduler/BridgeTimeoutException.java": {
+    "mtime": 1785517681.6082487,
+    "ast_hash": "b49b14055cddef5ebda174ece541adc9",
+    "semantic_hash": "b49b14055cddef5ebda174ece541adc9"
+  },
+  "bridge/paper/src/main/java/io/github/mcpdev/bridge/scheduler/MainThreadExecutor.java": {
+    "mtime": 1785517676.4262109,
+    "ast_hash": "707b4c0326295be7ba3e59b6488a6ec0",
+    "semantic_hash": "707b4c0326295be7ba3e59b6488a6ec0"
+  },
+  "bridge/paper/src/main/java/io/github/mcpdev/bridge/scheduler/PaperMainThreadExecutor.java": {
+    "mtime": 1785517694.4368348,
+    "ast_hash": "976ce8c82de5bbb35dbbdcdaecabf2a4",
+    "semantic_hash": "976ce8c82de5bbb35dbbdcdaecabf2a4"
+  },
+  "bridge/paper/src/test/java/io/github/mcpdev/bridge/BridgeBootTest.java": {
+    "mtime": 1785434609.664742,
+    "ast_hash": "3f8cfea509329b487eef2bd249fe75e6",
+    "semantic_hash": "3f8cfea509329b487eef2bd249fe75e6"
+  },
+  "bridge/paper/src/test/java/io/github/mcpdev/bridge/BridgeRuntimeContextTest.java": {
+    "mtime": 1785516482.563762,
+    "ast_hash": "e0cd3a2c1cc11464e4a93e37a3e64455",
+    "semantic_hash": "e0cd3a2c1cc11464e4a93e37a3e64455"
+  },
+  "bridge/paper/src/test/java/io/github/mcpdev/bridge/HandshakeFileTest.java": {
+    "mtime": 1785516500.710514,
+    "ast_hash": "308991fcafd1714ee5dcdacb77356210",
+    "semantic_hash": "308991fcafd1714ee5dcdacb77356210"
+  },
+  "bridge/paper/src/test/java/io/github/mcpdev/bridge/events/EventRingBufferTest.java": {
+    "mtime": 1785517628.406778,
+    "ast_hash": "3f6697ae481714693c23b36ceac98fc1",
+    "semantic_hash": "3f6697ae481714693c23b36ceac98fc1"
+  },
+  "bridge/paper/src/test/java/io/github/mcpdev/bridge/http/BridgeEndpointsTest.java": {
+    "mtime": 1785518096.8222446,
+    "ast_hash": "77dd76381655b48e93842747249fa8e6",
+    "semantic_hash": "77dd76381655b48e93842747249fa8e6"
+  },
+  "bridge/paper/src/test/java/io/github/mcpdev/bridge/http/BridgeHttpServerTest.java": {
+    "mtime": 1785516365.3448799,
+    "ast_hash": "d653b520076ceb012acb47667d8ae815",
+    "semantic_hash": "d653b520076ceb012acb47667d8ae815"
+  },
+  "bridge/paper/src/test/java/io/github/mcpdev/bridge/ops/QueryDispatcherTest.java": {
+    "mtime": 1785517794.3980136,
+    "ast_hash": "3c5d9a8bfd9fa8bd17ced3ba0039c9c4",
+    "semantic_hash": "3c5d9a8bfd9fa8bd17ced3ba0039c9c4"
+  },
+  "package.json": {
+    "mtime": 1785515434.183157,
+    "ast_hash": "d534a86b552c48e423d32f97322fa3d0",
+    "semantic_hash": "d534a86b552c48e423d32f97322fa3d0"
+  },
+  "packages/capability-registry/package.json": {
+    "mtime": 1785434735.926494,
+    "ast_hash": "bcd5eade7473f2c5324e61cce38dad71",
+    "semantic_hash": "bcd5eade7473f2c5324e61cce38dad71"
+  },
+  "packages/capability-registry/schema/capability.schema.json": {
+    "mtime": 1785356383.6279008,
+    "ast_hash": "591ad14871a39693b807f901afc16183",
+    "semantic_hash": "591ad14871a39693b807f901afc16183"
+  },
+  "packages/config-schema/package.json": {
+    "mtime": 1785434738.7711248,
+    "ast_hash": "fde34fab3e23bd6bd95c2fb971b31e42",
+    "semantic_hash": "fde34fab3e23bd6bd95c2fb971b31e42"
+  },
+  "packages/config-schema/schema/config.schema.json": {
+    "mtime": 1785433843.328851,
+    "ast_hash": "130aed2ac26076128e451a910987e325",
+    "semantic_hash": "130aed2ac26076128e451a910987e325"
+  },
+  "packages/contracts/package.json": {
+    "mtime": 1785535190.8718421,
+    "ast_hash": "ccaff5767dc3381fbfeca29bb2fa365f",
+    "semantic_hash": "ccaff5767dc3381fbfeca29bb2fa365f"
+  },
+  "packages/contracts/schemas/bridge/bridge-event.schema.json": {
+    "mtime": 1785433819.7824275,
+    "ast_hash": "23c7b0350c956e5c9ad0e007f2797f18",
+    "semantic_hash": "23c7b0350c956e5c9ad0e007f2797f18"
+  },
+  "packages/contracts/schemas/bridge/bridge-request.schema.json": {
+    "mtime": 1785433808.3115838,
+    "ast_hash": "f3cba7c0d1c89f1cc0fa762fcba88de1",
+    "semantic_hash": "f3cba7c0d1c89f1cc0fa762fcba88de1"
+  },
+  "packages/contracts/schemas/bridge/bridge-response.schema.json": {
+    "mtime": 1785433813.5028484,
+    "ast_hash": "2d96bcf158f112112251c596b9d5c678",
+    "semantic_hash": "2d96bcf158f112112251c596b9d5c678"
+  },
+  "packages/contracts/schemas/common/tool-error.schema.json": {
+    "mtime": 1785357017.44005,
+    "ast_hash": "9bf77b841e514774e684e29ed5f53b2a",
+    "semantic_hash": "9bf77b841e514774e684e29ed5f53b2a"
+  },
+  "packages/contracts/schemas/common/tool-result.schema.json": {
+    "mtime": 1785357021.2240787,
+    "ast_hash": "8a8cd040350d2c9421bfbd1bc4c1718c",
+    "semantic_hash": "8a8cd040350d2c9421bfbd1bc4c1718c"
+  },
+  "packages/contracts/schemas/scenario/scenario.schema.json": {
+    "mtime": 1785435336.6426246,
+    "ast_hash": "48fe464b44c24cfe93a84dac83ae4928",
+    "semantic_hash": "48fe464b44c24cfe93a84dac83ae4928"
+  },
+  "packages/contracts/src/endpoint.ts": {
+    "mtime": 1785535076.9153354,
+    "ast_hash": "d5c5a489a0ce5e380b31d66a402261c8",
+    "semantic_hash": "d5c5a489a0ce5e380b31d66a402261c8"
+  },
+  "packages/contracts/src/index.ts": {
+    "mtime": 1785535078.4936326,
+    "ast_hash": "d064f63cb63125db417a442dc06e2619",
+    "semantic_hash": "d064f63cb63125db417a442dc06e2619"
+  },
+  "packages/contracts/src/ipc.ts": {
+    "mtime": 1785651088.6671803,
+    "ast_hash": "503ecdfeed915b27a904070680d28850",
+    "semantic_hash": "503ecdfeed915b27a904070680d28850"
+  },
+  "packages/contracts/src/ndjson.ts": {
+    "mtime": 1785534357.7066457,
+    "ast_hash": "510d0d89e579899a9df2bd78227d52ed",
+    "semantic_hash": "510d0d89e579899a9df2bd78227d52ed"
+  },
+  "packages/contracts/tsconfig.json": {
+    "mtime": 1785434130.642376,
+    "ast_hash": "d9d8785ff6342f46e98e909822751ffd",
+    "semantic_hash": "d9d8785ff6342f46e98e909822751ffd"
+  },
+  "packages/error-catalog/package.json": {
+    "mtime": 1785434737.3394115,
+    "ast_hash": "2a84bb502ef2ecda1deb10170cae7622",
+    "semantic_hash": "2a84bb502ef2ecda1deb10170cae7622"
+  },
+  "packages/error-catalog/schema/error-catalog-file.schema.json": {
+    "mtime": 1785356715.7434938,
+    "ast_hash": "9d6d197a7ea38f5609e188719c1f2a1c",
+    "semantic_hash": "9d6d197a7ea38f5609e188719c1f2a1c"
+  },
+  "packages/error-catalog/schema/error.schema.json": {
+    "mtime": 1785356399.8059714,
+    "ast_hash": "f862ca751986c1ccfc78658a5aa72a43",
+    "semantic_hash": "f862ca751986c1ccfc78658a5aa72a43"
+  },
+  "packages/evidence-model/package.json": {
+    "mtime": 1785535190.8718421,
+    "ast_hash": "88be603f902c398f28d6353f492a0a6e",
+    "semantic_hash": "88be603f902c398f28d6353f492a0a6e"
+  },
+  "packages/evidence-model/src/index.ts": {
+    "mtime": 1785534951.7063434,
+    "ast_hash": "c6938c2b5e886c6d7ec787ad84a4f79f",
+    "semantic_hash": "c6938c2b5e886c6d7ec787ad84a4f79f"
+  },
+  "packages/evidence-model/src/store.ts": {
+    "mtime": 1785534941.8321047,
+    "ast_hash": "fbf74a710421a65b56054ad77fedc033",
+    "semantic_hash": "fbf74a710421a65b56054ad77fedc033"
+  },
+  "packages/evidence-model/test/store.test.ts": {
+    "mtime": 1785534980.98727,
+    "ast_hash": "4ae184e71d6cb69f595b6650aaa2784e",
+    "semantic_hash": "4ae184e71d6cb69f595b6650aaa2784e"
+  },
+  "packages/evidence-model/tsconfig.json": {
+    "mtime": 1785534992.8344958,
+    "ast_hash": "b4f0450c8debb878e083463d7e594e3d",
+    "semantic_hash": "b4f0450c8debb878e083463d7e594e3d"
+  },
+  "packages/generated-types/package.json": {
+    "mtime": 1785535190.8733447,
+    "ast_hash": "ef1dfe4cdba5df3e5d8548a09d9e113d",
+    "semantic_hash": "ef1dfe4cdba5df3e5d8548a09d9e113d"
+  },
+  "packages/generated-types/src/capabilities.generated.ts": {
+    "mtime": 1785435336.6382594,
+    "ast_hash": "31574ad93a6c08d18920c125e0e26601",
+    "semantic_hash": "31574ad93a6c08d18920c125e0e26601"
+  },
+  "packages/generated-types/src/errors.generated.ts": {
+    "mtime": 1785435336.6382594,
+    "ast_hash": "8f587309a1707b26c0e5b6d235453c18",
+    "semantic_hash": "8f587309a1707b26c0e5b6d235453c18"
+  },
+  "packages/generated-types/src/index.ts": {
+    "mtime": 1785434113.417078,
+    "ast_hash": "64d20f324ff7a31b361862571b05614e",
+    "semantic_hash": "64d20f324ff7a31b361862571b05614e"
+  },
+  "packages/generated-types/src/tool-profiles.generated.ts": {
+    "mtime": 1785435336.6395712,
+    "ast_hash": "4b3f585a3241405ccdaa3cde3d9aa950",
+    "semantic_hash": "4b3f585a3241405ccdaa3cde3d9aa950"
+  },
+  "packages/generated-types/tsconfig.json": {
+    "mtime": 1785434110.0257657,
+    "ast_hash": "d9d8785ff6342f46e98e909822751ffd",
+    "semantic_hash": "d9d8785ff6342f46e98e909822751ffd"
+  },
+  "scripts/check-docs.mjs": {
+    "mtime": 1785435539.1211317,
+    "ast_hash": "eb887af6894c460a5f13e935a5cea0ce",
+    "semantic_hash": "eb887af6894c460a5f13e935a5cea0ce"
+  },
+  "scripts/check-parse.mjs": {
+    "mtime": 1785433966.2294674,
+    "ast_hash": "8ccac12c54605dce57a34a2a6bd5a739",
+    "semantic_hash": "8ccac12c54605dce57a34a2a6bd5a739"
+  },
+  "scripts/generate-contracts.mjs": {
+    "mtime": 1785434272.4805949,
+    "ast_hash": "2e65d12656a22ca4352811cbf47e1db4",
+    "semantic_hash": "2e65d12656a22ca4352811cbf47e1db4"
+  },
+  "scripts/lib/registry.mjs": {
+    "mtime": 1785435389.2899585,
+    "ast_hash": "5312b5e7ab0bcf83576bf783664cbd68",
+    "semantic_hash": "5312b5e7ab0bcf83576bf783664cbd68"
+  },
+  "scripts/validate-registry.mjs": {
+    "mtime": 1785435401.4710023,
+    "ast_hash": "ca66f25631a598da8cf0224de8911e74",
+    "semantic_hash": "ca66f25631a598da8cf0224de8911e74"
+  },
+  "scripts/validate-schemas.mjs": {
+    "mtime": 1785435418.0956342,
+    "ast_hash": "c2d3b19e716fbd072b00391810adacdb",
+    "semantic_hash": "c2d3b19e716fbd072b00391810adacdb"
+  },
+  "scripts/verify-compatibility.mjs": {
+    "mtime": 1785434090.5108552,
+    "ast_hash": "24a18645f1c7885238887ae75f5845af",
+    "semantic_hash": "24a18645f1c7885238887ae75f5845af"
+  },
+  "tsconfig.base.json": {
+    "mtime": 1785434099.2161076,
+    "ast_hash": "84d77e33730c9b5077ebe10e7d5fbfbd",
+    "semantic_hash": "84d77e33730c9b5077ebe10e7d5fbfbd"
+  }
+}

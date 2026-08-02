@@ -1,0 +1,23 @@
+fixture_id: flat-world-v1
+version: 1
+
+# Dünya verisi henüz üretilmedi; source_sha256 fixture oluşturulduğunda
+# doldurulur ve FIXTURE_CHECKSUM_INVALID kontrolü buna karşı çalışır.
+source_sha256: null
+world_seed: 123456789
+supported_profile: paper-26.2-build-84-v1
+
+regions:
+  fixture-area:
+    world_key: minecraft:overworld
+    min: { x: -64, y: -64, z: -64 }
+    max: { x: 64, y: 320, z: 64 }
+
+# world.set_block yalnızca bu listedeki materyalleri yazabilir;
+# aksi hâlde MATERIAL_NOT_ALLOWED döner.
+allowed_materials:
+  - minecraft:air
+  - minecraft:stone
+  - minecraft:dirt
+  - minecraft:grass_block
+  - minecraft:chest

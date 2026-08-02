@@ -1,0 +1,20 @@
+name: MediumPlugin
+version: '${version}'
+main: com.example.MediumPlugin
+api-version: '${apiVersion}'
+description: Medium-complexity test plugin with events and scheduled tasks
+commands:
+  greet:
+    description: Greets the player
+    usage: /greet
+  status:
+    description: Shows plugin status
+    usage: /status
+    permission: mediumplugin.status
+permissions:
+  mediumplugin.status:
+    description: Allows viewing plugin status
+    default: op
+  mediumplugin.greet.broadcast:
+    description: Allows greeting all players
+    default: op

@@ -1,0 +1,46 @@
+id: scenario.validate
+version: 1
+milestone: M2A
+summary: Scenario dosyasını şemaya, step allowlist'ine ve mevcut capability'lere karşı doğrular; çalıştırmaz.
+status: planned
+
+exposure:
+  developer_tool: scenario_validate
+  debug_tool: null
+  authoring_tool: scenario_validate
+  bridge_operation: null
+  dsl_step: null
+
+risk:
+  effect: read
+  scope: fixture
+  reversibility: reversible
+  approval: none
+  exposure: agent_visible
+  cost: low
+  level: R0
+
+contracts:
+  input: schemas/scenario-validate.input.json
+  output: schemas/scenario-validate.output.json
+
+limits:
+  timeout_ms: 10000
+
+errors:
+  - SCENARIO_SCHEMA_INVALID
+  - SCENARIO_STEP_NOT_ALLOWED
+  - SCENARIO_STEP_LIMIT_EXCEEDED
+  - CAPABILITY_UNAVAILABLE
+  - PLUGIN_CONTRACT_NOT_FOUND
+  - PLUGIN_CONTRACT_COMMAND_UNKNOWN
+  - FIXTURE_NOT_FOUND
+
+tests:
+  unit: [UT-SCENARIO-SCHEMA-001, UT-SCENARIO-ALLOWLIST-001]
+  contract: [CT-SCENARIO-VALIDATE-001]
+  security: [ST-SCENARIO-YAML-001]
+
+notes: >
+  Eksik capability sessizce atlanmaz: M2B kapalıyken actor gerektiren bir
+  scenario burada CAPABILITY_UNAVAILABLE ile açıkça reddedilir (ADR-0006).

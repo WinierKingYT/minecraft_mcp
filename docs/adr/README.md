@@ -1,0 +1,42 @@
+# Mimari kararlar (ADR)
+
+| ADR | Başlık | Durum |
+|---|---|---|
+| [0001](0001-process-topology.md) | Deployable process topolojisi | accepted |
+| [0002](0002-mcp-stdio-transport.md) | MCP `stdio` taşıması ve SDK bağımlılığı | kısmen superseded by ADR-0008 |
+| [0003](0003-run-supervisor-process.md) | Ayrı Run Supervisor process'i | accepted |
+| [0004](0004-execution-backends.md) | Execution backend soyutlaması ve güven sınıfı eşleşmesi | accepted |
+| [0005](0005-plugin-metadata-policy.md) | `plugin.yml` resmî, `paper-plugin.yml` deneysel | accepted |
+| [0006](0006-m2a-m2b-split.md) | M2A / M2B ayrımı | accepted |
+| [0007](0007-security-claims.md) | Güvenlik iddiaları ve dürüstlük kuralları | accepted |
+| [0008](0008-stateless-protocol-and-stable-sdk.md) | Stateless protokol yüzeyi ve stable SDK durumu | accepted |
+| [0009](0009-node-security-pin.md) | Node pini güvenlik sürümüne taşındı | accepted |
+
+## Şablon
+
+```markdown
+# ADR-NNNN — <Başlık>
+
+**Durum:** proposed | accepted | superseded by ADR-XXXX
+**Tarih:** YYYY-MM-DD
+**Bağlam:** <hangi requirement / JTBD / spike>
+
+## Bağlam
+Hangi problem, hangi kısıtlar.
+
+## Karar
+Tek cümlelik karar, ardından ayrıntı.
+
+## Alternatifler
+| Alternatif | Neden reddedildi |
+
+## Sonuçlar
+Olumlu / olumsuz sonuçlar, hangi testlerle kanıtlanır.
+
+## İlgili
+<capability / gate / belge bağlantıları>
+```
+
+## Kural
+
+Bir ADR kabul edildikten sonra **düzenlenmez**; değişiklik yeni bir ADR ile yapılır ve eskisi `superseded by` ile işaretlenir. Spike sonuçları ADR'ın "Bulgular" bölümüne değil, ilgili spike dosyasına yazılır; ADR yalnızca kararı taşır.

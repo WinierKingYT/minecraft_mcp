@@ -1,0 +1,152 @@
+version: 1
+errors:
+  - code: SUPERVISOR_UNAVAILABLE
+    owner: supervisor
+    category: environment
+    message: "Run Supervisor process'ine ulaşılamıyor."
+    tool_result:
+      is_error: true
+      retryable: true
+      suggested_action: "Supervisor process'inin çalıştığını doğrulayın; system_health çıktısındaki supervisor alanını kontrol edin."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: default-v1
+    tests: [CT-SYSTEM-HEALTH-001, ST-RECOVERY-001]
+
+  - code: RUN_NOT_FOUND
+    owner: supervisor
+    category: not_found
+    message: "Belirtilen run kaydı bulunamadı."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "run_id değerini doğrulayın; retention süresi geçmiş run'lar silinmiş olabilir."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: none
+    tests: [CT-PLUGIN-DIAGNOSE-001]
+
+  - code: OPERATION_NOT_FOUND
+    owner: supervisor
+    category: not_found
+    message: "Belirtilen operation kaydı bulunamadı."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "operation_id değerini doğrulayın."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: none
+    tests: [CT-OPERATION-READ-001]
+
+  - code: OPERATION_NOT_CANCELLABLE
+    owner: supervisor
+    category: conflict
+    message: "Operation zaten terminal durumda veya iptali desteklenmiyor."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "operation_get ile mevcut durumu okuyun; terminal durumdaki operation iptal edilemez."
+    bridge_mapping:
+      http_status: 409
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: none
+    tests: [CT-OPERATION-CANCEL-001]
+
+  - code: PROCESS_OWNERSHIP_MISMATCH
+    owner: supervisor
+    category: integrity
+    message: "Kayıtlı process kimliği çalışan process ile eşleşmiyor; sonlandırma yapılmadı."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "Supervisor startup recovery çalıştırın; bilinmeyen PID körlemesine öldürülmez."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: strict-v1
+      removed_fields: [process.executable_path, process.command_line]
+    terminal_state: ORPHANED
+    tests: [ST-PROC-003]
+    notes: >
+      PID + executable + start time + runtime marker fingerprint eşleşmesi
+      zorunludur (security/controls.md PR-04, PR-05).
+
+  - code: PARENT_OWNERSHIP_MISMATCH
+    owner: supervisor
+    category: integrity
+    message: "Silinecek dizinin üst dizin sahipliği doğrulanamadı."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "Runtime kökü yapılandırmasını kontrol edin; silme dry-run validation olmadan başlamaz."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: strict-v1
+      removed_fields: [path]
+    tests: [ST-PATH-001, CT-RUNTIME-DELETE-001]
+
+  - code: DELETE_VALIDATION_FAILED
+    owner: supervisor
+    category: integrity
+    message: "Silme öncesi dry-run doğrulaması başarısız."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "Garbage Collector loglarını inceleyin; doğrulama geçmeden silme başlamaz."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: strict-v1
+      removed_fields: [path]
+    tests: [UT-DELETE-VALIDATION-001]
+
+  - code: CLEANUP_FAILED
+    owner: supervisor
+    category: integrity
+    message: "Cleanup tamamlanamadı; ana sonuç ayrı raporlanır."
+    tool_result:
+      is_error: true
+      retryable: true
+      suggested_action: "Rapordaki cleanup alanını inceleyin; kalan process ve port için runtime_get çalıştırın."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: default-v1
+    terminal_state: DIRTY
+    tests: [ST-CLEANUP-001, ST-CLEANUP-002, ST-CLEANUP-003]
+    notes: "KPI-12: cleanup failure ana test sonucunu gizlemez."
+
+  - code: RUNTIME_QUOTA_EXCEEDED
+    owner: supervisor
+    category: limit
+    message: "Eşzamanlı runtime limiti aşıldı."
+    tool_result:
+      is_error: true
+      retryable: true
+      suggested_action: "Mevcut runtime'ları plugin_stop ve runtime_release ile serbest bırakın."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: none
+    tests: [CT-RUNTIME-CREATE-001]
+
+  - code: DISK_QUOTA_EXCEEDED
+    owner: supervisor
+    category: limit
+    message: "Yapılandırılmış disk kotası aşıldı."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "Retention süresini kısaltın veya storage.max_total_gb değerini artırın; Garbage Collector'ın çalıştığını doğrulayın."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: none
+    tests: [ST-CONTAINER-QUOTA-004]

@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://minecraft-plugin-dev-mcp/schemas/common/tool-result.schema.json",
+  "title": "Tool structuredContent",
+  "description": "Her tool'un structuredContent alanı bu success/error union'ına uymak zorundadır.",
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "correlation_id", "data", "warnings"],
+      "properties": {
+        "status": { "const": "success" },
+        "correlation_id": { "type": "string", "minLength": 1 },
+        "data": {},
+        "warnings": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "correlation_id", "error"],
+      "properties": {
+        "status": { "const": "error" },
+        "correlation_id": { "type": "string", "minLength": 1 },
+        "error": { "$ref": "tool-error.schema.json" }
+      }
+    }
+  ]
+}

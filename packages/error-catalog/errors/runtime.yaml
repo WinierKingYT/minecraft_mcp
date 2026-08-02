@@ -1,0 +1,183 @@
+version: 1
+errors:
+  - code: RUNTIME_NOT_FOUND
+    owner: runtime
+    category: not_found
+    message: "Belirtilen runtime kaydı bulunamadı."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "runtime kimliğini doğrulayın; retention süresi geçmiş runtime'lar silinmiş olabilir."
+    bridge_mapping:
+      http_status: 404
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: none
+    tests: [CT-RUNTIME-INSPECT-001]
+
+  - code: RUNTIME_INVALID_STATE
+    owner: runtime
+    category: state
+    message: "Runtime bu operation için uygun durumda değil."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "runtime_get ile mevcut durumu okuyun ve durum makinesine uygun geçişi çağırın."
+    bridge_mapping:
+      http_status: 409
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: none
+    tests: [CT-RUNTIME-STOP-001, CT-RUNTIME-RELEASE-001]
+
+  - code: RUNTIME_NOT_RUNNING
+    owner: runtime
+    category: state
+    message: "Runtime çalışmıyor."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "Önce plugin_launch işlemini tamamlayın."
+    bridge_mapping:
+      http_status: 409
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: none
+    tests: [CT-IDEMPOTENCY-003]
+
+  - code: RUNTIME_CRASHED
+    owner: runtime
+    category: internal
+    message: "Paper process beklenmedik biçimde sonlandı."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "evidence_get ile runtime loglarını ve crash kanıtını inceleyin."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: default-v1
+      removed_fields: [absolute_paths]
+    terminal_state: FAILED
+    tests: [IT-PAPER-LIFECYCLE-001]
+
+  - code: RUNTIME_MARKER_MISSING
+    owner: runtime
+    category: integrity
+    message: "Runtime marker dosyası bulunamadı; dizin bize ait olarak doğrulanamadı."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "Dizini elle silmeyin; Garbage Collector marker olmadan silme yapmaz."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: strict-v1
+      removed_fields: [path]
+    tests: [CT-RUNTIME-DELETE-001]
+
+  - code: PAPER_JAR_CHECKSUM_INVALID
+    owner: runtime
+    category: integrity
+    message: "Paper JAR checksum'ı runtime image manifest'indeki değerle eşleşmiyor."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "Paper JAR'ını resmî Downloads Service üzerinden yeniden indirin; sabit metin URL güvenilmez."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: none
+    terminal_state: FAILED
+    tests: [CT-RUNTIME-CREATE-001]
+
+  - code: PORT_UNAVAILABLE
+    owner: runtime
+    category: environment
+    message: "Uygun bir port bulunamadı."
+    tool_result:
+      is_error: true
+      retryable: true
+      suggested_action: "Kalan runtime'ları serbest bırakın; port çakışması için runtime_get çıktısını inceleyin."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: none
+    tests: [CT-RUNTIME-LAUNCH-001]
+
+  - code: PORT_STILL_BOUND
+    owner: runtime
+    category: integrity
+    message: "Runtime kapandıktan sonra port hâlâ bağlı."
+    tool_result:
+      is_error: true
+      retryable: true
+      suggested_action: "Cleanup kanıtını inceleyin; kalan process için Supervisor recovery çalıştırın."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: none
+    terminal_state: DIRTY
+    tests: [ST-CLEANUP-001]
+
+  - code: STARTUP_TIMEOUT
+    owner: runtime
+    category: timeout
+    message: "Paper startup süre limitini aştı."
+    tool_result:
+      is_error: true
+      retryable: true
+      suggested_action: "runtime.startup_timeout_seconds değerini artırın veya runtime loglarında takılma noktasını inceleyin."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: default-v1
+    terminal_state: TIMED_OUT
+    tests: [CT-RUNTIME-LAUNCH-001]
+
+  - code: SHUTDOWN_TIMEOUT
+    owner: runtime
+    category: timeout
+    message: "Graceful shutdown süre limitini aştı; force termination uygulandı."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "Cleanup kanıtındaki force_terminated alanını inceleyin; plugin'in onDisable davranışını kontrol edin."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: none
+    tests: [ST-CLEANUP-003]
+
+  - code: READY_GATE_FAILED
+    owner: runtime
+    category: state
+    message: "Ready gate geçilemedi."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "plugin_diagnose çalıştırın; ready gate Paper hazır + Bridge boot_id + hedef plugin enabled şartlarının üçünü gerektirir."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: default-v1
+    terminal_state: FAILED
+    tests: [UT-READY-GATE-001, CT-RUNTIME-LAUNCH-001]
+
+  - code: PLUGIN_ENABLE_FAILED
+    owner: runtime
+    category: internal
+    message: "Hedef plugin enable aşamasında hata üretti."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "evidence_get ile startup loglarını inceleyin; plugin'in onEnable istisnasını düzeltin."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: default-v1
+    terminal_state: FAILED
+    tests: [IT-PAPER-LIFECYCLE-001]

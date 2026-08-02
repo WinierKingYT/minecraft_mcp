@@ -1,0 +1,55 @@
+id: player.break_block
+version: 1
+milestone: M2B
+summary: Test actor'a gerçek digging paketleriyle blok kırdırır; iptal semantiği gözlemlenebilir.
+status: conditional
+
+exposure:
+  developer_tool: null
+  debug_tool: null
+  bridge_operation: null
+  dsl_step: player.break_block
+
+risk:
+  effect: mutation
+  scope: fixture
+  reversibility: runtime_discard
+  approval: profile
+  exposure: agent_visible
+  cost: low
+  level: R2
+
+contracts:
+  input: schemas/player-break-block.input.json
+  output: schemas/player-break-block.output.json
+
+limits:
+  timeout_ms: 10000
+  max_blocks: 1
+  region: fixture-area
+  requires_idempotency: true
+
+requires:
+  runtime_state: [READY]
+  capabilities:
+    - test_actor.protocol
+
+errors:
+  - CAPABILITY_UNAVAILABLE
+  - ACTOR_UNAVAILABLE
+  - PLAYER_NOT_FOUND
+  - REGION_NOT_ALLOWED
+  - CHUNK_NOT_LOADED
+  - IDEMPOTENCY_KEY_ARGUMENT_MISMATCH
+  - MUTATION_UNKNOWN_OUTCOME
+
+tests:
+  contract: [CT-ACTOR-BREAK-001]
+  integration: [IT-ACTOR-BREAK-001]
+  security: [ST-WORLD-SET-001]
+
+notes: >
+  Bu capability world.block.write ile aynı şey değildir: burada mutation'ı
+  yapan Bridge değil, gerçek bir oyuncu bağlantısıdır. Plugin'in listener'ı
+  iptal ederse blok değişmez ve event cancelled: true olarak gözlemlenir —
+  ADR-0006'nın gerekçesi tam olarak budur.

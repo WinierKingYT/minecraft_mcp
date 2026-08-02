@@ -1,0 +1,44 @@
+id: world.block.read
+version: 1
+milestone: M0
+summary: Fixture bölgesindeki tek bir bloğun materyalini okur.
+status: planned
+
+exposure:
+  developer_tool: null
+  debug_tool: minecraft_world_get_block
+  bridge_operation: world.get_block
+  dsl_step: assert.block
+
+risk:
+  effect: read
+  scope: fixture
+  reversibility: reversible
+  approval: none
+  exposure: agent_visible
+  cost: low
+  level: R0
+
+contracts:
+  input: schemas/world-get-block.input.json
+  output: schemas/world-get-block.output.json
+
+limits:
+  timeout_ms: 2000
+  max_blocks: 1
+  region: fixture-area
+
+requires:
+  runtime_state: [READY]
+
+errors:
+  - RUNTIME_NOT_RUNNING
+  - WORLD_NOT_FOUND
+  - REGION_NOT_ALLOWED
+  - CHUNK_NOT_LOADED
+  - BRIDGE_TIMEOUT
+  - CAPABILITY_UNAVAILABLE
+
+tests:
+  contract: [CT-WORLD-GET-001]
+  integration: [IT-WORLD-GET-001]

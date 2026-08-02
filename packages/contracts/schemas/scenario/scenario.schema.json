@@ -1,0 +1,133 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://minecraft-plugin-dev-mcp/schemas/scenario/scenario.schema.json",
+  "title": "Scenario DSL v1",
+  "description": "YAML yalnızca veridir. Custom tag, include ve raw command string yoktur. Step allowlist'i capability registry'den üretilir; buradaki oneOf listesi pnpm run gen tarafından yenilenir.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "id",
+    "title",
+    "profile",
+    "timeout",
+    "given",
+    "when",
+    "then"
+  ],
+  "properties": {
+    "version": {
+      "const": 1
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 4
+    },
+    "profile": {
+      "enum": [
+        "isolated-test"
+      ]
+    },
+    "timeout": {
+      "$ref": "#/$defs/duration"
+    },
+    "requires": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "capabilities"
+      ],
+      "properties": {
+        "plugin_contract": {
+          "type": "string"
+        },
+        "capabilities": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)+$"
+          }
+        }
+      }
+    },
+    "given": {
+      "$ref": "#/$defs/stepList"
+    },
+    "when": {
+      "$ref": "#/$defs/stepList"
+    },
+    "then": {
+      "$ref": "#/$defs/stepList"
+    },
+    "cleanup": {
+      "$ref": "#/$defs/stepList"
+    }
+  },
+  "$defs": {
+    "duration": {
+      "type": "string",
+      "pattern": "^[0-9]+(ms|tick|s|m)$",
+      "description": "Sabit uyku değil; assertion'larda üst sınır olarak kullanılır."
+    },
+    "stepList": {
+      "type": "array",
+      "maxItems": 64,
+      "items": {
+        "type": "object",
+        "minProperties": 1,
+        "maxProperties": 1,
+        "description": "Tek anahtarlı step nesnesi. Anahtar, allowlist'teki bir step adı olmalıdır.",
+        "propertyNames": {
+          "$ref": "#/$defs/stepName"
+        }
+      }
+    },
+    "stepName": {
+      "type": "string",
+      "$comment": "BEGIN GENERATED: step-allowlist",
+      "enum": [
+        "actor.disconnect_all",
+        "assert.block",
+        "assert.event",
+        "assert.no_log",
+        "assert.player_message",
+        "assert.player_state",
+        "player.break_block",
+        "plugin.command",
+        "test_actor.create",
+        "world.set_block"
+      ],
+      "$comment2": "END GENERATED: step-allowlist"
+    },
+    "position": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "world_key",
+        "x",
+        "y",
+        "z"
+      ],
+      "properties": {
+        "world_key": {
+          "type": "string",
+          "pattern": "^[a-z0-9_.-]+:[a-z0-9_./-]+$"
+        },
+        "x": {
+          "type": "integer"
+        },
+        "y": {
+          "type": "integer"
+        },
+        "z": {
+          "type": "integer"
+        }
+      }
+    }
+  }
+}

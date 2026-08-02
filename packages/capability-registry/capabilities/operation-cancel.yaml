@@ -1,0 +1,43 @@
+id: operation.cancel
+version: 1
+milestone: M0
+summary: Çalışan bir operation'ın iptalini talep eder; iptal kooperatiftir ve terminal durum ayrı raporlanır.
+status: planned
+
+exposure:
+  developer_tool: operation_cancel
+  debug_tool: null
+  bridge_operation: null
+  dsl_step: null
+
+risk:
+  effect: process
+  scope: disposable_runtime
+  reversibility: reversible
+  approval: none
+  exposure: agent_visible
+  cost: low
+  level: R1
+
+contracts:
+  input: schemas/operation-cancel.input.json
+  output: schemas/operation-cancel.output.json
+
+limits:
+  timeout_ms: 10000
+  requires_idempotency: true
+
+errors:
+  - OPERATION_NOT_FOUND
+  - OPERATION_NOT_CANCELLABLE
+  - HANDLE_NOT_OWNED
+  - HANDLE_EXPIRED
+
+tests:
+  unit: [UT-OPERATION-CANCEL-001]
+  contract: [CT-OPERATION-CANCEL-001]
+  integration: [IT-OPERATION-CANCEL-001]
+
+notes: >
+  İptal talebi CANCELLING durumuna geçirir; CANCELLED garanti edilmez.
+  Zaten terminal durumdaki bir operation için OPERATION_NOT_CANCELLABLE döner.

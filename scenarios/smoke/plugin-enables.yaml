@@ -1,0 +1,29 @@
+# M2A smoke scenario — actor GEREKTİRMEZ.
+#
+# Bu scenario, ADR-0006'nın M2A tarafını gösterir: gerçek Paper üzerinde
+# çalışır, gerçek event ve log gözlemler, fakat protokol istemcisine bağımlı
+# değildir. Bu yüzden V1'de koşulsuzdur.
+version: 1
+id: plugin-enables-cleanly
+title: Hedef plugin temiz biçimde enable olur ve ERROR log üretmez
+profile: isolated-test
+timeout: 120s
+
+requires:
+  capabilities:
+    - events.read
+    - plugin.list
+
+given: []
+
+when: []
+
+then:
+  - assert.event:
+      type: plugin.enabled
+      within: 60s
+
+  - assert.no_log:
+      level_at_least: ERROR
+
+cleanup: []

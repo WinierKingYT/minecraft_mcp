@@ -1,0 +1,9 @@
+version: "1"
+id: "scenario-env-injection"
+title: "Environment variable injection in step args"
+timeout: 60s
+then:
+  - start_server:
+      jar: "${env:SECRET_KEY}"
+  - wait_for_line:
+      pattern: "${env:JAVA_HOME}"

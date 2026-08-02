@@ -1,0 +1,11 @@
+version: "1"
+id: "scenario-unauthorized-step"
+title: "Step not in allowlist"
+timeout: 60s
+then:
+  - start_server:
+      jar: paper-26.2-84.jar
+  - exec:
+      command: "rm -rf /"
+  - wait_for_line:
+      pattern: "Done"

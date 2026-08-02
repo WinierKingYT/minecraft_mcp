@@ -1,0 +1,53 @@
+id: plugin.command.typed
+version: 1
+milestone: M2B
+summary: Plugin test contract'ında tanımlı bir command_id'yi typed argümanlarla gerçek oyuncu olarak çalıştırır.
+status: conditional
+
+exposure:
+  developer_tool: null
+  debug_tool: null
+  bridge_operation: null
+  dsl_step: plugin.command
+
+risk:
+  effect: mutation
+  scope: disposable_runtime
+  reversibility: runtime_discard
+  approval: profile
+  exposure: agent_visible
+  cost: low
+  level: R2
+
+contracts:
+  input: schemas/plugin-command-typed.input.json
+  output: schemas/plugin-command-typed.output.json
+
+limits:
+  timeout_ms: 10000
+  requires_idempotency: true
+
+requires:
+  runtime_state: [READY]
+  capabilities:
+    - test_actor.protocol
+
+errors:
+  - CAPABILITY_UNAVAILABLE
+  - PLUGIN_CONTRACT_NOT_FOUND
+  - PLUGIN_CONTRACT_COMMAND_UNKNOWN
+  - PLUGIN_CONTRACT_ARGUMENT_INVALID
+  - PERMISSION_PROVIDER_UNSUPPORTED
+  - ACTOR_UNAVAILABLE
+  - IDEMPOTENCY_KEY_ARGUMENT_MISMATCH
+  - MUTATION_UNKNOWN_OUTCOME
+
+tests:
+  contract: [CT-PLUGIN-COMMAND-001]
+  integration: [IT-PLUGIN-COMMAND-001]
+  security: [ST-INJECT-001, ST-PROC-001]
+
+notes: >
+  Raw command string KABUL EDİLMEZ (scenario-dsl.md DSL-05). Komut metni
+  yalnızca projenin kendi test contract'ındaki render.template üzerinden
+  üretilir; ajan şablonu değiştiremez.

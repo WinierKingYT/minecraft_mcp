@@ -1,0 +1,136 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://minecraft-plugin-dev-mcp/schemas/capability.schema.json",
+  "title": "Capability record",
+  "description": "Tek gerçek kaynak: MCP tool tanımları, Java/TypeScript tipleri, DSL şeması, risk matrisi ve test stub'ları bu kayıtlardan üretilir.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "version", "milestone", "summary", "exposure", "risk", "tests"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)+$",
+      "description": "Noktalı, küçük harf capability kimliği. Örn. world.block.write"
+    },
+    "version": { "type": "integer", "minimum": 1 },
+    "milestone": {
+      "enum": ["D0", "M0", "M1", "M2A", "M2B", "M3", "V1", "V1.1", "V2"]
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 8,
+      "description": "Tek satırlık açıklama; üretilen tool description'ının temeli."
+    },
+    "status": {
+      "enum": ["planned", "implemented", "conditional", "deferred"],
+      "default": "planned"
+    },
+    "exposure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["developer_tool", "debug_tool", "bridge_operation", "dsl_step"],
+      "properties": {
+        "developer_tool": {
+          "type": ["string", "null"],
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "description": "developer profilinde görünen MCP tool adı; yoksa null."
+        },
+        "debug_tool": {
+          "type": ["string", "null"],
+          "pattern": "^[a-z][a-z0-9_]*$"
+        },
+        "authoring_tool": {
+          "type": ["string", "null"],
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "description": "scenario-authoring profilinde görünen tool adı."
+        },
+        "bridge_operation": {
+          "type": ["string", "null"],
+          "pattern": "^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)+$"
+        },
+        "dsl_step": {
+          "type": ["string", "null"],
+          "pattern": "^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)+$"
+        }
+      }
+    },
+    "risk": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["effect", "scope", "reversibility", "approval", "exposure", "cost", "level"],
+      "properties": {
+        "effect": { "enum": ["read", "build", "process", "mutation", "delete"] },
+        "scope": { "enum": ["fixture", "disposable_runtime", "project", "host", "production"] },
+        "reversibility": {
+          "enum": ["reversible", "runtime_discard", "snapshot_recoverable", "destructive"]
+        },
+        "approval": { "enum": ["none", "profile", "per_call"] },
+        "exposure": { "enum": ["internal", "agent_visible"] },
+        "cost": { "enum": ["low", "bounded", "high"] },
+        "level": {
+          "enum": ["R0", "R1", "R2", "R3", "R4"],
+          "description": "Metadata'dan türetilir; scripts/generate-contracts.mjs bu alanı doğrular."
+        }
+      }
+    },
+    "contracts": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "input": { "type": ["string", "null"] },
+        "output": { "type": ["string", "null"] }
+      }
+    },
+    "limits": {
+      "type": "object",
+      "description": "Capability'ye özgü sert limitler. Bilinmeyen anahtar kabul edilmez.",
+      "additionalProperties": false,
+      "properties": {
+        "timeout_ms": { "type": "integer", "minimum": 1, "maximum": 600000 },
+        "max_blocks": { "type": "integer", "minimum": 1 },
+        "max_results": { "type": "integer", "minimum": 1 },
+        "max_bytes": { "type": "integer", "minimum": 1 },
+        "region": { "type": "string" },
+        "requires_idempotency": { "type": "boolean" }
+      }
+    },
+    "requires": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "runtime_state": {
+          "type": "array",
+          "items": { "enum": ["NEW", "CREATED", "STARTING", "READY", "STOPPING", "STOPPED", "RELEASED"] }
+        },
+        "trust_level": {
+          "type": "array",
+          "items": {
+            "enum": ["untrusted", "developer-workspace", "pinned-source", "approved-fixture", "revoked"]
+          }
+        },
+        "capabilities": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "errors": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" },
+      "description": "Bu capability'nin üretebileceği error kodları; error-catalog'da mevcut olmalıdır."
+    },
+    "tests": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contract"],
+      "properties": {
+        "unit": { "type": "array", "items": { "type": "string", "pattern": "^UT-[A-Z0-9-]+$" } },
+        "contract": { "type": "array", "items": { "type": "string", "pattern": "^CT-[A-Z0-9-]+$" } },
+        "integration": { "type": "array", "items": { "type": "string", "pattern": "^IT-[A-Z0-9-]+$" } },
+        "security": { "type": "array", "items": { "type": "string", "pattern": "^ST-[A-Z0-9-]+$" } },
+        "e2e": { "type": "array", "items": { "type": "string", "pattern": "^E2E-[A-Z0-9-]+$" } }
+      }
+    },
+    "notes": { "type": "string" }
+  }
+}

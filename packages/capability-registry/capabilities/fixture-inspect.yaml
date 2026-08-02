@@ -1,0 +1,37 @@
+id: fixture.inspect
+version: 1
+milestone: M2A
+summary: Fixture manifest'ini, bölgelerini ve izin verilen materyallerini döndürür.
+status: planned
+
+exposure:
+  developer_tool: null
+  debug_tool: null
+  authoring_tool: fixture_inspect
+  bridge_operation: null
+  dsl_step: null
+
+risk:
+  effect: read
+  scope: fixture
+  reversibility: reversible
+  approval: none
+  exposure: agent_visible
+  cost: low
+  level: R0
+
+contracts:
+  input: schemas/fixture-inspect.input.json
+  output: schemas/fixture-inspect.output.json
+
+limits:
+  timeout_ms: 5000
+
+errors:
+  - FIXTURE_NOT_FOUND
+  - FIXTURE_CHECKSUM_INVALID
+  - FIXTURE_PROFILE_MISMATCH
+
+tests:
+  unit: [UT-FIXTURE-MANIFEST-001]
+  contract: [CT-FIXTURE-INSPECT-001]

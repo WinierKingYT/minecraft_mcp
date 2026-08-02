@@ -1,0 +1,32 @@
+# World scenario — block okuma.
+#
+# Paper server'dan belirli bir konumdaki bloğu okur ve doğrular.
+# Bu scenario M0 milestone'unda çalışır (actor gerektirmez).
+version: 1
+id: world-read-block
+title: Belirli bir konumdaki blok okunabilir ve doğrulanabilir
+profile: isolated-test
+timeout: 60s
+
+requires:
+  capabilities:
+    - world.block.read
+    - server.state.read
+
+given: []
+
+when: []
+
+then:
+  - assert.block:
+      position:
+        world_key: minecraft:overworld
+        x: 0
+        y: 64
+        z: 0
+      within: 10s
+
+  - assert.server_state:
+      within: 5s
+
+cleanup: []

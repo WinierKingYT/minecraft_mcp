@@ -1,0 +1,42 @@
+id: actor.disconnect
+version: 1
+milestone: M2B
+summary: Scenario cleanup'ında tüm test actor bağlantılarını kapatır.
+status: conditional
+
+exposure:
+  developer_tool: null
+  debug_tool: null
+  bridge_operation: null
+  dsl_step: actor.disconnect_all
+
+risk:
+  effect: process
+  scope: disposable_runtime
+  reversibility: runtime_discard
+  approval: none
+  exposure: agent_visible
+  cost: low
+  level: R1
+
+contracts:
+  input: schemas/actor-disconnect.input.json
+  output: schemas/actor-disconnect.output.json
+
+limits:
+  timeout_ms: 15000
+  requires_idempotency: true
+
+errors:
+  - CAPABILITY_UNAVAILABLE
+  - ACTOR_UNAVAILABLE
+  - CLEANUP_FAILED
+
+tests:
+  contract: [CT-ACTOR-DISCONNECT-001]
+  integration: [IT-ACTOR-001]
+  security: [ST-CLEANUP-002]
+
+notes: >
+  Cleanup her terminal durumda denenir (DSL-10). Başarısız olursa scenario
+  sonucu DEĞİL, cleanup alanı FAILED olur (KPI-12).

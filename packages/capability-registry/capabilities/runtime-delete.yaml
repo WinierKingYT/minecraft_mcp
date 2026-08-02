@@ -1,0 +1,56 @@
+id: runtime.delete
+version: 1
+milestone: M1
+summary: Retention süresi geçmiş runtime dizinini dry-run validation sonrasında siler.
+status: planned
+
+# Bu capability HİÇBİR profilde açılmaz. Yalnızca Garbage Collector çağırır.
+# ADR-0007: R4 capability'lerinde developer_tool null olmak zorundadır.
+exposure:
+  developer_tool: null
+  debug_tool: null
+  bridge_operation: null
+  dsl_step: null
+
+risk:
+  effect: delete
+  scope: host
+  reversibility: destructive
+  approval: per_call
+  exposure: internal
+  cost: low
+  level: R4
+
+contracts:
+  input: schemas/runtime-delete.input.json
+  output: schemas/runtime-delete.output.json
+
+limits:
+  timeout_ms: 60000
+  requires_idempotency: true
+
+requires:
+  runtime_state: [RELEASED]
+
+errors:
+  - RUNTIME_NOT_FOUND
+  - RUNTIME_INVALID_STATE
+  - RUNTIME_MARKER_MISSING
+  - PARENT_OWNERSHIP_MISMATCH
+  - PATH_OUTSIDE_ROOT
+  - SYMLINK_NOT_ALLOWED
+  - DELETE_VALIDATION_FAILED
+
+tests:
+  unit: [UT-DELETE-VALIDATION-001]
+  contract: [CT-RUNTIME-DELETE-001]
+  security:
+    - ST-PATH-001
+    - ST-PATH-003
+    - ST-PATH-004
+
+notes: >
+  Silme öncesi zorunlu kontroller: runtime marker dosyası mevcut, parent
+  ownership yeniden doğrulanmış, canonical path runtime kökü altında,
+  dry-run validation geçmiş. Bu kontrollerden biri başarısızsa silme
+  BAŞLAMAZ (security/controls.md FS-05..FS-07, FS-13).

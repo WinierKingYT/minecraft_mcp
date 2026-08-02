@@ -1,0 +1,24 @@
+# Configuration scenario — plugin.yml geçerliliği.
+#
+# Plugin'in plugin.yml dosyası doğru formatta ve gerekli alanları içeriyor mu?
+# Bu scenario runtime gerektirmez; yalnızca proje yapısını doğrular.
+version: 1
+id: config-valid-plugin-yml
+title: Plugin.yml dosyası geçerli formatta ve gerekli alanları içeriyor
+profile: isolated-test
+timeout: 30s
+
+requires:
+  capabilities:
+    - project.validate
+
+given: []
+
+when: []
+
+then:
+  - assert.server_state:
+      motd: A Minecraft Server
+      within: 5s
+
+cleanup: []

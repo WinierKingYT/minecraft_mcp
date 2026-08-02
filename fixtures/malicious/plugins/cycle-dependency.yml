@@ -1,0 +1,7 @@
+name: "cycle-plugin"
+version: "1.0.0"
+main: "com.example.CyclePlugin"
+api-version: "1.21"
+description: "Plugin that depends on itself"
+depend:
+  - "cycle-plugin"

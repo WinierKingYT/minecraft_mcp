@@ -1,0 +1,45 @@
+version: 1
+errors:
+  - code: ARCHIVE_ENTRY_OUTSIDE_ROOT
+    owner: security
+    category: permission
+    message: "Arşiv girdisi hedef kökün dışına çıkıyor."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "Arşivi güvenilir bir kaynaktan yeniden üretin; traversal içeren arşiv açılmaz."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: strict-v1
+      removed_fields: [entry_path]
+    tests: [ST-ARCHIVE-001]
+
+  - code: ARCHIVE_EXPANSION_LIMIT
+    owner: security
+    category: limit
+    message: "Arşiv açılım boyutu veya sıkıştırma oranı limiti aşıldı."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "Arşiv içeriğini küçültün; aşırı sıkıştırma oranı zip bomb koruması tarafından reddedilir."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: none
+    tests: [ST-ARCHIVE-002]
+
+  - code: ENVIRONMENT_VARIABLE_NOT_ALLOWED
+    owner: security
+    category: permission
+    message: "Environment değişkeni allowlist dışında."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "Gerekli değişkeni ürün config'indeki environment allowlist'ine ekleyin."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: strict-v1
+      removed_fields: [value]
+    tests: [ST-ENV-001]

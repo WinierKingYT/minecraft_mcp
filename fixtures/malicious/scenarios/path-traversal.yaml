@@ -1,0 +1,9 @@
+version: "1"
+id: "scenario-path-traversal"
+title: "Path traversal in step args"
+timeout: 60s
+then:
+  - start_server:
+      jar: "../../etc/passwd"
+  - wait_for_line:
+      pattern: "Done"

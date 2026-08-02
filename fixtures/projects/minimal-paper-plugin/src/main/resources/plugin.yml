@@ -1,0 +1,13 @@
+name: MinimalPlugin
+version: '${version}'
+main: com.example.MinimalPlugin
+api-version: '${apiVersion}'
+description: Minimal test plugin for E2E validation
+commands:
+  ping:
+    description: Responds with pong
+    usage: /ping
+permissions:
+  minimalplugin.ping:
+    description: Allows using the ping command
+    default: true

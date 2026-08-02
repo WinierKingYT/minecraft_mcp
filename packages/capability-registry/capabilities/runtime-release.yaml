@@ -1,0 +1,47 @@
+id: runtime.release
+version: 1
+milestone: M1
+summary: Durmuş bir runtime'ı retention durumuna geçirir; port ve process serbestliğini kanıta yazar.
+status: planned
+
+exposure:
+  developer_tool: null
+  debug_tool: runtime_release
+  bridge_operation: null
+  dsl_step: null
+
+risk:
+  effect: process
+  scope: disposable_runtime
+  reversibility: runtime_discard
+  approval: none
+  exposure: agent_visible
+  cost: low
+  level: R1
+
+contracts:
+  input: schemas/runtime-release.input.json
+  output: schemas/runtime-release.output.json
+
+limits:
+  timeout_ms: 15000
+  requires_idempotency: true
+
+requires:
+  runtime_state: [STOPPED]
+
+errors:
+  - RUNTIME_NOT_FOUND
+  - RUNTIME_INVALID_STATE
+  - HANDLE_NOT_OWNED
+  - CLEANUP_FAILED
+  - PORT_STILL_BOUND
+
+tests:
+  contract: [CT-RUNTIME-RELEASE-001]
+  integration: [IT-RUNTIME-001]
+  security: [ST-CLEANUP-001]
+
+notes: >
+  Release, silme değildir. RELEASED -> RETENTION geçişi yapar; silme
+  yalnızca Garbage Collector'a aittir (runtime.delete).

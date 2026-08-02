@@ -1,0 +1,47 @@
+id: logs.read
+version: 1
+milestone: M0
+summary: Runtime loglarını seviye filtresi, byte ve satır limitiyle redacted biçimde okur.
+status: planned
+
+# Log okuma developer profilinde ayrı bir tool DEĞİLDİR: teşhis plugin_diagnose,
+# kanıt ise evidence_get üzerinden döner. Ham log dökümünü agent'a ayrı bir tool
+# olarak açmak, redaction ve byte limiti kurallarını atlatmanın kolay yolu olurdu.
+exposure:
+  developer_tool: null
+  debug_tool: null
+  bridge_operation: logs.query
+  dsl_step: assert.no_log
+
+risk:
+  effect: read
+  scope: disposable_runtime
+  reversibility: reversible
+  approval: none
+  exposure: agent_visible
+  cost: low
+  level: R0
+
+contracts:
+  input: schemas/logs-query.input.json
+  output: schemas/logs-query.output.json
+
+limits:
+  timeout_ms: 5000
+  max_bytes: 1048576
+  max_results: 1000
+
+requires:
+  runtime_state: [READY]
+
+errors:
+  - RUNTIME_NOT_RUNNING
+  - OUTPUT_LIMIT_EXCEEDED
+  - BRIDGE_TIMEOUT
+  - CAPABILITY_UNAVAILABLE
+
+tests:
+  unit: [UT-REDACTION-001]
+  contract: [CT-LOGS-QUERY-001]
+  integration: [IT-LOGS-001]
+  security: [ST-REDACT-001, ST-REDACT-002, ST-OUTPUT-001]

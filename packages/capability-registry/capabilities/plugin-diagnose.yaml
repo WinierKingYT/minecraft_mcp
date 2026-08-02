@@ -1,0 +1,43 @@
+id: plugin.diagnose
+version: 1
+milestone: M1
+summary: Başarısız bir build veya startup için yapılandırılmış teşhis ve önerilen aksiyon üretir.
+status: planned
+
+exposure:
+  developer_tool: plugin_diagnose
+  debug_tool: null
+  bridge_operation: null
+  dsl_step: null
+
+risk:
+  effect: read
+  scope: disposable_runtime
+  reversibility: reversible
+  approval: none
+  exposure: agent_visible
+  cost: low
+  level: R0
+
+contracts:
+  input: schemas/plugin-diagnose.input.json
+  output: schemas/plugin-diagnose.output.json
+
+limits:
+  timeout_ms: 15000
+  max_bytes: 1048576
+
+errors:
+  - RUN_NOT_FOUND
+  - HANDLE_NOT_OWNED
+  - HANDLE_EXPIRED
+  - EVIDENCE_NOT_FOUND
+
+tests:
+  unit: [UT-DIAGNOSE-001]
+  contract: [CT-PLUGIN-DIAGNOSE-001]
+  integration: [IT-DIAGNOSE-001]
+
+notes: >
+  KPI-08: her teşhis kalemi kod, açıklama, dosya/satır (varsa) ve önerilen
+  aksiyon taşır. Ham log dökümü teşhis sayılmaz.

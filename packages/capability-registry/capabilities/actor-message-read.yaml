@@ -1,0 +1,49 @@
+id: actor.message.read
+version: 1
+milestone: M2B
+summary: Test actor'a gönderilen mesajları yakalar ve test contract'taki message_key ile eşleştirir.
+status: conditional
+
+exposure:
+  developer_tool: null
+  debug_tool: null
+  bridge_operation: null
+  dsl_step: assert.player_message
+
+risk:
+  effect: read
+  scope: disposable_runtime
+  reversibility: reversible
+  approval: none
+  exposure: agent_visible
+  cost: low
+  level: R0
+
+contracts:
+  input: schemas/actor-message-read.input.json
+  output: schemas/actor-message-read.output.json
+
+limits:
+  timeout_ms: 10000
+  max_results: 200
+
+requires:
+  runtime_state: [READY]
+  capabilities:
+    - test_actor.protocol
+
+errors:
+  - CAPABILITY_UNAVAILABLE
+  - ACTOR_UNAVAILABLE
+  - PLAYER_NOT_FOUND
+  - PLUGIN_CONTRACT_NOT_FOUND
+
+tests:
+  contract: [CT-ACTOR-MESSAGE-001]
+  integration: [IT-ACTOR-MESSAGE-001]
+  security: [ST-INJECT-001]
+
+notes: >
+  Eşleştirme önce translation_key üzerinden, bulunamazsa test contract'taki
+  fallback_plain_text listesiyle yapılır. Oyuncu metni VERİ olarak işlenir,
+  şablon olarak yorumlanmaz (ST-INJECT-001).

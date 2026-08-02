@@ -1,0 +1,25 @@
+# Configuration scenario — plugin.yml eksik alan.
+#
+# Plugin'in plugin.yml dosyası gerekli alanları içermiyorsa hata üretilir mi?
+# Bu scenario build aşamasında plugin.yml doğrulamasını test eder.
+version: 1
+id: config-missing-main-class
+title: Plugin.yml main class eksikliğinde build hatası üretilir
+profile: isolated-test
+timeout: 60s
+
+requires:
+  capabilities:
+    - project.validate
+    - build.run
+
+given: []
+
+when: []
+
+then:
+  - assert.no_log:
+      level_at_least: ERROR
+      within: 5s
+
+cleanup: []

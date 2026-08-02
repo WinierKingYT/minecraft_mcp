@@ -1,0 +1,40 @@
+id: runtime.inspect
+version: 1
+milestone: M1
+summary: Runtime'ın durumunu, sahiplik bilgisini ve Bridge capability manifest'ini döndürür.
+status: planned
+
+exposure:
+  developer_tool: null
+  debug_tool: runtime_get
+  bridge_operation: null
+  dsl_step: null
+
+risk:
+  effect: read
+  scope: disposable_runtime
+  reversibility: reversible
+  approval: none
+  exposure: agent_visible
+  cost: low
+  level: R0
+
+contracts:
+  input: schemas/runtime-inspect.input.json
+  output: schemas/runtime-inspect.output.json
+
+limits:
+  timeout_ms: 5000
+
+errors:
+  - RUNTIME_NOT_FOUND
+  - HANDLE_NOT_OWNED
+  - HANDLE_EXPIRED
+
+tests:
+  unit: [UT-RUNTIME-STATE-001]
+  contract: [CT-RUNTIME-INSPECT-001]
+
+notes: >
+  Yanıt raw host path içermez; runtime kökü yalnızca kimlik olarak temsil
+  edilir (security/controls.md FS-01, contracts/mcp.md resource kuralları).

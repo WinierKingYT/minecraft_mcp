@@ -1,0 +1,40 @@
+# Node
+node_modules/
+*.tsbuildinfo
+dist/
+coverage/
+.pnpm-store/
+
+# Java / Gradle
+.gradle/
+build/
+!bridge/paper/build.gradle.kts
+!bridge/paper/settings.gradle.kts
+
+# Runtime data — MUST NOT be committed (docs/MASTER-PLAN.md §repo kuralları)
+runtimes/
+evidence/
+data/
+*.db
+*.db-wal
+*.db-shm
+
+# Paper server JAR — MUST NOT be committed
+*.jar
+!**/gradle/wrapper/gradle-wrapper.jar
+
+# Secrets
+.env
+.env.*
+!.env.example
+*.token
+handshake.json
+
+# Editors / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Local overrides
+config.local.yaml

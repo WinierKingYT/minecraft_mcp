@@ -1,0 +1,5 @@
+version: "1"
+id: "scenario-empty-then"
+title: "Empty then block"
+timeout: 60s
+then: []

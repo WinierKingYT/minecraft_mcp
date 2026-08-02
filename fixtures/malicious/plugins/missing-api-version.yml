@@ -1,0 +1,5 @@
+name: "malicious-plugin"
+version: "1.0.0"
+main: "com.example.MaliciousPlugin"
+# api-version deliberately omitted — should trigger PLUGIN_API_VERSION_MISSING
+description: "Plugin with missing api-version"

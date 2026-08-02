@@ -1,0 +1,53 @@
+id: project.inspect
+version: 1
+milestone: M1
+summary: Kayıtlı projenin Gradle wrapper, plugin.yml ve test contract durumunu keşfeder.
+status: planned
+
+exposure:
+  developer_tool: project_inspect
+  debug_tool: null
+  bridge_operation: null
+  dsl_step: null
+
+risk:
+  effect: read
+  scope: project
+  reversibility: reversible
+  approval: profile
+  exposure: agent_visible
+  cost: low
+  level: R1
+
+contracts:
+  input: schemas/project-inspect.input.json
+  output: schemas/project-inspect.output.json
+
+limits:
+  timeout_ms: 30000
+  max_bytes: 1048576
+
+requires:
+  trust_level:
+    - developer-workspace
+    - pinned-source
+    - approved-fixture
+
+errors:
+  - PROJECT_NOT_REGISTERED
+  - TRUST_LEVEL_INSUFFICIENT
+  - PATH_OUTSIDE_ROOT
+  - SYMLINK_NOT_ALLOWED
+  - GRADLE_WRAPPER_NOT_FOUND
+  - PLUGIN_METADATA_NOT_FOUND
+  - PLUGIN_METADATA_AMBIGUOUS
+
+tests:
+  unit: [UT-PROJECT-INSPECT-001]
+  contract: [CT-PROJECT-INSPECT-001]
+  integration: [IT-PROJECT-INSPECT-001]
+  security: [ST-PATH-001, ST-PATH-002, ST-PATH-003, ST-PATH-004]
+
+notes: >
+  scope: project fakat effect: read olduğu için R1'dir. Kaynak ağacını okumak,
+  onu değiştirmekle aynı risk sınıfında değildir.

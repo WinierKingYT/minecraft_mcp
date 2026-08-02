@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://minecraft-plugin-dev-mcp/schemas/error-catalog-file.schema.json",
+  "title": "Error catalog file",
+  "description": "errors/<owner>.yaml dosyalarının kabı. Bir dosyadaki tüm kayıtların owner'ı dosya adıyla eşleşmelidir (scripts/validate-registry.mjs).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "errors"],
+  "properties": {
+    "version": { "type": "integer", "minimum": 1 },
+    "errors": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "error.schema.json" }
+    }
+  }
+}

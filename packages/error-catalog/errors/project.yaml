@@ -1,0 +1,91 @@
+version: 1
+errors:
+  - code: PROJECT_NOT_REGISTERED
+    owner: project
+    category: not_found
+    message: "Bu project_id kayıtlı değil."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "Projeyi ürün config'inde kaydedin; araçlar mutlak path kabul etmez."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: none
+    tests: [CT-PROJECT-INSPECT-001]
+
+  - code: TRUST_LEVEL_INSUFFICIENT
+    owner: project
+    category: permission
+    message: "Projenin trust seviyesi bu operation için yetersiz."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "Trust seviyesini kullanıcı olarak yükseltin; trust kaydı proje klasörünün içinde tutulmaz."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: none
+    tests: [CT-PROJECT-VALIDATE-001]
+
+  - code: PATH_OUTSIDE_ROOT
+    owner: project
+    category: permission
+    message: "Çözümlenen yol kayıtlı kökün dışında."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "Yolu kayıtlı proje kökü altında tutun; canonical çözümleme sonrası kaçış engellenir."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: strict-v1
+      removed_fields: [resolved_path]
+    tests: [ST-PATH-001, ST-PATH-002]
+
+  - code: SYMLINK_NOT_ALLOWED
+    owner: project
+    category: permission
+    message: "Symlink, junction veya reparse point reddedildi."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "Bağlantıyı kaldırın veya gerçek dizini kaydedin; symlink varsayılan olarak reddedilir."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: strict-v1
+      removed_fields: [link_target]
+    tests: [ST-PATH-003, ST-PATH-004]
+
+  - code: SOURCE_CHANGED_DURING_BUILD
+    owner: project
+    category: integrity
+    message: "Kaynak workspace build sırasında değişti; snapshot artık geçerli değil."
+    tool_result:
+      is_error: true
+      retryable: true
+      suggested_action: "Dosya değişikliklerini durdurup build'i yeni bir snapshot ile tekrarlayın."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: default-v1
+    terminal_state: FAILED
+    tests: [ST-SNAPSHOT-001]
+    notes: >
+      Sessizce tolere edilemez: aksi hâlde rapor, gerçekte derlenmeyen bir
+      kaynak durumuna atıfta bulunur ve KPI-09 anlamsızlaşır.
+
+  - code: DIRTY_WORKSPACE_REJECTED
+    owner: project
+    category: validation
+    message: "CI profilinde kirli workspace kabul edilmez."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "Değişiklikleri commit edin veya pinned-source trust seviyesi ile sabit bir commit kullanın."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: none
+    tests: [UT-PROJECT-VALIDATE-001]

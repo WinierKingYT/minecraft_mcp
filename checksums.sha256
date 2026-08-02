@@ -1,0 +1,5 @@
+# SHA-256 checksums for release artifacts
+# Generated: 2026-08-02T09:44:50.222Z
+# Total artifacts: 2
+ae48a4f4a853f04f886a0faedad650120a5ae674f4b1a79e7e3ff733420d68bd  compatibility/paper-26.2-build-84-v1.yaml
+36ddc2b47da4300fe5d293390444cbdeb5dd87bd134d134221eb6a0906b42e87  sbom.json

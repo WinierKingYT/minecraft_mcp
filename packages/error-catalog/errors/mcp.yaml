@@ -1,0 +1,106 @@
+version: 1
+errors:
+  - code: UNKNOWN_TOOL
+    owner: mcp
+    category: validation
+    message: "İstenen tool bu profilde tanımlı değil."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "system_capabilities ile aktif profildeki tool listesini alın."
+    json_rpc_mapping:
+      protocol_error: true
+      code: -32601
+    redaction:
+      profile: none
+    tests: [CT-MCP-PROTOCOL-001]
+    notes: >
+      Bu bir domain hatası DEĞİLDİR. Protokol hatası olarak kalır; aksi hâlde
+      ajan bunu yeniden denenebilir bir durum sanır (contracts/mcp.md).
+
+  - code: TOOL_INPUT_INVALID
+    owner: mcp
+    category: validation
+    message: "Tool girdisi şemaya uymuyor."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "Tool'un inputSchema'sına göre argümanları düzeltin; mutlak path kabul edilmez."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: default-v1
+    tests: [CT-MCP-SCHEMA-001, ST-PATH-002]
+
+  - code: CAPABILITY_UNAVAILABLE
+    owner: mcp
+    category: state
+    message: "Bu tool'un gerektirdiği capability aktif runtime'da mevcut değil."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "system_capabilities veya runtime_get ile mevcut capability'leri kontrol edin; M2B kapalıysa actor gerektiren adımları kullanmayın."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: none
+    tests: [CT-MCP-TOOLLIST-001, CT-SCENARIO-VALIDATE-001, CT-ACTOR-CAPS-001]
+    notes: >
+      Tool listesi capability durumuna göre değişmez (mcp.md TL-02); eksik
+      capability çalışma zamanı hatası olarak bildirilir.
+
+  - code: HANDLE_NOT_OWNED
+    owner: mcp
+    category: permission
+    message: "Bu kimlik çağıran bağlama ait değil."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "Kendi run/operation kimliklerinizi kullanın; kimliğe sahip olmak yetki anlamına gelmez."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: default-v1
+    tests: [CT-BRIDGE-004, CT-EVIDENCE-READ-001]
+
+  - code: HANDLE_EXPIRED
+    owner: mcp
+    category: state
+    message: "Kimliğin TTL süresi geçmiş."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "İlgili kaynağı yeniden oluşturun; süresi geçmiş kimlik sessizce kabul edilmez."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: none
+    tests: [CT-BRIDGE-AUTH-003]
+
+  - code: RESOURCE_NOT_FOUND
+    owner: mcp
+    category: not_found
+    message: "İstenen resource mevcut değil veya retention süresi dolmuş."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "Resource URI'sini ve run kimliğini doğrulayın; silinmiş resource geri getirilemez."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: none
+    tests: [CT-MCP-RESOURCE-001]
+
+  - code: OUTPUT_LIMIT_EXCEEDED
+    owner: mcp
+    category: limit
+    message: "Yanıt yapılandırılmış byte limitini aşıyor."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "Cursor veya daha dar bir aralık kullanarak sorguyu bölün."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: default-v1
+    tests: [ST-OUTPUT-001]

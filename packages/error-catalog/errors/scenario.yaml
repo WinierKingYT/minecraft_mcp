@@ -1,0 +1,118 @@
+version: 1
+errors:
+  - code: SCENARIO_SCHEMA_INVALID
+    owner: scenario
+    category: validation
+    message: "Scenario dosyası DSL şemasına uymuyor."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "scenario_validate çıktısındaki şema hatalarını düzeltin; custom YAML tag ve include kullanılamaz."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: default-v1
+    tests: [UT-SCENARIO-SCHEMA-001, ST-SCENARIO-YAML-001]
+
+  - code: SCENARIO_STEP_NOT_ALLOWED
+    owner: scenario
+    category: permission
+    message: "Kullanılan step allowlist'te yok."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "scenario_step_catalog ile izin verilen step listesini alın; raw command string kabul edilmez."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: none
+    tests: [UT-SCENARIO-ALLOWLIST-001]
+
+  - code: SCENARIO_STEP_LIMIT_EXCEEDED
+    owner: scenario
+    category: limit
+    message: "Scenario maksimum step sayısını aşıyor."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "Scenario'yu daha küçük, tek amaçlı scenario'lara bölün."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: none
+    tests: [CT-SCENARIO-VALIDATE-001]
+
+  - code: SCENARIO_TIMEOUT
+    owner: scenario
+    category: timeout
+    message: "Scenario süre limitini aştı."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "Assertion'ların within değerlerini gözden geçirin; sabit uyku yerine eventual assertion kullanın."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: none
+    terminal_state: TIMED_OUT
+    tests: [IT-SCENARIO-001]
+
+  - code: ASSERTION_FAILED
+    owner: scenario
+    category: state
+    message: "Bir veya daha fazla assertion başarısız."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "evidence_get ile expected/observed değerlerini ve ilgili event/log kanıtlarını inceleyin."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: default-v1
+    tests: [IT-SCENARIO-001, E2E-SCENARIO-001]
+    notes: >
+      Bu kod scenario sonucunu FAILED yapar; run'ı FAILED yapmaz. Cleanup
+      sonucu ayrı alanda raporlanır (KPI-12).
+
+  - code: FIXTURE_NOT_FOUND
+    owner: scenario
+    category: not_found
+    message: "Belirtilen fixture bulunamadı."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "fixture_inspect ile mevcut fixture kimliklerini listeleyin."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: none
+    tests: [CT-FIXTURE-INSPECT-001]
+
+  - code: FIXTURE_CHECKSUM_INVALID
+    owner: scenario
+    category: integrity
+    message: "Fixture içeriği manifest checksum'ı ile eşleşmiyor."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "Fixture'ı repository'den yeniden alın; değiştirilmiş fixture determinizmi bozar."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: none
+    terminal_state: FAILED
+    tests: [UT-FIXTURE-MANIFEST-001]
+
+  - code: FIXTURE_PROFILE_MISMATCH
+    owner: scenario
+    category: validation
+    message: "Fixture bu uyumluluk profilini desteklemiyor."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "Fixture manifest'indeki supported_profile değerini kontrol edin."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: none
+    tests: [CT-FIXTURE-INSPECT-001]

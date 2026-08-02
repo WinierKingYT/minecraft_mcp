@@ -1,0 +1,288 @@
+version: 1
+errors:
+  - code: BRIDGE_UNAVAILABLE
+    owner: bridge
+    category: environment
+    message: "Paper Bridge'e ulaşılamıyor."
+    tool_result:
+      is_error: true
+      retryable: true
+      suggested_action: "runtime_get ile Bridge handshake durumunu kontrol edin; Bridge plugin'inin yüklendiğini doğrulayın."
+    bridge_mapping:
+      http_status: 503
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: default-v1
+    tests: [CT-SERVER-STATE-001]
+
+  - code: BRIDGE_HANDSHAKE_FAILED
+    owner: bridge
+    category: integrity
+    message: "Bridge handshake tamamlanamadı."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "Runtime loglarında Bridge yükleme hatasını inceleyin; handshake dosyası port ve protokol metadata'sı taşır, secret taşımaz."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: strict-v1
+      removed_fields: [authorization, token]
+    terminal_state: FAILED
+    tests: [CT-RUNTIME-LAUNCH-001]
+
+  - code: BRIDGE_UNAUTHORIZED
+    owner: bridge
+    category: permission
+    message: "Bridge isteği kimlik doğrulamasından geçemedi."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "Runtime'ın kendi token'ını kullanın; her runtime için ayrı token üretilir ve kısa TTL taşır."
+    bridge_mapping:
+      http_status: 401
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: strict-v1
+      removed_fields: [authorization, token]
+    tests: [CT-BRIDGE-AUTH-001, CT-BRIDGE-AUTH-003]
+
+  - code: BRIDGE_ORIGIN_REJECTED
+    owner: bridge
+    category: permission
+    message: "Host veya Origin başlığı reddedildi."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "Bridge'e yalnızca loopback üzerinden, doğru Host başlığıyla bağlanın; tarayıcı kaynaklı istekler reddedilir."
+    bridge_mapping:
+      http_status: 403
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: default-v1
+    tests: [CT-BRIDGE-AUTH-002]
+    notes: "DNS rebinding koruması. Same-JVM saldırganına karşı sınır değildir."
+
+  - code: BRIDGE_BUSY
+    owner: bridge
+    category: limit
+    message: "Bridge worker kuyruğu dolu."
+    tool_result:
+      is_error: true
+      retryable: true
+      suggested_action: "Kısa bir bekleme sonrası tekrar deneyin; salt okuma istekleri sınırlı biçimde retry edilebilir."
+    bridge_mapping:
+      http_status: 429
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: none
+    tests: [CT-BRIDGE-005]
+
+  - code: BODY_TOO_LARGE
+    owner: bridge
+    category: limit
+    message: "İstek gövdesi izin verilen boyutu aşıyor."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "İsteği bölün; security.max_request_body_bytes limitini aşan gövde işlenmez."
+    bridge_mapping:
+      http_status: 413
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: none
+    tests: [CT-BRIDGE-005]
+
+  - code: BRIDGE_TIMEOUT
+    owner: bridge
+    category: timeout
+    message: "Bridge operation'ı süre limitini aştı."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "Salt okuma isteklerini tekrar deneyebilirsiniz; mutation için önce mutation durumunu sorgulayın."
+    bridge_mapping:
+      http_status: 504
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: none
+    tests: [CT-BRIDGE-005]
+    notes: >
+      Timeout ana thread'de kontrolsüz görev bırakmamalıdır (bridge.md TH-05);
+      aksi hâlde iptal edilmiş sanılan bir mutation geç uygulanır.
+
+  - code: MUTATION_UNKNOWN_OUTCOME
+    owner: bridge
+    category: integrity
+    message: "Mutation'ın uygulanıp uygulanmadığı belirlenemedi."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "Kör retry YAPMAYIN. Aynı idempotency key ile mutation durumunu sorgulayın."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: default-v1
+    terminal_state: UNKNOWN_OUTCOME
+    tests: [CT-IDEMPOTENCY-001]
+
+  - code: IDEMPOTENCY_KEY_ARGUMENT_MISMATCH
+    owner: bridge
+    category: conflict
+    message: "Aynı idempotency key farklı argümanlarla kullanıldı."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "Her farklı mutation için yeni bir idempotency key üretin."
+    bridge_mapping:
+      http_status: 409
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: none
+    tests: [CT-IDEMPOTENCY-002]
+
+  - code: EVENT_CURSOR_INSTANCE_MISMATCH
+    owner: bridge
+    category: conflict
+    message: "Cursor başka bir server instance veya Bridge boot'una ait."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "Mevcut server_instance_id ve bridge_boot_id ile yeni bir cursor alın; eski cursor sessizce sıfırlanmaz."
+    bridge_mapping:
+      http_status: 409
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: none
+    tests: [CT-BRIDGE-004]
+
+  - code: EVENT_CURSOR_EXPIRED
+    owner: bridge
+    category: state
+    message: "Cursor'ın işaret ettiği sequence ring buffer'dan düşmüş."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "Daha sık poll edin veya daha dar bir aralık sorgulayın; kaçırılan event'ler geri getirilemez."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: none
+    tests: [UT-EVENT-CURSOR-001]
+
+  - code: EVENT_BUFFER_OVERFLOW
+    owner: bridge
+    category: limit
+    message: "Event ring buffer taştı; event kaybı oldu."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "Event drop metriğini inceleyin; scenario'yu daha az event üreten bir fixture ile çalıştırın."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: none
+    tests: [IT-EVENTS-001]
+
+  - code: WORLD_NOT_FOUND
+    owner: bridge
+    category: not_found
+    message: "Belirtilen dünya yüklü değil."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "minecraft_world_list ile yüklü dünyaları listeleyin."
+    bridge_mapping:
+      http_status: 404
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: none
+    tests: [CT-WORLD-GET-001]
+
+  - code: REGION_NOT_ALLOWED
+    owner: bridge
+    category: permission
+    message: "Konum fixture bölgesinin dışında."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "fixture_inspect ile izin verilen bölge sınırlarını okuyun; bölge dışı yazma yapılamaz."
+    bridge_mapping:
+      http_status: 403
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: none
+    tests: [ST-WORLD-SET-001]
+
+  - code: MATERIAL_NOT_ALLOWED
+    owner: bridge
+    category: permission
+    message: "Materyal fixture'ın allowed_materials listesinde yok."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "fixture_inspect ile izin verilen materyalleri okuyun."
+    bridge_mapping:
+      http_status: 403
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: none
+    tests: [ST-WORLD-SET-001]
+
+  - code: CHUNK_NOT_LOADED
+    owner: bridge
+    category: state
+    message: "Hedef chunk yüklü değil."
+    tool_result:
+      is_error: true
+      retryable: true
+      suggested_action: "Fixture bölgesi içinde kalın; view_distance ve simulation_distance determinism profilinde sabittir."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: none
+    tests: [CT-WORLD-GET-001]
+
+  - code: PLAYER_NOT_FOUND
+    owner: bridge
+    category: not_found
+    message: "Belirtilen test oyuncusu bağlı değil."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "test_actor.create adımının tamamlandığını doğrulayın."
+    bridge_mapping:
+      http_status: 404
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: strict-v1
+      removed_fields: [player.ip]
+    tests: [CT-PLAYER-STATE-001]
+
+  - code: PLUGIN_NOT_FOUND
+    owner: bridge
+    category: not_found
+    message: "Belirtilen plugin runtime'da yüklü değil."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "minecraft_plugin_list ile yüklü plugin'leri listeleyin."
+    bridge_mapping:
+      http_status: 404
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: none
+    tests: [CT-PLUGIN-GET-001]

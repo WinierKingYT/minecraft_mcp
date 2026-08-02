@@ -1,0 +1,188 @@
+version: 1
+errors:
+  - code: PLUGIN_METADATA_NOT_FOUND
+    owner: plugin
+    category: not_found
+    message: "JAR içinde plugin.yml bulunamadı."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "src/main/resources/plugin.yml dosyasını ekleyin; V1'in resmî desteği klasik plugin.yml içindir."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: none
+    tests: [CT-PLUGIN-METADATA-001]
+
+  - code: PLUGIN_METADATA_AMBIGUOUS
+    owner: plugin
+    category: conflict
+    message: "Birden fazla plugin metadata dosyası bulundu ve öncelik belirlenemedi."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "Açık manifest politikası belirleyin; örtük öncelik kuralı yoktur."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: none
+    tests: [CT-PLUGIN-METADATA-002]
+
+  - code: PAPER_PLUGIN_EXPERIMENTAL_DISABLED
+    owner: plugin
+    category: validation
+    message: "paper-plugin.yml deneysel desteği kapalı."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "Deneysel desteği feature flag ile açın veya klasik plugin.yml kullanın."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: none
+    tests: [CT-PLUGIN-METADATA-003]
+    notes: "ADR-0005. Sessizce yok sayılmaz."
+
+  - code: PLUGIN_MAIN_CLASS_MISSING
+    owner: plugin
+    category: validation
+    message: "plugin.yml içindeki main sınıfı JAR içinde bulunamadı."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "main değerini tam sınıf adıyla düzeltin ve JAR'ın sınıfı içerdiğini doğrulayın."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: none
+    terminal_state: FAILED
+    tests: [CT-PLUGIN-METADATA-001]
+
+  - code: PLUGIN_API_VERSION_MISSING
+    owner: plugin
+    category: validation
+    message: "plugin.yml içinde api-version tanımlı değil."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "api-version alanını uyumluluk profilindeki Paper API sürümüne göre ekleyin."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: none
+    tests: [CT-PROJECT-VALIDATE-001]
+
+  - code: PLUGIN_API_VERSION_INCOMPATIBLE
+    owner: plugin
+    category: validation
+    message: "plugin.yml api-version değeri hedef Paper sürümüyle uyumsuz."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "api-version, Paper build ve Paper API koordinatını birbiriyle tutarlı hâle getirin."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: none
+    tests: [CT-PROJECT-VALIDATE-001]
+
+  - code: PLUGIN_DEPENDENCY_UNSATISFIED
+    owner: plugin
+    category: state
+    message: "Bir zorunlu plugin bağımlılığı runtime'da mevcut değil."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "Bağımlılığı test_dependencies.required altında bildirin veya plugin.yml depend listesini düzeltin."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: none
+    terminal_state: FAILED
+    tests: [CT-RUNTIME-LAUNCH-001]
+
+  - code: PLUGIN_LOADING_CYCLE
+    owner: plugin
+    category: conflict
+    message: "Plugin yükleme sırasında döngüsel bağımlılık tespit edildi."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "depend / softdepend / loadbefore ilişkilerindeki döngüyü kırın."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: none
+    terminal_state: FAILED
+    tests: [CT-RUNTIME-LAUNCH-001]
+
+  - code: PLUGIN_NAME_CONFLICT
+    owner: plugin
+    category: conflict
+    message: "Aynı plugin adı birden fazla JAR tarafından kullanılıyor."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "Çakışan plugin adlarından birini değiştirin veya çakışan test dependency'yi kaldırın."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: none
+    terminal_state: FAILED
+    tests: [CT-RUNTIME-LAUNCH-001]
+
+  - code: PLUGIN_CONTRACT_NOT_FOUND
+    owner: plugin
+    category: not_found
+    message: "Projede .mcp-minecraft/test-contract.yaml bulunamadı."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "Typed command ve mesaj assertion'ları için test contract ekleyin; manifest olmadan generic testler yine çalışır."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: none
+    tests: [CT-SCENARIO-VALIDATE-001]
+
+  - code: PLUGIN_CONTRACT_COMMAND_UNKNOWN
+    owner: plugin
+    category: validation
+    message: "Belirtilen command_id test contract'ında tanımlı değil."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "command_id değerini test contract'taki commands anahtarlarından seçin; raw command string kabul edilmez."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: none
+    tests: [CT-PLUGIN-COMMAND-001]
+
+  - code: PLUGIN_CONTRACT_ARGUMENT_INVALID
+    owner: plugin
+    category: validation
+    message: "Command argümanları test contract şemasına uymuyor."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "Argümanları command'in arguments şemasına göre düzeltin."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: default-v1
+    tests: [CT-PLUGIN-COMMAND-001]
+
+  - code: PERMISSION_PROVIDER_UNSUPPORTED
+    owner: plugin
+    category: environment
+    message: "Belirtilen permission provider için adapter yok."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "native-paper permission provider kullanın; LuckPerms/Vault otomatik varsayılmaz."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: none
+    tests: [CT-PLUGIN-COMMAND-001]

@@ -1,0 +1,48 @@
+id: evidence.read
+version: 1
+milestone: M1
+summary: Kanıt nesnelerini ve birleşik raporu redaction ve byte limiti uygulayarak döndürür.
+status: planned
+
+exposure:
+  developer_tool: evidence_get
+  debug_tool: null
+  authoring_tool: evidence_get
+  bridge_operation: null
+  dsl_step: null
+
+risk:
+  effect: read
+  scope: disposable_runtime
+  reversibility: reversible
+  approval: none
+  exposure: agent_visible
+  cost: low
+  level: R0
+
+contracts:
+  input: schemas/evidence-read.input.json
+  output: schemas/evidence-read.output.json
+
+limits:
+  timeout_ms: 10000
+  max_bytes: 1048576
+
+errors:
+  - EVIDENCE_NOT_FOUND
+  - RESOURCE_NOT_FOUND
+  - HANDLE_NOT_OWNED
+  - HANDLE_EXPIRED
+  - EVIDENCE_INTEGRITY_MISMATCH
+  - OUTPUT_LIMIT_EXCEEDED
+
+tests:
+  unit: [UT-REPORT-GEN-001, UT-REDACTION-001]
+  contract: [CT-EVIDENCE-READ-001]
+  integration: [IT-EVIDENCE-001]
+  security: [ST-REDACT-001, ST-REDACT-002, ST-SAMEJVM-002]
+
+notes: >
+  Yanıt hiçbir koşulda raw host path veya secret içermez. Provenance zinciri
+  eksikse EVIDENCE_INTEGRITY_MISMATCH döner — eksik zincir sessizce
+  tolere edilmez (KPI-09).

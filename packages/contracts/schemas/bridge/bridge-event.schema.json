@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://minecraft-plugin-dev-mcp/schemas/bridge/bridge-event.schema.json",
+  "title": "Bridge event",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "sequence",
+    "event_id",
+    "type",
+    "run_id",
+    "server_instance_id",
+    "bridge_boot_id",
+    "correlation_id",
+    "server_tick",
+    "occurred_at",
+    "data",
+    "source"
+  ],
+  "properties": {
+    "sequence": { "type": "integer", "minimum": 0 },
+    "event_id": { "type": "string", "pattern": "^evt_[A-Za-z0-9]+$" },
+    "type": {
+      "enum": [
+        "server.ready",
+        "plugin.enabled",
+        "plugin.disabled",
+        "player.join",
+        "player.quit",
+        "player.command",
+        "block.place",
+        "block.break",
+        "bridge.action.started",
+        "bridge.action.completed",
+        "bridge.action.failed"
+      ]
+    },
+    "run_id": { "type": "string" },
+    "server_instance_id": { "type": "string" },
+    "bridge_boot_id": { "type": "string" },
+    "correlation_id": { "type": "string" },
+    "causation_id": { "type": ["string", "null"] },
+    "server_tick": { "type": "integer", "minimum": 0 },
+    "occurred_at": { "type": "string", "format": "date-time" },
+    "actor": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["kind", "id"],
+      "properties": {
+        "kind": { "enum": ["test_player", "console", "bridge", "plugin"] },
+        "id": { "type": "string" }
+      },
+      "description": "IP adresi veya gerçek hesap kimliği taşımaz (EV-05)."
+    },
+    "data": { "type": "object" },
+    "source": { "enum": ["paper", "bridge"] }
+  }
+}

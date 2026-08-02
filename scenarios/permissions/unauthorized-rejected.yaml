@@ -1,0 +1,28 @@
+# Permissions scenario — yetkisiz erişim reddi.
+#
+# Yetkisiz bir erişim denemesi reddedilir mi?
+# Bu scenario M0 milestone'unda çalışır (actor gerektirmez).
+version: 1
+id: permissions-unauthorized-rejected
+title: Yetkisiz erişim denemesi reddedilir
+profile: isolated-test
+timeout: 60s
+
+requires:
+  capabilities:
+    - server.state.read
+    - logs.read
+
+given: []
+
+when: []
+
+then:
+  - assert.server_state:
+      within: 5s
+
+  - assert.no_log:
+      level_at_least: ERROR
+      within: 5s
+
+cleanup: []

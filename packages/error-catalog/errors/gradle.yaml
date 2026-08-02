@@ -1,0 +1,187 @@
+version: 1
+errors:
+  - code: GRADLE_WRAPPER_NOT_FOUND
+    owner: gradle
+    category: not_found
+    message: "Gradle Wrapper dosyaları bulunamadı."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "gradlew, gradle-wrapper.jar ve gradle-wrapper.properties dosyalarını projeye ekleyin; yalnızca wrapper desteklenir."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: none
+    tests: [CT-PROJECT-VALIDATE-001]
+
+  - code: GRADLE_WRAPPER_JAR_UNVERIFIED
+    owner: gradle
+    category: integrity
+    message: "gradle-wrapper.jar checksum doğrulaması başarısız."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "Wrapper'ı resmî Gradle dağıtımından yeniden üretin; doğrulanmamış wrapper JAR ile build çalıştırılmaz."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: none
+    terminal_state: FAILED
+    tests: [ST-GRADLE-001]
+
+  - code: GRADLE_DISTRIBUTION_URL_UNAPPROVED
+    owner: gradle
+    category: permission
+    message: "distributionUrl allowlist dışında."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "distributionUrl değerini services.gradle.org üzerindeki resmî dağıtıma çevirin."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: none
+    tests: [ST-GRADLE-003]
+
+  - code: GRADLE_DISTRIBUTION_CHECKSUM_MISSING
+    owner: gradle
+    category: integrity
+    message: "distributionSha256Sum tanımlı değil."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "gradle-wrapper.properties dosyasına distributionSha256Sum ekleyin."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: none
+    tests: [ST-GRADLE-004]
+
+  - code: GRADLE_DISTRIBUTION_CHECKSUM_INVALID
+    owner: gradle
+    category: integrity
+    message: "Gradle dağıtımının checksum'ı beklenen değerle eşleşmiyor."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "Dağıtımı yeniden indirin ve resmî checksum ile karşılaştırın; eşleşmeyen dağıtım kullanılmaz."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: none
+    terminal_state: FAILED
+    tests: [ST-GRADLE-002]
+
+  - code: GRADLE_VERSION_INCOMPATIBLE
+    owner: gradle
+    category: validation
+    message: "Wrapper sürümü uyumluluk profilindeki sürümle eşleşmiyor."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "Wrapper'ı profildeki Gradle sürümüne güncelleyin; release profili farklı sürüme izin vermez."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: none
+    tests: [CT-PROJECT-VALIDATE-001]
+
+  - code: DEPENDENCY_LOCK_MISSING
+    owner: gradle
+    category: integrity
+    message: "Dependency lock dosyası bulunamadı."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "Onaylı provisioning workflow'u ile lock dosyalarını üretin; release profilinde lock zorunludur."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: none
+    tests: [CT-PROJECT-VALIDATE-001]
+
+  - code: DEPENDENCY_LOCK_OUT_OF_DATE
+    owner: gradle
+    category: integrity
+    message: "Lock dosyası mevcut bağımlılıklarla uyuşmuyor."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "Onaylı provisioning workflow'u ile lock dosyasını güncelleyin; lock drift CI hatasıdır."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: none
+    terminal_state: FAILED
+    tests: [CT-BUILD-RUN-001]
+
+  - code: DEPENDENCY_VERIFICATION_MISSING
+    owner: gradle
+    category: integrity
+    message: "gradle/verification-metadata.xml bulunamadı."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "Verification metadata'yı provisioning modunda üretin ve manuel review'dan geçirin."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: none
+    tests: [CT-PROJECT-VALIDATE-001]
+
+  - code: DEPENDENCY_VERIFICATION_FAILED
+    owner: gradle
+    category: integrity
+    message: "Bir bağımlılığın checksum veya imza doğrulaması başarısız."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "Bağımlılığın kaynağını inceleyin; doğrulanamayan bağımlılıkla build çalıştırılmaz."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: none
+    terminal_state: FAILED
+    tests: [ST-GRADLE-005]
+
+  - code: DYNAMIC_DEPENDENCY_FORBIDDEN
+    owner: gradle
+    category: validation
+    message: "Dinamik sürüm ifadesi kullanılmış."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "Sürüm aralıklarını ve + ifadelerini sabit sürümlerle değiştirin."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: none
+    tests: [ST-GRADLE-006]
+
+  - code: CHANGING_MODULE_FORBIDDEN
+    owner: gradle
+    category: validation
+    message: "Changing module veya SNAPSHOT bağımlılığı release profilinde yasak."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "SNAPSHOT bağımlılıklarını yayınlanmış sürümlerle değiştirin."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: none
+    tests: [ST-GRADLE-006]
+
+  - code: UNAPPROVED_REPOSITORY
+    owner: gradle
+    category: permission
+    message: "Repository allowlist dışında."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "Repository'yi build.repository_allowlist listesine ekleyin veya bağımlılığı onaylı bir kaynaktan alın."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: none
+    tests: [ST-GRADLE-007]

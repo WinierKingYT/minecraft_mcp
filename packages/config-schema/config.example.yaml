@@ -1,0 +1,64 @@
+# Örnek ürün yapılandırması.
+# CF-03: bu dosya hiçbir gerçek secret taşımaz.
+# Şema: schema/config.schema.json — bilinmeyen property hata üretir.
+version: 1
+compatibility_profile: paper-26.2-build-84-v1
+tool_profile: developer
+
+storage:
+  metadata_db: "D:/MinecraftMcp/data/metadata.db"
+  evidence_root: "D:/MinecraftMcp/evidence"
+  runtime_root: "D:/MinecraftMcp/runtimes"
+  max_total_gb: 20
+
+projects:
+  claim-plugin:
+    canonical_root: "D:/Projects/ClaimPlugin"
+    trust_level: developer-workspace
+    allowed_backends:
+      - trusted-local
+      - container
+    default_backend: container
+
+execution:
+  trusted_local:
+    enabled: true
+
+  container:
+    enabled: true
+    runtime: docker
+    network_default: none
+    cpu: 2
+    memory_mb: 4096
+    pids: 256
+    disk_mb: 8192
+
+build:
+  default_mode: reproducible
+  timeout_seconds: 300
+  max_output_bytes: 5242880
+  repository_allowlist:
+    - "repo.maven.apache.org"
+    - "repo.papermc.io"
+
+runtime:
+  max_concurrent: 1
+  startup_timeout_seconds: 120
+  shutdown_timeout_seconds: 30
+  retention_hours: 24
+
+security:
+  max_request_body_bytes: 262144
+  max_log_bytes: 1048576
+  max_event_results: 1000
+  handle_ttl_minutes: 120
+  allow_agent_destructive_tools: false
+
+telemetry:
+  log_level: info
+  stderr_format: json
+  redact_patterns:
+    - "*token*"
+    - "*secret*"
+    - "*password*"
+    - "Authorization:*"

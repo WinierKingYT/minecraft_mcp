@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://minecraft-plugin-dev-mcp/schemas/bridge/bridge-request.schema.json",
+  "title": "Bridge request",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "request_id",
+    "correlation_id",
+    "run_id",
+    "server_instance_id",
+    "bridge_boot_id",
+    "operation",
+    "timeout_ms",
+    "arguments"
+  ],
+  "properties": {
+    "request_id": { "type": "string", "pattern": "^req_[A-Za-z0-9]+$" },
+    "correlation_id": { "type": "string", "pattern": "^cor_[A-Za-z0-9]+$" },
+    "causation_id": { "type": ["string", "null"] },
+    "run_id": { "type": "string", "pattern": "^run_[A-Za-z0-9]+$" },
+    "server_instance_id": { "type": "string", "pattern": "^srv_[A-Za-z0-9]+$" },
+    "bridge_boot_id": { "type": "string", "pattern": "^boot_[A-Za-z0-9]+$" },
+    "operation": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)+$",
+      "description": "Capability kaydındaki exposure.bridge_operation değerlerinden biri."
+    },
+    "idempotency_key": {
+      "type": ["string", "null"],
+      "description": "Mutation operation'ları için zorunlu; read-only için null."
+    },
+    "timeout_ms": { "type": "integer", "minimum": 1, "maximum": 600000 },
+    "arguments": { "type": "object" }
+  }
+}

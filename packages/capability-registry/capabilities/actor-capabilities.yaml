@@ -1,0 +1,41 @@
+id: actor.capabilities
+version: 1
+milestone: M2B
+summary: Protocol test actor'ın capability negotiation sonucunu; hangi oyuncu eylemlerinin desteklendiğini bildirir.
+status: conditional
+
+exposure:
+  developer_tool: null
+  debug_tool: null
+  authoring_tool: actor_capabilities
+  bridge_operation: null
+  dsl_step: null
+
+risk:
+  effect: read
+  scope: disposable_runtime
+  reversibility: reversible
+  approval: none
+  exposure: agent_visible
+  cost: low
+  level: R0
+
+contracts:
+  input: schemas/actor-capabilities.input.json
+  output: schemas/actor-capabilities.output.json
+
+limits:
+  timeout_ms: 5000
+
+errors:
+  - ACTOR_UNAVAILABLE
+  - CAPABILITY_UNAVAILABLE
+
+tests:
+  contract: [CT-ACTOR-CAPS-001]
+  integration: [IT-ACTOR-001]
+
+notes: >
+  M2B koşullu milestone'dur (ADR-0006). SPIKE-ACTOR-001 başarısız olursa bu
+  capability V1'den çıkar; scenario-authoring profilinde tool yine görünür ve
+  CAPABILITY_UNAVAILABLE döndürür (tool listesi stabil kalır — mcp.md TL-02).

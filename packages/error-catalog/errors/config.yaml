@@ -1,0 +1,61 @@
+version: 1
+errors:
+  - code: CONFIG_INVALID
+    owner: config
+    category: validation
+    message: "Ürün yapılandırması şemaya uymuyor."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "Config dosyasını config.schema.json'a göre düzeltin; bilinmeyen property hata üretir."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: strict-v1
+      removed_fields: [secrets, absolute_paths]
+    tests: [UT-CONFIG-SCHEMA-001]
+
+  - code: CONFIG_VERSION_UNSUPPORTED
+    owner: config
+    category: validation
+    message: "Config schema sürümü desteklenmiyor."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "Migration notlarını izleyerek config'i desteklenen sürüme yükseltin."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: none
+    tests: [UT-CONFIG-SCHEMA-001]
+
+  - code: COMPATIBILITY_PROFILE_UNVERIFIED
+    owner: config
+    category: integrity
+    message: "Uyumluluk profili doğrulanmamış durumda."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "pnpm run verify:compatibility çalıştırın; doğrulanmamış profille release build üretilemez."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: none
+    tests: [UT-COMPATIBILITY-PROFILE-001]
+    notes: >
+      Prototype kanalında bu kod uyarı (warnings) olarak da yayınlanabilir;
+      release profilinde her zaman hatadır.
+
+  - code: COMPATIBILITY_PROFILE_MISMATCH
+    owner: config
+    category: validation
+    message: "Ortamda bulunan sürüm uyumluluk profiliyle eşleşmiyor."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "system_health çıktısındaki uyuşmayan bileşeni profildeki sürüme getirin."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: none
+    tests: [CT-SYSTEM-HEALTH-001]

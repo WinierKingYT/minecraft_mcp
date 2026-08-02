@@ -1,0 +1,51 @@
+# Tool profilleri — deterministik sıra normatiftir (contracts/mcp.md TL-04).
+# Buradaki her tool adı bir capability kaydına bağlı olmalıdır
+# (scripts/validate-registry.mjs).
+version: 1
+
+profiles:
+  developer:
+    default: true
+    description: Agent-facing varsayılan profil. Destructive tool içermez.
+    tools:
+      - system_health
+      - system_capabilities
+      - project_inspect
+      - project_validate
+      - plugin_build
+      - plugin_launch
+      - plugin_stop
+      - plugin_diagnose
+      - operation_get
+      - operation_cancel
+      - scenario_validate
+      - scenario_run
+      - evidence_get
+
+  debug:
+    default: false
+    description: Düşük seviyeli runtime ve Minecraft gözlem araçları.
+    tools:
+      - runtime_create
+      - runtime_start
+      - runtime_get
+      - runtime_stop
+      - runtime_release
+      - minecraft_server_get
+      - minecraft_plugin_list
+      - minecraft_plugin_get
+      - minecraft_world_list
+      - minecraft_world_get_block
+      - minecraft_events_query
+      - minecraft_player_get
+
+  scenario-authoring:
+    default: false
+    description: Scenario yazarı için step katalogu ve fixture keşfi.
+    tools:
+      - scenario_step_catalog
+      - fixture_inspect
+      - actor_capabilities
+      - scenario_validate
+      - scenario_run
+      - evidence_get

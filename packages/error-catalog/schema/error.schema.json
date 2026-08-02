@@ -1,0 +1,113 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://minecraft-plugin-dev-mcp/schemas/error.schema.json",
+  "title": "Error catalog record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["code", "owner", "category", "message", "tool_result", "json_rpc_mapping", "redaction"],
+  "properties": {
+    "code": {
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9_]*$"
+    },
+    "owner": {
+      "enum": [
+        "mcp",
+        "supervisor",
+        "project",
+        "build",
+        "gradle",
+        "runtime",
+        "bridge",
+        "plugin",
+        "scenario",
+        "actor",
+        "evidence",
+        "security",
+        "config"
+      ]
+    },
+    "category": {
+      "enum": [
+        "validation",
+        "state",
+        "not_found",
+        "permission",
+        "conflict",
+        "limit",
+        "timeout",
+        "integrity",
+        "environment",
+        "internal"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "minLength": 8,
+      "description": "Kullanıcıya dönük, secret içermeyen varsayılan mesaj."
+    },
+    "tool_result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["is_error", "retryable", "suggested_action"],
+      "properties": {
+        "is_error": { "type": "boolean" },
+        "retryable": { "type": "boolean" },
+        "suggested_action": {
+          "type": "string",
+          "minLength": 8,
+          "description": "KPI-08: her hata önerilen aksiyon taşımak zorundadır."
+        }
+      }
+    },
+    "bridge_mapping": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "http_status": { "type": "integer", "minimum": 100, "maximum": 599 }
+      }
+    },
+    "json_rpc_mapping": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["protocol_error"],
+      "properties": {
+        "protocol_error": {
+          "type": "boolean",
+          "description": "true ise domain error'a çevrilmez; JSON-RPC hatası olarak kalır."
+        },
+        "code": { "type": "integer" }
+      }
+    },
+    "redaction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["profile"],
+      "properties": {
+        "profile": { "enum": ["none", "default-v1", "strict-v1"] },
+        "removed_fields": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "terminal_state": {
+      "type": ["string", "null"],
+      "enum": [
+        "FAILED",
+        "CANCELLED",
+        "TIMED_OUT",
+        "DIRTY",
+        "ORPHANED",
+        "UNKNOWN_OUTCOME",
+        null
+      ],
+      "description": "Bu hata bir run'ı terminal duruma sürüklüyorsa hangisine."
+    },
+    "tests": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^(UT|CT|IT|ST|E2E)-[A-Z0-9-]+$" }
+    },
+    "notes": { "type": "string" }
+  }
+}

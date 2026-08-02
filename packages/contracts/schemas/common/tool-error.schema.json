@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://minecraft-plugin-dev-mcp/schemas/common/tool-error.schema.json",
+  "title": "Tool error",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["code", "retryable", "suggested_action"],
+  "properties": {
+    "code": {
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9_]*$",
+      "description": "Error catalog'da tanımlı bir kod."
+    },
+    "retryable": { "type": "boolean" },
+    "suggested_action": {
+      "type": "string",
+      "minLength": 8,
+      "description": "KPI-08: her hata önerilen aksiyon taşır."
+    },
+    "details": {
+      "type": "object",
+      "description": "Redaction profilinden geçmiş yapılandırılmış ayrıntı. Raw host path veya secret içermez."
+    },
+    "terminal_state": {
+      "enum": ["FAILED", "CANCELLED", "TIMED_OUT", "DIRTY", "ORPHANED", "UNKNOWN_OUTCOME"]
+    }
+  }
+}

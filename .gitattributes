@@ -1,0 +1,21 @@
+# Deterministik satır sonları. Reproducible build hedefi için zorunludur:
+# CRLF/LF karışıklığı artifact checksum'larını platformlar arasında değiştirir
+# ve KPI-05 (tekrarlanabilirlik) ölçümünü anlamsız kılar.
+* text=auto eol=lf
+
+# Windows kabuk script'leri CRLF olmak zorunda
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Binary
+*.jar binary
+*.zip binary
+*.png binary
+*.mca binary
+*.dat binary
+
+# Generated dosyalar diff'te daraltılır fakat sürüm kontrolündedir
+# (drift testi bunu gerektirir)
+*.generated.ts linguist-generated=true
+bridge/paper/src/main/java/io/github/mcpdev/bridge/generated/** linguist-generated=true
+pnpm-lock.yaml linguist-generated=true

@@ -1,0 +1,32 @@
+{
+  "name": "minecraft-plugin-dev-mcp",
+  "version": "0.1.0-prototype.0",
+  "private": true,
+  "description": "Local development infrastructure for verifying AI-authored Paper plugins on real Paper with provable evidence",
+  "license": "MIT",
+  "type": "module",
+  "packageManager": "pnpm@10.15.0",
+  "engines": {
+    "node": "24.18.1"
+  },
+  "scripts": {
+    "gen": "node scripts/generate-contracts.mjs",
+    "gen:check": "node scripts/generate-contracts.mjs --check",
+    "verify:compatibility": "node scripts/verify-compatibility.mjs",
+    "check:parse": "node scripts/check-parse.mjs",
+    "check:registry": "node scripts/validate-registry.mjs",
+    "check:schemas": "node scripts/validate-schemas.mjs",
+    "check:docs": "node scripts/check-docs.mjs",
+    "check": "pnpm run check:parse && pnpm run check:registry && pnpm run check:schemas && pnpm run check:docs && pnpm run gen:check && pnpm run -r typecheck && pnpm run -r test",
+    "typecheck": "pnpm run -r typecheck",
+    "test": "pnpm run -r test",
+    "build": "pnpm run -r build"
+  },
+  "devDependencies": {
+    "@types/node": "24.7.0",
+    "ajv": "8.17.1",
+    "ajv-formats": "3.0.1",
+    "typescript": "5.9.3",
+    "yaml": "2.8.1"
+  }
+}

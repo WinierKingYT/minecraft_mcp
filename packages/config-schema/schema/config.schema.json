@@ -1,0 +1,145 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://minecraft-plugin-dev-mcp/schemas/config.schema.json",
+  "title": "Product configuration v1",
+  "description": "CF-02: bilinmeyen property hata üretir. CF-06: güvensiz default bulunmaz.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "compatibility_profile", "tool_profile", "storage", "projects", "execution", "build", "runtime", "security", "telemetry"],
+  "properties": {
+    "version": { "const": 1 },
+    "compatibility_profile": { "type": "string", "minLength": 1 },
+    "tool_profile": {
+      "enum": ["developer", "debug", "scenario-authoring"],
+      "default": "developer"
+    },
+    "storage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["metadata_db", "evidence_root", "runtime_root", "max_total_gb"],
+      "properties": {
+        "metadata_db": { "type": "string", "minLength": 1 },
+        "evidence_root": { "type": "string", "minLength": 1 },
+        "runtime_root": { "type": "string", "minLength": 1 },
+        "max_total_gb": { "type": "integer", "minimum": 1, "maximum": 1000 }
+      }
+    },
+    "projects": {
+      "type": "object",
+      "minProperties": 0,
+      "propertyNames": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["canonical_root", "trust_level", "allowed_backends", "default_backend"],
+        "properties": {
+          "canonical_root": { "type": "string", "minLength": 1 },
+          "trust_level": {
+            "enum": ["untrusted", "developer-workspace", "pinned-source", "approved-fixture", "revoked"]
+          },
+          "allowed_backends": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": { "enum": ["trusted-local", "container"] }
+          },
+          "default_backend": {
+            "enum": ["trusted-local", "container"],
+            "default": "container"
+          }
+        }
+      }
+    },
+    "execution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["trusted_local", "container"],
+      "properties": {
+        "trusted_local": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["enabled"],
+          "properties": {
+            "enabled": { "type": "boolean", "default": false }
+          }
+        },
+        "container": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["enabled", "runtime", "network_default", "cpu", "memory_mb", "pids", "disk_mb"],
+          "properties": {
+            "enabled": { "type": "boolean", "default": false },
+            "runtime": { "enum": ["docker", "podman"] },
+            "network_default": { "enum": ["none", "repository-allowlist"], "default": "none" },
+            "cpu": { "type": "number", "minimum": 0.5, "maximum": 32 },
+            "memory_mb": { "type": "integer", "minimum": 1024, "maximum": 131072 },
+            "pids": { "type": "integer", "minimum": 32, "maximum": 8192 },
+            "disk_mb": { "type": "integer", "minimum": 1024, "maximum": 1048576 }
+          }
+        }
+      }
+    },
+    "build": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["default_mode", "timeout_seconds", "max_output_bytes", "repository_allowlist"],
+      "properties": {
+        "default_mode": { "enum": ["reproducible", "provisioning"], "default": "reproducible" },
+        "timeout_seconds": { "type": "integer", "minimum": 30, "maximum": 3600 },
+        "max_output_bytes": { "type": "integer", "minimum": 65536, "maximum": 134217728 },
+        "repository_allowlist": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "pattern": "^[a-z0-9.-]+$" }
+        }
+      }
+    },
+    "runtime": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["max_concurrent", "startup_timeout_seconds", "shutdown_timeout_seconds", "retention_hours"],
+      "properties": {
+        "max_concurrent": { "type": "integer", "minimum": 1, "maximum": 8, "default": 1 },
+        "startup_timeout_seconds": { "type": "integer", "minimum": 10, "maximum": 900 },
+        "shutdown_timeout_seconds": { "type": "integer", "minimum": 5, "maximum": 300 },
+        "retention_hours": { "type": "integer", "minimum": 1, "maximum": 720 }
+      }
+    },
+    "security": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "max_request_body_bytes",
+        "max_log_bytes",
+        "max_event_results",
+        "handle_ttl_minutes",
+        "allow_agent_destructive_tools"
+      ],
+      "properties": {
+        "max_request_body_bytes": { "type": "integer", "minimum": 1024, "maximum": 4194304 },
+        "max_log_bytes": { "type": "integer", "minimum": 4096, "maximum": 33554432 },
+        "max_event_results": { "type": "integer", "minimum": 1, "maximum": 10000 },
+        "handle_ttl_minutes": { "type": "integer", "minimum": 1, "maximum": 1440 },
+        "allow_agent_destructive_tools": {
+          "const": false,
+          "description": "V1'de sabit. ADR-0007: agent-facing destructive tool yoktur."
+        }
+      }
+    },
+    "telemetry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["log_level", "stderr_format", "redact_patterns"],
+      "properties": {
+        "log_level": { "enum": ["error", "warn", "info", "debug"], "default": "info" },
+        "stderr_format": { "enum": ["json", "text"], "default": "json" },
+        "redact_patterns": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string" }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,134 @@
+version: 1
+errors:
+  - code: BUILD_MODE_UNSUPPORTED
+    owner: build
+    category: validation
+    message: "İstenen build modu desteklenmiyor."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "build | unit_test | integration_test | clean_build modlarından birini seçin; serbest Gradle task verilemez."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: none
+    tests: [CT-BUILD-RUN-001]
+
+  - code: BUILD_FAILED
+    owner: build
+    category: internal
+    message: "Build başarısız oldu."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "plugin_diagnose ile dosya, satır ve sembol düzeyindeki derleyici teşhisini alın."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: default-v1
+      removed_fields: [environment, absolute_paths]
+    terminal_state: FAILED
+    tests: [IT-BUILD-001]
+
+  - code: BUILD_TIMEOUT
+    owner: build
+    category: timeout
+    message: "Build yapılandırılmış süre limitini aştı."
+    tool_result:
+      is_error: true
+      retryable: true
+      suggested_action: "build.timeout_seconds değerini artırın veya clean_build yerine artımlı build kullanın."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: none
+    terminal_state: TIMED_OUT
+    tests: [ST-PROC-004]
+
+  - code: BACKEND_UNAVAILABLE
+    owner: build
+    category: environment
+    message: "İstenen execution backend kullanılamıyor."
+    tool_result:
+      is_error: true
+      retryable: true
+      suggested_action: "Container runtime'ının çalıştığını doğrulayın veya projenin allowed_backends listesinden kullanılabilir bir backend seçin."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: default-v1
+    tests: [CT-BUILD-RUN-001]
+
+  - code: BACKEND_SECURITY_DOWNGRADE
+    owner: build
+    category: permission
+    message: "Runtime backend'i build backend'inden daha zayıf bir izolasyon sınıfında."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "Runtime'ı build ile aynı veya daha güçlü backend'de başlatın; Container'da build edilen artifact Trusted Local'de çalıştırılamaz."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: none
+    tests: [ST-BACKEND-DOWNGRADE-001]
+    notes: "build_backend.security_level >= runtime_backend.security_level (ADR-0004)."
+
+  - code: PROVISIONING_APPROVAL_REQUIRED
+    owner: build
+    category: permission
+    message: "Provisioning modu açık kullanıcı onayı gerektirir."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "Provisioning'i onaylı workflow üzerinden çalıştırın; ağ erişimi gerektiren tek mod budur ve Container zorunludur."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: none
+    tests: [CT-BUILD-RUN-001]
+
+  - code: ARTIFACT_NOT_FOUND
+    owner: build
+    category: not_found
+    message: "Build çıktısında beklenen plugin JAR'ı bulunamadı."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "Gradle jar/shadowJar task'ının çıktı dizinini kontrol edin; artifact yalnızca doğrulanmış build output'u altından seçilir."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: default-v1
+    terminal_state: FAILED
+    tests: [UT-ARTIFACT-SELECT-001]
+
+  - code: ARTIFACT_AMBIGUOUS
+    owner: build
+    category: conflict
+    message: "Birden fazla aday artifact bulundu; deterministik seçim yapılamadı."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "Tek bir plugin JAR'ı üretin veya proje test contract'ında beklenen artifact adını belirtin."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: default-v1
+    terminal_state: FAILED
+    tests: [UT-ARTIFACT-SELECT-001]
+
+  - code: JAVA_VERSION_MISMATCH
+    owner: build
+    category: environment
+    message: "Bulunan Java sürümü uyumluluk profilindeki major sürümle eşleşmiyor."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "Profildeki Java major sürümünü kurun; başka bir major ile runtime başlatılmaz."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: none
+    terminal_state: FAILED
+    tests: [IT-BUILD-001, CT-RUNTIME-LAUNCH-001]

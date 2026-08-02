@@ -1,0 +1,58 @@
+id: runtime.launch
+version: 1
+milestone: M1
+summary: Paper process'ini başlatır, Bridge handshake'ini bekler ve ready gate'i doğrular.
+status: planned
+
+exposure:
+  developer_tool: plugin_launch
+  debug_tool: runtime_start
+  bridge_operation: null
+  dsl_step: null
+
+risk:
+  effect: process
+  scope: disposable_runtime
+  reversibility: runtime_discard
+  approval: profile
+  exposure: agent_visible
+  cost: high
+  level: R1
+
+contracts:
+  input: schemas/runtime-launch.input.json
+  output: schemas/runtime-launch.output.json
+
+limits:
+  timeout_ms: 120000
+  requires_idempotency: true
+
+requires:
+  runtime_state: [CREATED]
+
+errors:
+  - RUNTIME_NOT_FOUND
+  - RUNTIME_INVALID_STATE
+  - HANDLE_NOT_OWNED
+  - JAVA_VERSION_MISMATCH
+  - PORT_UNAVAILABLE
+  - STARTUP_TIMEOUT
+  - READY_GATE_FAILED
+  - PLUGIN_ENABLE_FAILED
+  - PLUGIN_MAIN_CLASS_MISSING
+  - PLUGIN_DEPENDENCY_UNSATISFIED
+  - PLUGIN_LOADING_CYCLE
+  - PLUGIN_NAME_CONFLICT
+  - BRIDGE_HANDSHAKE_FAILED
+  - RUNTIME_CRASHED
+
+tests:
+  unit: [UT-READY-GATE-001]
+  contract: [CT-RUNTIME-LAUNCH-001]
+  integration: [IT-RUNTIME-001, IT-PAPER-LIFECYCLE-001]
+  security: [ST-PROC-003, ST-PROC-004]
+  e2e: [E2E-BUILD-LAUNCH-001]
+
+notes: >
+  Ready gate yalnızca "process ayakta" demek değildir: Paper hazır,
+  Bridge boot_id yayınlanmış ve hedef plugin enabled olmalıdır.

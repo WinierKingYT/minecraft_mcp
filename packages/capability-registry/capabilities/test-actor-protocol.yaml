@@ -1,0 +1,48 @@
+id: test_actor.protocol
+version: 1
+milestone: M2B
+summary: Offline test identity ile gerçek protokol istemcisi bağlar; join/quit yaşam döngüsünü yönetir.
+status: conditional
+
+exposure:
+  developer_tool: null
+  debug_tool: null
+  bridge_operation: null
+  dsl_step: test_actor.create
+
+risk:
+  effect: process
+  scope: disposable_runtime
+  reversibility: runtime_discard
+  approval: profile
+  exposure: agent_visible
+  cost: bounded
+  level: R1
+
+contracts:
+  input: schemas/test-actor-create.input.json
+  output: schemas/test-actor-create.output.json
+
+limits:
+  timeout_ms: 30000
+  requires_idempotency: true
+
+requires:
+  runtime_state: [READY]
+
+errors:
+  - CAPABILITY_UNAVAILABLE
+  - ACTOR_UNAVAILABLE
+  - ACTOR_LOGIN_FAILED
+  - ACTOR_CRASHED
+  - RUNTIME_NOT_RUNNING
+  - CLEANUP_FAILED
+
+tests:
+  contract: [CT-ACTOR-LIFECYCLE-001]
+  integration: [IT-ACTOR-001]
+  security: [ST-CLEANUP-002]
+
+notes: >
+  Actor gerçek kullanıcı hesabı veya production credential taşımaz; yalnızca
+  test runtime'a bağlanır. M2B koşullu (ADR-0006, SPIKE-ACTOR-001).

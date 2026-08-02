@@ -1,0 +1,41 @@
+id: world.list
+version: 1
+milestone: M0
+summary: Yüklü dünyaları ve fixture bölgelerini listeler.
+status: planned
+
+exposure:
+  developer_tool: null
+  debug_tool: minecraft_world_list
+  bridge_operation: world.list
+  dsl_step: null
+
+risk:
+  effect: read
+  scope: fixture
+  reversibility: reversible
+  approval: none
+  exposure: agent_visible
+  cost: low
+  level: R0
+
+contracts:
+  input: schemas/world-list.input.json
+  output: schemas/world-list.output.json
+
+limits:
+  timeout_ms: 2000
+  max_results: 20
+
+requires:
+  runtime_state: [READY]
+
+errors:
+  - RUNTIME_NOT_RUNNING
+  - BRIDGE_UNAVAILABLE
+  - BRIDGE_TIMEOUT
+  - CAPABILITY_UNAVAILABLE
+
+tests:
+  contract: [CT-WORLD-LIST-001]
+  integration: [IT-WORLD-LIST-001]

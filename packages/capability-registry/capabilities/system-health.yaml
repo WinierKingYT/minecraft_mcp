@@ -1,0 +1,35 @@
+id: system.health
+version: 1
+milestone: M0
+summary: MCP Server, Supervisor ve yapılandırma sağlığını raporlar.
+status: planned
+
+exposure:
+  developer_tool: system_health
+  debug_tool: null
+  bridge_operation: null
+  dsl_step: null
+
+risk:
+  effect: read
+  scope: disposable_runtime
+  reversibility: reversible
+  approval: none
+  exposure: agent_visible
+  cost: low
+  level: R0
+
+contracts:
+  input: schemas/system-health.input.json
+  output: schemas/system-health.output.json
+
+limits:
+  timeout_ms: 5000
+
+errors:
+  - SUPERVISOR_UNAVAILABLE
+  - CONFIG_INVALID
+
+tests:
+  unit: [UT-SYSTEM-HEALTH-001]
+  contract: [CT-SYSTEM-HEALTH-001]

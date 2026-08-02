@@ -1,0 +1,41 @@
+id: plugin.list
+version: 1
+milestone: M0
+summary: Runtime'da yüklü plugin'leri ve enabled/disabled durumlarını listeler.
+status: planned
+
+exposure:
+  developer_tool: null
+  debug_tool: minecraft_plugin_list
+  bridge_operation: plugin.list
+  dsl_step: null
+
+risk:
+  effect: read
+  scope: disposable_runtime
+  reversibility: reversible
+  approval: none
+  exposure: agent_visible
+  cost: low
+  level: R0
+
+contracts:
+  input: schemas/plugin-list.input.json
+  output: schemas/plugin-list.output.json
+
+limits:
+  timeout_ms: 2000
+  max_results: 100
+
+requires:
+  runtime_state: [READY]
+
+errors:
+  - RUNTIME_NOT_RUNNING
+  - BRIDGE_UNAVAILABLE
+  - BRIDGE_TIMEOUT
+  - CAPABILITY_UNAVAILABLE
+
+tests:
+  contract: [CT-PLUGIN-LIST-001]
+  integration: [IT-PLUGIN-LIST-001]

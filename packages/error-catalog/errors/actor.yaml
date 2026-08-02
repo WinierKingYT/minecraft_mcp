@@ -1,0 +1,46 @@
+version: 1
+errors:
+  - code: ACTOR_UNAVAILABLE
+    owner: actor
+    category: environment
+    message: "Protocol test actor bu kurulumda kullanılamıyor."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "actor_capabilities ile desteklenen eylemleri kontrol edin; M2B koşullu bir milestone'dur."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: none
+    tests: [CT-ACTOR-CAPS-001]
+    notes: "SPIKE-ACTOR-001 başarısız olursa bu kod M2B step'lerinin standart yanıtıdır."
+
+  - code: ACTOR_LOGIN_FAILED
+    owner: actor
+    category: state
+    message: "Test actor sunucuya giriş yapamadı."
+    tool_result:
+      is_error: true
+      retryable: true
+      suggested_action: "Determinism profilinde online_mode: false olduğunu ve runtime'ın READY durumunda olduğunu doğrulayın."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: strict-v1
+      removed_fields: [player.ip, credentials]
+    tests: [CT-ACTOR-LIFECYCLE-001]
+
+  - code: ACTOR_CRASHED
+    owner: actor
+    category: internal
+    message: "Test actor process'i beklenmedik biçimde sonlandı."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "evidence_get ile actor transcript'ini inceleyin; Paper tarafında kalan oyuncu için cleanup kanıtını kontrol edin."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: default-v1
+    terminal_state: FAILED
+    tests: [IT-ACTOR-001, ST-CLEANUP-002]

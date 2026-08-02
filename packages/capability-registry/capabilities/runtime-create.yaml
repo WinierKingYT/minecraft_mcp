@@ -1,0 +1,44 @@
+id: runtime.create
+version: 1
+milestone: M1
+summary: Paper JAR, Bridge, hedef artifact, fixture ve determinism profilinden disposable runtime image hazırlar.
+status: planned
+
+exposure:
+  developer_tool: null
+  debug_tool: runtime_create
+  bridge_operation: null
+  dsl_step: null
+
+risk:
+  effect: build
+  scope: disposable_runtime
+  reversibility: runtime_discard
+  approval: profile
+  exposure: agent_visible
+  cost: bounded
+  level: R1
+
+contracts:
+  input: schemas/runtime-create.input.json
+  output: schemas/runtime-create.output.json
+
+limits:
+  timeout_ms: 120000
+
+errors:
+  - ARTIFACT_NOT_FOUND
+  - PAPER_JAR_CHECKSUM_INVALID
+  - FIXTURE_NOT_FOUND
+  - FIXTURE_PROFILE_MISMATCH
+  - BACKEND_UNAVAILABLE
+  - BACKEND_SECURITY_DOWNGRADE
+  - RUNTIME_QUOTA_EXCEEDED
+  - DISK_QUOTA_EXCEEDED
+  - COMPATIBILITY_PROFILE_UNVERIFIED
+
+tests:
+  unit: [UT-RUNTIME-IMAGE-001]
+  contract: [CT-RUNTIME-CREATE-001]
+  integration: [IT-RUNTIME-001]
+  security: [ST-FS-002, ST-ARCHIVE-001, ST-ARCHIVE-002]

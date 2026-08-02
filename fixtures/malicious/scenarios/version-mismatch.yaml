@@ -1,0 +1,9 @@
+version: "2"
+id: "scenario-version-mismatch"
+title: "Wrong DSL version"
+timeout: 60s
+then:
+  - start_server:
+      jar: paper-26.2-84.jar
+  - wait_for_line:
+      pattern: "Done"

@@ -1,0 +1,49 @@
+version: 1
+errors:
+  - code: EVIDENCE_NOT_FOUND
+    owner: evidence
+    category: not_found
+    message: "Belirtilen evidence nesnesi bulunamadı."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "Rapordaki evidence_ids listesini kullanın; retention süresi geçmiş kanıtlar silinmiş olabilir."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: none
+    tests: [CT-EVIDENCE-READ-001]
+
+  - code: EVIDENCE_WRITE_FAILED
+    owner: evidence
+    category: internal
+    message: "Evidence yazma işlemi başarısız."
+    tool_result:
+      is_error: true
+      retryable: true
+      suggested_action: "Disk alanını ve storage.evidence_root izinlerini kontrol edin; yazma atomic temp-write + rename ile yapılır."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: strict-v1
+      removed_fields: [path]
+    terminal_state: FAILED
+    tests: [IT-EVIDENCE-001]
+
+  - code: EVIDENCE_INTEGRITY_MISMATCH
+    owner: evidence
+    category: integrity
+    message: "Evidence checksum'ı manifest değeriyle eşleşmiyor veya provenance zinciri eksik."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "Raporu kanıt olarak kullanmayın ve run'ı tekrarlayın; eksik provenance zinciri sessizce tolere edilmez."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: none
+    tests: [ST-SAMEJVM-002]
+    notes: >
+      Bu bir TESPİT mekanizmasıdır, ÖNLEME değil. Aynı JVM'deki kötü niyetli
+      plugin evidence dosyalarını değiştirebilir; checksum bunu tespit eder
+      (ADR-0007, security/guarantees.md).

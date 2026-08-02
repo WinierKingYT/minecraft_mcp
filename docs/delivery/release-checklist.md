@@ -1,0 +1,123 @@
+# V1 release checklist
+
+## Ürün
+
+- [ ] Hedef kullanıcı ve JTBD onaylı
+- [ ] V1 kapsamı tek anlamlı
+- [ ] Non-goals açık
+- [ ] M2B conditional sonucu kesin
+
+## Compatibility
+
+- [ ] Paper sürüm + build doğrulanmış
+- [ ] Paper JAR checksum
+- [ ] Paper API koordinatı doğrulanmış
+- [ ] Java major doğrulanmış
+- [ ] Node sürümü doğrulanmış
+- [ ] Gradle sürümü doğrulanmış
+- [ ] Stable MCP SDK release gate karşılanmış
+- [ ] `verification.status: verified`
+
+## MCP
+
+- [ ] stdio
+- [ ] stdout purity
+- [ ] stable tool list
+- [ ] input/output schemas
+- [ ] success/error union
+- [ ] Resources
+- [ ] Inspector
+- [ ] Gerçek client
+
+## Supervisor
+
+- [ ] Trust store
+- [ ] Source snapshot
+- [ ] Operation ledger
+- [ ] Process ownership
+- [ ] Recovery
+- [ ] Garbage Collector
+
+## Execution
+
+- [ ] Trusted Local limitation belgelenmiş
+- [ ] Container backend
+- [ ] No privileged container
+- [ ] No Docker socket
+- [ ] No host secrets
+- [ ] Quotas
+- [ ] Network policy
+
+## Gradle
+
+- [ ] Wrapper JAR verified
+- [ ] Distribution SHA
+- [ ] Lock files
+- [ ] Verification metadata
+- [ ] No dynamic versions
+- [ ] Strict mode
+
+## Paper
+
+- [ ] Bridge lifecycle
+- [ ] Ready gate
+- [ ] `plugin.yml`
+- [ ] Plugin enabled
+- [ ] Scheduler
+- [ ] Events
+- [ ] Graceful stop
+- [ ] Crash evidence
+
+## Scenario
+
+- [ ] Fresh runtime
+- [ ] Determinism profile
+- [ ] DSL schema
+- [ ] Assertions
+- [ ] Eventual waits
+- [ ] Cleanup
+- [ ] Reports
+
+## Security
+
+- [ ] Path traversal
+- [ ] Symlink/junction
+- [ ] Archive traversal
+- [ ] Token redaction
+- [ ] Handle ownership
+- [ ] Idempotency
+- [ ] Malicious Gradle
+- [ ] Malicious plugin container testi
+- [ ] Same-JVM limitation belgelenmiş
+
+## Release
+
+- [ ] Windows/Linux CI
+- [ ] SBOM
+- [ ] Checksums
+- [ ] Install/uninstall
+- [ ] Doctor
+- [ ] Troubleshooting
+- [ ] Incident response
+- [ ] Known limitations
+- [ ] Üç gerçek proje
+- [ ] P0/P1 closed
+
+## Release artifact'leri
+
+MCP package · Supervisor package · Bridge JAR · Actor package (M2B açıksa) · compatibility profile · capability registry · JSON schemas · error catalog · SBOM · checksums · changelog · migration notes · known limitations · install/uninstall · incident response.
+
+## Sürümlenen bileşenler
+
+```text
+MCP Server version
+Run Supervisor version
+Bridge Plugin version
+Actor version
+Bridge Protocol version
+Scenario DSL version
+Config Schema version
+Capability Registry version
+Plugin Test Contract version
+Compatibility Profile version
+```

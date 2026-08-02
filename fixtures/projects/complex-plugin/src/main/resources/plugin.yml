@@ -1,0 +1,20 @@
+name: ComplexPlugin
+version: '${version}'
+main: com.example.ComplexPlugin
+api-version: '${apiVersion}'
+description: Complex test plugin with config, events, and inventory
+commands:
+  kills:
+    description: Shows your kill count
+    usage: /kills
+  tracker:
+    description: Gives a tracker compass
+    usage: /tracker
+  welcomeset:
+    description: Sets a welcome message
+    usage: /welcomeset <message>
+    permission: complexplugin.admin
+permissions:
+  complexplugin.admin:
+    description: Admin permissions
+    default: op

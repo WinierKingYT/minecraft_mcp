@@ -1,0 +1,11 @@
+name: PaperBridge
+version: '${version}'
+main: io.github.mcpdev.bridge.PaperBridgePlugin
+api-version: '${apiVersion}'
+description: Minecraft Plugin Development MCP — read-only observation bridge
+author: Minecraft Plugin Development MCP contributors
+load: POSTWORLD
+
+# Bridge komut veya izin TANIMLAMAZ. Kontrol yüzeyi yalnızca loopback HTTP
+# üzerinden, token ile erişilir (docs/contracts/bridge.md).
+# Oyunculara açık hiçbir yüzey yoktur.

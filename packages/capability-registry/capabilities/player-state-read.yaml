@@ -1,0 +1,45 @@
+id: player.state.read
+version: 1
+milestone: M0
+summary: Test oyuncusunun konum, dünya, sağlık ve gamemode gibi temel durumunu okur.
+status: planned
+
+exposure:
+  developer_tool: null
+  debug_tool: minecraft_player_get
+  bridge_operation: player.get_state
+  dsl_step: assert.player_state
+
+risk:
+  effect: read
+  scope: disposable_runtime
+  reversibility: reversible
+  approval: none
+  exposure: agent_visible
+  cost: low
+  level: R0
+
+contracts:
+  input: schemas/player-state-read.input.json
+  output: schemas/player-state-read.output.json
+
+limits:
+  timeout_ms: 2000
+
+requires:
+  runtime_state: [READY]
+
+errors:
+  - RUNTIME_NOT_RUNNING
+  - PLAYER_NOT_FOUND
+  - BRIDGE_TIMEOUT
+  - CAPABILITY_UNAVAILABLE
+
+tests:
+  contract: [CT-PLAYER-STATE-001]
+  integration: [IT-PLAYER-STATE-001]
+  security: [ST-REDACT-003]
+
+notes: >
+  Yanıt IP adresi veya gerçek hesap kimliği içermez; yalnızca test actor
+  kimliği döner.

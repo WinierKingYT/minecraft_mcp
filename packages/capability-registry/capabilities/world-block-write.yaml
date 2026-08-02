@@ -1,0 +1,55 @@
+id: world.block.write
+version: 1
+milestone: M2A
+summary: Fixture bölgesi içinde tek bir bloğu, izin verilen materyal listesinden bir değere ayarlar.
+status: planned
+
+# NOT: debug_tool bilinçli olarak null'dır. V3 sözleşme belgesinin capability
+# örneği minecraft_world_set_block'u debug tool olarak gösteriyor, fakat aynı
+# belgenin debug profile listesi bu tool'u içermiyor. Profil listesi normatif
+# kabul edildi: setup mutation'ları yalnızca Scenario DSL üzerinden, scenario
+# bağlamında ve idempotency key ile yapılır. Karar D0C'de teyit edilmelidir.
+exposure:
+  developer_tool: null
+  debug_tool: null
+  bridge_operation: world.set_block
+  dsl_step: world.set_block
+
+risk:
+  effect: mutation
+  scope: fixture
+  reversibility: runtime_discard
+  approval: profile
+  exposure: agent_visible
+  cost: low
+  level: R2
+
+contracts:
+  input: schemas/world-set-block.input.json
+  output: schemas/world-set-block.output.json
+
+limits:
+  timeout_ms: 2000
+  max_blocks: 1
+  region: fixture-area
+  requires_idempotency: true
+
+requires:
+  runtime_state: [READY]
+
+errors:
+  - RUNTIME_NOT_RUNNING
+  - WORLD_NOT_FOUND
+  - REGION_NOT_ALLOWED
+  - MATERIAL_NOT_ALLOWED
+  - CHUNK_NOT_LOADED
+  - IDEMPOTENCY_KEY_ARGUMENT_MISMATCH
+  - BRIDGE_BUSY
+  - BRIDGE_TIMEOUT
+  - MUTATION_UNKNOWN_OUTCOME
+  - CAPABILITY_UNAVAILABLE
+
+tests:
+  contract: [CT-WORLD-SET-001, CT-IDEMPOTENCY-001, CT-IDEMPOTENCY-002, CT-IDEMPOTENCY-003]
+  integration: [IT-WORLD-SET-001]
+  security: [ST-WORLD-SET-001]

@@ -1,0 +1,71 @@
+id: build.run
+version: 1
+milestone: M1
+summary: Source snapshot'ı izin verilen execution backend içinde, enum tabanlı bir build moduyla derler.
+status: planned
+
+exposure:
+  developer_tool: plugin_build
+  debug_tool: null
+  bridge_operation: null
+  dsl_step: null
+
+risk:
+  effect: build
+  scope: disposable_runtime
+  reversibility: reversible
+  approval: profile
+  exposure: agent_visible
+  cost: high
+  level: R1
+
+contracts:
+  input: schemas/build-run.input.json
+  output: schemas/build-run.output.json
+
+limits:
+  timeout_ms: 300000
+  max_bytes: 5242880
+
+requires:
+  trust_level:
+    - developer-workspace
+    - pinned-source
+    - approved-fixture
+
+errors:
+  - PROJECT_NOT_REGISTERED
+  - TRUST_LEVEL_INSUFFICIENT
+  - SOURCE_CHANGED_DURING_BUILD
+  - BACKEND_UNAVAILABLE
+  - BACKEND_SECURITY_DOWNGRADE
+  - BUILD_MODE_UNSUPPORTED
+  - BUILD_FAILED
+  - BUILD_TIMEOUT
+  - OUTPUT_LIMIT_EXCEEDED
+  - DEPENDENCY_VERIFICATION_FAILED
+  - DEPENDENCY_LOCK_OUT_OF_DATE
+  - ARTIFACT_NOT_FOUND
+  - ARTIFACT_AMBIGUOUS
+  - JAVA_VERSION_MISMATCH
+  - PROVISIONING_APPROVAL_REQUIRED
+
+tests:
+  unit: [UT-BUILD-PLAN-001, UT-ARTIFACT-SELECT-001]
+  contract: [CT-BUILD-RUN-001]
+  integration: [IT-BUILD-001, IT-BACKEND-PARITY-001]
+  security:
+    - ST-PROC-001
+    - ST-PROC-002
+    - ST-ENV-001
+    - ST-OUTPUT-001
+    - ST-SNAPSHOT-001
+    - ST-GRADLE-005
+    - ST-BACKEND-DOWNGRADE-001
+    - ST-CONTAINER-NET-001
+  e2e: [E2E-BUILD-LAUNCH-001]
+
+notes: >
+  Agent serbest Gradle task veremez; mode yalnızca
+  build | unit_test | integration_test | clean_build enum'undan seçilir.
+  Task mapping ürün config'inde bulunur.

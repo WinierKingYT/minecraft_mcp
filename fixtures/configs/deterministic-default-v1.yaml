@@ -1,0 +1,31 @@
+id: deterministic-default-v1
+
+world:
+  seed: 123456789
+  difficulty: peaceful
+  time: 6000
+  weather: clear
+  random_tick_speed: 0
+
+gamerules:
+  doDaylightCycle: false
+  doWeatherCycle: false
+  doMobSpawning: false
+  doPatrolSpawning: false
+  doTraderSpawning: false
+  doInsomnia: false
+  keepInventory: true
+
+server:
+  # Bir güvenlik gevşetmesi değil, offline test identity gereğidir: runtime
+  # ağa kapalıdır ve yalnızca loopback erişimi vardır.
+  online_mode: false
+  max_players: 4
+  view_distance: 4
+  simulation_distance: 4
+  spawn_protection: 0
+
+process:
+  timezone: UTC
+  file_encoding: UTF-8
+  locale: en_US

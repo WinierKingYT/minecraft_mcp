@@ -1,0 +1,7 @@
+{
+  "name": "@mcpdev/config-schema",
+  "version": "0.1.0-prototype.0",
+  "private": true,
+  "description": "Ürün yapılandırma şeması ve örnek config.",
+  "files": ["schema", "config.example.yaml"]
+}
