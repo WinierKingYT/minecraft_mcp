@@ -58,6 +58,55 @@ export interface ActorActionResult {
   readonly state?: ActorState;
 }
 
+// ─── Inventory Types ─────────────────────────────────────────────────────────
+
+export interface InventoryItem {
+  readonly slot: number;
+  readonly material: string;
+  readonly amount: number;
+  readonly displayName?: string;
+  readonly durability?: number;
+  readonly enchantments?: Record<string, number>;
+  readonly meta?: Record<string, unknown>;
+}
+
+export interface ActorInventory {
+  readonly actor_id: string;
+  readonly items: InventoryItem[];
+  readonly armor: InventoryItem[];
+  readonly offhand: InventoryItem | null;
+  readonly cursor: InventoryItem | null;
+}
+
+export interface ActorInventoryParams {
+  readonly actor: string;
+}
+
+export interface ActorInventorySetParams {
+  readonly actor: string;
+  readonly slot: number;
+  readonly material: string;
+  readonly amount?: number;
+  readonly displayName?: string;
+}
+
+export interface ActorInventoryClearParams {
+  readonly actor: string;
+  readonly slot?: number;
+}
+
+export interface ActorInventoryGiveParams {
+  readonly actor: string;
+  readonly material: string;
+  readonly amount?: number;
+}
+
+export interface ActorInventoryCheckParams {
+  readonly actor: string;
+  readonly material?: string;
+  readonly slot?: number;
+}
+
 // ─── Actor Client ─────────────────────────────────────────────────────────────
 
 /**
@@ -212,6 +261,96 @@ export class ActorClient {
       health: result['health'] as number,
       connected: result['connected'] as boolean,
     };
+  }
+
+  // ─── Inventory Methods ──────────────────────────────────────────────────────
+
+  /**
+   * Actor envanterini sorgular.
+   */
+  async getInventory(params: ActorInventoryParams): Promise<ActorInventory> {
+    const result = await this.#actionFn('player.get_inventory', {
+      actor_id: params.actor,
+    });
+
+    return {
+      actor_id: params.actor,
+      items: (result['items'] as InventoryItem[]) ?? [],
+      armor: (result['armor'] as InventoryItem[]) ?? [],
+      offhand: (result['offhand'] as InventoryItem) ?? null,
+      cursor: (result['cursor'] as InventoryItem) ?? null,
+    };
+  }
+
+  /**
+   * Actor envanterine item ekler.
+   */
+  async setInventoryItem(params: ActorInventorySetParams): Promise<ActorActionResult> {
+    const result = await this.#actionFn('player.set_inventory_item', {
+      actor_id: params.actor,
+      slot: params.slot,
+      material: params.material,
+      amount: params.amount ?? 1,
+      display_name: params.displayName,
+    });
+
+    const message = result['message'] as string | undefined;
+
+    return {
+      success: result['success'] as boolean ?? true,
+      actor_id: params.actor,
+      ...(message !== undefined && { message }),
+    };
+  }
+
+  /**
+   * Actor envanterini temizler.
+   */
+  async clearInventory(params: ActorInventoryClearParams): Promise<ActorActionResult> {
+    const result = await this.#actionFn('player.clear_inventory', {
+      actor_id: params.actor,
+      slot: params.slot,
+    });
+
+    const message = result['message'] as string | undefined;
+
+    return {
+      success: result['success'] as boolean ?? true,
+      actor_id: params.actor,
+      ...(message !== undefined && { message }),
+    };
+  }
+
+  /**
+   * Actor'a item verir (envanterdeki ilk boş slot'a).
+   */
+  async giveItem(params: ActorInventoryGiveParams): Promise<ActorActionResult> {
+    const result = await this.#actionFn('player.give_item', {
+      actor_id: params.actor,
+      material: params.material,
+      amount: params.amount ?? 1,
+    });
+
+    const message = result['message'] as string | undefined;
+
+    return {
+      success: result['success'] as boolean ?? true,
+      actor_id: params.actor,
+      ...(message !== undefined && { message }),
+    };
+  }
+
+  /**
+   * Actor envanterinde item olup olmadığını kontrol eder.
+   */
+  async hasItem(params: ActorInventoryCheckParams): Promise<boolean> {
+    const result = await this.#actionFn('player.has_item', {
+      actor_id: params.actor,
+      material: params.material,
+      slot: params.slot,
+    });
+
+    return result['has_item'] as boolean ?? false;
   }
 }
 

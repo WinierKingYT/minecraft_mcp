@@ -5,12 +5,13 @@
  * sürüm sabiti bulunamaz. Her bileşen profili buradan okur.
  */
 
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { parse as parseYaml } from 'yaml';
 
 export interface CompatibilityProfile {
   readonly id: string;
+  readonly status?: string;
   readonly verification: {
     readonly status: 'unverified' | 'partially_verified' | 'verified';
     readonly verified_fields?: readonly string[];
@@ -38,6 +39,14 @@ export interface CompatibilityProfile {
   readonly protocols: Readonly<Record<string, number>>;
 }
 
+export interface ProfileSummary {
+  readonly id: string;
+  readonly status: string;
+  readonly minecraftVersion: string;
+  readonly paperBuild: number;
+  readonly verificationStatus: string;
+}
+
 export class ProfileError extends Error {
   constructor(
     readonly code: 'CONFIG_INVALID' | 'COMPATIBILITY_PROFILE_UNVERIFIED',
@@ -61,6 +70,34 @@ export function loadCompatibilityProfile(repoRoot: string, profileId: string): C
   }
 
   return profile;
+}
+
+export function listCompatibilityProfiles(repoRoot: string): ProfileSummary[] {
+  const compatDir = join(repoRoot, 'compatibility');
+  if (!existsSync(compatDir)) {
+    return [];
+  }
+
+  const files = readdirSync(compatDir).filter((f) => f.endsWith('.yaml') && f !== 'README.md');
+  const profiles: ProfileSummary[] = [];
+
+  for (const file of files) {
+    try {
+      const profileId = file.replace('.yaml', '');
+      const profile = loadCompatibilityProfile(repoRoot, profileId);
+      profiles.push({
+        id: profile.id,
+        status: profile.status ?? 'unknown',
+        minecraftVersion: profile.minecraft.version,
+        paperBuild: profile.paper.build,
+        verificationStatus: profile.verification?.status ?? 'unverified',
+      });
+    } catch {
+      // Skip invalid profiles
+    }
+  }
+
+  return profiles;
 }
 
 /**

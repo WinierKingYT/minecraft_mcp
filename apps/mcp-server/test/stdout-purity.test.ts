@@ -53,6 +53,7 @@ async function runSession(requests: readonly unknown[]): Promise<{ stdout: strin
   for (const req of requests) {
     child.stdin.write(JSON.stringify(req) + '\n');
   }
+  await new Promise((res) => setTimeout(res, 200));
   child.stdin.end();
 
   await new Promise<void>((res) => child.on('close', () => res()));
@@ -151,6 +152,7 @@ test('bozuk JSON parse error üretir ve akışı bozmaz', async () => {
 
   child.stdin.write('{ bu gecerli json degil\n');
   child.stdin.write(JSON.stringify({ jsonrpc: '2.0', id: 7, method: 'ping' }) + '\n');
+  await new Promise((res) => setTimeout(res, 200));
   child.stdin.end();
 
   await new Promise<void>((res) => child.on('close', () => res()));

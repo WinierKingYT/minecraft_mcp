@@ -31,17 +31,42 @@ import type {
   ScenarioRunResult,
   EvidenceGetParams,
   EvidenceGetResult,
+  EventSubscribeParams,
+  EventSubscribeResult,
+  EventUnsubscribeParams,
+  EventUnsubscribeResult,
+  EventListParams,
+  EventListResult,
+  PoolStatusParams,
+  PoolStatusResult,
+  PoolAcquireParams,
+  PoolAcquireResult,
+  PoolReleaseParams,
+  PoolReleaseResult,
+  PoolEvictParams,
+  PoolEvictResult,
+  PoolListParams,
+  PoolListResult,
+  PoolResetParams,
+  PoolResetResult,
+  PoolEntryInfo,
+  ProfileListParams,
+  ProfileListResult,
+  ProfileGetParams,
+  ProfileGetResult,
 } from '@mcpdev/contracts';
-import { loadCompatibilityProfile, assertProfileUsable, type CompatibilityProfile } from './compatibility.js';
+import { loadCompatibilityProfile, listCompatibilityProfiles, assertProfileUsable, type CompatibilityProfile } from './compatibility.js';
 import { resolveJavaForProfile, type JavaInstallation } from './java-toolchain.js';
 import { resolveBuild, downloadPaperJar } from './paper-download.js';
 import { createRuntimeImage } from './runtime-image.js';
 import { launchPaper, stopPaper } from './runtime-launch.js';
 import { RuntimeRegistry } from './runtime-registry.js';
+import { RuntimePool, type PooledRuntime } from './runtime-pool.js';
 import { ProjectRegistry } from './project-registry.js';
 import { validateGradleProject } from './gradle-validation.js';
 import { suggestAction } from './diagnostics.js';
 import { EvidenceStore } from '@mcpdev/evidence-model';
+import { EventSubscriptionManager } from './event-subscription.js';
 import type { MethodHandler } from './ipc-server.js';
 
 export interface ServiceOptions {
@@ -60,15 +85,32 @@ export interface ServiceOptions {
 export class SupervisorService {
   readonly #options: ServiceOptions;
   readonly #registry: RuntimeRegistry;
+  readonly #pool: RuntimePool;
   readonly #projects: ProjectRegistry;
   readonly #evidence: EvidenceStore | null;
   readonly #profile: CompatibilityProfile;
+  readonly #eventSubscriptions = new Map<string, EventSubscriptionManager>();
   readonly #startedAtMs = Date.now();
   #java: JavaInstallation | null = null;
 
   constructor(options: ServiceOptions) {
     this.#options = options;
     this.#registry = new RuntimeRegistry(options.maxConcurrentRuntimes ?? 1);
+    this.#pool = new RuntimePool({
+      maxPoolSize: options.maxConcurrentRuntimes ?? 5,
+      maxIdleMs: 300_000, // 5 minutes
+      maxReuseCount: 10,
+    });
+    this.#pool.on('expired', (event) => {
+      this.#log('INFO', 'pool.expired', { poolId: event.poolId, runtimeImageId: event.runtimeImageId });
+      void this.stopRuntime({ runtimeImageId: event.runtimeImageId }).catch(() => {});
+      void this.releaseRuntime({ runtimeImageId: event.runtimeImageId }).catch(() => {});
+    });
+    this.#pool.on('evicted', (event) => {
+      this.#log('INFO', 'pool.evicted', { poolId: event.poolId, runtimeImageId: event.runtimeImageId });
+      void this.stopRuntime({ runtimeImageId: event.runtimeImageId }).catch(() => {});
+      void this.releaseRuntime({ runtimeImageId: event.runtimeImageId }).catch(() => {});
+    });
     this.#projects = options.projectRegistry ?? new ProjectRegistry();
     this.#evidence = options.evidenceStore ?? null;
     this.#profile = loadCompatibilityProfile(options.repoRoot, options.profileId);
@@ -95,12 +137,23 @@ export class SupervisorService {
       'runtime.release': (params) => this.releaseRuntime(params as RuntimeIdParams),
       'bridge.query': (params) => this.bridgeQuery(params as BridgeQueryParams),
       'bridge.events': (params) => this.bridgeEvents(params as BridgeEventsParams),
+      'events.subscribe': (params) => this.eventSubscribe(params as EventSubscribeParams),
+      'events.unsubscribe': (params) => this.eventUnsubscribe(params as EventUnsubscribeParams),
+      'events.list': (params) => this.eventList(params as EventListParams),
       'project.inspect': (params) => this.projectInspect(params as ProjectInspectParams),
       'project.validate': (params) => this.projectValidate(params as ProjectValidateParams),
       'build.run': (params) => this.buildRun(params as BuildRunParams),
       'plugin.diagnose': (params) => this.pluginDiagnose(params as PluginDiagnoseParams),
       'scenario.run': (params) => this.scenarioRun(params as ScenarioRunParams),
       'evidence.get': (params) => this.evidenceGet(params as EvidenceGetParams),
+      'pool.status': (params) => this.poolStatus(params as PoolStatusParams),
+      'pool.acquire': (params) => this.poolAcquire(params as PoolAcquireParams),
+      'pool.release': (params) => this.poolRelease(params as PoolReleaseParams),
+      'pool.evict': (params) => this.poolEvict(params as PoolEvictParams),
+      'pool.list': (params) => this.poolList(params as PoolListParams),
+      'pool.reset': (params) => this.poolReset(params as PoolResetParams),
+      'profile.list': (params) => this.profileList(params as ProfileListParams),
+      'profile.get': (params) => this.profileGet(params as ProfileGetParams),
     };
   }
 
@@ -259,6 +312,195 @@ export class SupervisorService {
     }
     const events = await entry.running.client.events(params.bootId, params.after ?? 0, params.limit ?? 100);
     return { events };
+  }
+
+  async eventSubscribe(params: EventSubscribeParams): Promise<EventSubscribeResult> {
+    const entry = this.#registry.requireState(params.runtimeId, ['READY']);
+    if (!entry.running) {
+      throw Object.assign(new Error('Runtime çalışmıyor.'), { code: 'RUNTIME_NOT_RUNNING' });
+    }
+
+    // Create a runtime-specific fetcher
+    const client = entry.running.client;
+
+    // Create subscription with runtime-specific fetcher
+    const manager = new EventSubscriptionManager({
+      fetchEvents: async (bootId, after, limit) => {
+        return client.events(bootId, after, limit);
+      },
+      log: (level, event, data) => this.#log(level, event, data),
+    });
+
+    const result = manager.subscribe(params);
+
+    // Store manager reference for this subscription
+    this.#eventSubscriptions.set(result.subscriptionId, manager);
+
+    return result;
+  }
+
+  async eventUnsubscribe(params: EventUnsubscribeParams): Promise<EventUnsubscribeResult> {
+    const manager = this.#eventSubscriptions.get(params.subscriptionId);
+    if (!manager) {
+      throw Object.assign(
+        new Error(`Subscription not found: ${params.subscriptionId}`),
+        { code: 'EVENT_SUBSCRIPTION_NOT_FOUND' },
+      );
+    }
+
+    const result = manager.unsubscribe(params);
+    this.#eventSubscriptions.delete(params.subscriptionId);
+
+    return result;
+  }
+
+  async eventList(params: EventListParams): Promise<EventListResult> {
+    const manager = this.#eventSubscriptions.get(params.subscriptionId);
+    if (!manager) {
+      throw Object.assign(
+        new Error(`Subscription not found: ${params.subscriptionId}`),
+        { code: 'EVENT_SUBSCRIPTION_NOT_FOUND' },
+      );
+    }
+
+    return manager.listEvents(params);
+  }
+
+  // ─── Pool handler'ları ─────────────────────────────────────────────
+
+  async poolStatus(_params: PoolStatusParams): Promise<PoolStatusResult> {
+    return this.#pool.getStatus();
+  }
+
+  async poolAcquire(params: PoolAcquireParams): Promise<PoolAcquireResult> {
+    const existing = this.#pool.listByRuntimeImage(params.runtimeImageId);
+    const idleEntry = existing.find((e) => e.state === 'IDLE');
+
+    let runtimeSummary: RuntimeSummary;
+    let poolEntry: PooledRuntime;
+
+    if (idleEntry) {
+      const registryEntry = this.#registry.get(params.runtimeImageId);
+      runtimeSummary = this.#registry.summarize(registryEntry);
+      poolEntry = this.#pool.acquire(
+        params.runtimeImageId,
+        idleEntry.runtimeId,
+        idleEntry.bootId,
+      );
+    } else {
+      let registryEntry;
+      try {
+        registryEntry = this.#registry.get(params.runtimeImageId);
+      } catch {
+        // If not created, create it
+        await this.createRuntime({ acceptMinecraftEula: true });
+        registryEntry = this.#registry.get(params.runtimeImageId);
+      }
+
+      if (!registryEntry.running) {
+        runtimeSummary = await this.launchRuntime({ runtimeImageId: params.runtimeImageId });
+      } else {
+        runtimeSummary = this.#registry.summarize(registryEntry);
+      }
+
+      poolEntry = this.#pool.acquire(
+        params.runtimeImageId,
+        params.runtimeImageId,
+        runtimeSummary.bridgeBootId ?? '',
+      );
+    }
+
+    return {
+      poolId: poolEntry.poolId,
+      reuseCount: poolEntry.reuseCount,
+      reused: !!idleEntry,
+    };
+  }
+
+  async poolRelease(params: PoolReleaseParams): Promise<PoolReleaseResult> {
+    const entry = this.#pool.getPoolEntry(params.poolId);
+    if (!entry) {
+      throw Object.assign(
+        new Error(`Pool entry not found: ${params.poolId}`),
+        { code: 'UNKNOWN_TOOL' },
+      );
+    }
+    this.#pool.release(params.poolId);
+    const updated = this.#pool.getPoolEntry(params.poolId);
+    const evicted = !updated || updated.state === 'EVICTED';
+    return {
+      state: entry.state,
+      evicted,
+    };
+  }
+
+  async poolEvict(params: PoolEvictParams): Promise<PoolEvictResult> {
+    this.#pool.evict(params.poolId);
+    return { evicted: true };
+  }
+
+  async poolList(params: PoolListParams): Promise<PoolListResult> {
+    const entries: PoolEntryInfo[] = [];
+    const imageIds = params.runtimeImageId
+      ? [params.runtimeImageId]
+      : this.#registry.list().map((e) => e.image.runtimeImageId);
+
+    for (const imgId of imageIds) {
+      const pooled = this.#pool.listByRuntimeImage(imgId);
+      for (const p of pooled) {
+        entries.push({
+          poolId: p.poolId,
+          runtimeImageId: p.runtimeImageId,
+          runtimeId: p.runtimeId,
+          bootId: p.bootId,
+          state: p.state,
+          reuseCount: p.reuseCount,
+          acquiredAt: p.acquiredAt,
+          lastActivityAt: p.lastActivityAt,
+          createdAt: p.createdAt,
+        });
+      }
+    }
+    return { entries, total: entries.length };
+  }
+
+  async poolReset(_params: PoolResetParams): Promise<PoolResetResult> {
+    const status = this.#pool.getStatus();
+    const evicted = status.total;
+    const entries: PooledRuntime[] = [];
+    for (const entry of this.#registry.list()) {
+      entries.push(...this.#pool.listByRuntimeImage(entry.image.runtimeImageId));
+    }
+    for (const p of entries) {
+      try {
+        this.#pool.evict(p.poolId);
+      } catch {}
+    }
+    return { evicted };
+  }
+
+  // ─── Profile handler'ları ──────────────────────────────────────────
+
+  async profileList(_params: ProfileListParams): Promise<ProfileListResult> {
+    const profiles = listCompatibilityProfiles(this.#options.repoRoot);
+    return {
+      profiles,
+      activeProfileId: this.#options.profileId,
+    };
+  }
+
+  async profileGet(params: ProfileGetParams): Promise<ProfileGetResult> {
+    const profile = loadCompatibilityProfile(this.#options.repoRoot, params.profileId);
+    return {
+      id: profile.id,
+      status: profile.status ?? 'unknown',
+      minecraftVersion: profile.minecraft.version,
+      paperBuild: profile.paper.build,
+      verificationStatus: profile.verification?.status ?? 'unverified',
+      javaVersion: profile.java.runtime_major,
+      nodeVersion: profile.node.version,
+      gradleVersion: profile.gradle.wrapper_version,
+    };
   }
 
   // ─── Yeni IPC handler'ları ──────────────────────────────────────────

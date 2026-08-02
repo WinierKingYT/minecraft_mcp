@@ -19,6 +19,7 @@ import {
   IPC_MAX_MESSAGE_BYTES,
   type IpcMethod,
   type IpcResponse,
+  type RuntimeSummary,
 } from '@mcpdev/contracts';
 import { SupervisorIpcServer, toIpcError, type MethodHandler } from '../src/ipc-server.js';
 
@@ -47,6 +48,30 @@ function stubHandlers(overrides: Partial<Record<IpcMethod, MethodHandler>> = {})
     'plugin.diagnose': async () => ({ type: 'build', summary: 'test', errors: [], failedTasks: [], warnings: [] }),
     'scenario.run': async () => ({ scenarioRunId: 'sr_test', status: 'completed', passed: 0, failed: 0, skipped: 0, durationMs: 0, evidenceIds: [] }),
     'evidence.get': async () => ({ evidenceId: 'ev_test', kind: 'build-log', producer: { component: 'run-supervisor', version: '0.1.0' }, content: {}, byteSize: 0, checksum: 'abc', createdAt: new Date().toISOString() }),
+    'events.subscribe': async () => ({ subscriptionId: 'sub_test', status: 'active', eventsReceived: 0 }),
+    'events.unsubscribe': async () => ({ subscriptionId: 'sub_test', status: 'unsubscribed', eventsReceived: 0 }),
+    'events.list': async () => ({ subscriptionId: 'sub_test', events: [], hasMore: false, nextCursor: null }),
+    'pool.status': async () => ({ total: 0, idle: 0, acquired: 0, evicted: 0, expired: 0, maxPoolSize: 5, maxIdleMs: 300_000, maxReuseCount: 10 }),
+    'pool.acquire': async () => {
+      const mockSummary: RuntimeSummary = {
+        runtimeImageId: 'rimg_test',
+        serverInstanceId: 'srv_test',
+        state: 'READY',
+        bridgeBootId: 'boot_test',
+        bridgePort: 8080,
+        paperJarSha256: 'sha',
+        bridgeJarSha256: 'sha',
+        createdAt: new Date().toISOString(),
+        readyGateMs: 1000,
+      };
+      return { poolId: 'pool_test', runtimeSummary: mockSummary };
+    },
+    'pool.release': async () => ({ poolId: 'pool_test', evicted: false }),
+    'pool.evict': async () => ({ poolId: 'pool_test' }),
+    'pool.list': async () => ({ entries: [] }),
+    'pool.reset': async () => ({ evictedCount: 0 }),
+    'profile.list': async () => ({ profiles: [], activeProfileId: 'paper-26.2-build-84-v1' }),
+    'profile.get': async () => ({ id: 'paper-26.2-build-84-v1', status: 'active', minecraftVersion: '26.2', paperBuild: 84, verificationStatus: 'verified', javaVersion: 25, nodeVersion: '24.18.1', gradleVersion: '9.6.1' }),
   };
   return { ...base, ...overrides };
 }

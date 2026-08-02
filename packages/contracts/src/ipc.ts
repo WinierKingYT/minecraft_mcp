@@ -50,12 +50,23 @@ export type IpcMethod =
   | 'runtime.release'
   | 'bridge.query'
   | 'bridge.events'
+  | 'events.subscribe'
+  | 'events.unsubscribe'
+  | 'events.list'
   | 'project.inspect'
   | 'project.validate'
   | 'build.run'
   | 'plugin.diagnose'
   | 'scenario.run'
-  | 'evidence.get';
+  | 'evidence.get'
+  | 'pool.status'
+  | 'pool.acquire'
+  | 'pool.release'
+  | 'pool.evict'
+  | 'pool.list'
+  | 'pool.reset'
+  | 'profile.list'
+  | 'profile.get';
 
 export interface SupervisorHealthResult {
   readonly status: 'ok';
@@ -265,4 +276,204 @@ export interface EvidenceGetResult {
   readonly byteSize: number;
   readonly checksum: string;
   readonly createdAt: string;
+}
+
+// ─── Event subscription types ─────────────────────────────────────────
+
+export interface EventSubscribeParams {
+  readonly runtimeId: string;
+  readonly bootId: string;
+  readonly filter?: EventFilter;
+  readonly maxEvents?: number;
+}
+
+export interface EventFilter {
+  readonly types?: readonly string[];
+  readonly actor?: string;
+  readonly excludeTypes?: readonly string[];
+}
+
+export interface EventSubscribeResult {
+  readonly subscriptionId: string;
+  readonly status: 'active' | 'expired' | 'unsubscribed';
+  readonly eventsReceived: number;
+}
+
+export interface EventUnsubscribeParams {
+  readonly subscriptionId: string;
+}
+
+export interface EventUnsubscribeResult {
+  readonly subscriptionId: string;
+  readonly status: 'unsubscribed';
+  readonly eventsReceived: number;
+}
+
+export interface EventListParams {
+  readonly subscriptionId: string;
+  readonly after?: number;
+  readonly limit?: number;
+}
+
+export interface EventListResult {
+  readonly subscriptionId: string;
+  readonly events: readonly EventRecord[];
+  readonly hasMore: boolean;
+  readonly nextCursor: number | null;
+}
+
+export interface EventRecord {
+  readonly sequence: number;
+  readonly eventId: string;
+  readonly type: string;
+  readonly runId: string | null;
+  readonly serverInstanceId: string;
+  readonly bridgeBootId: string;
+  readonly correlationId: string | null;
+  readonly causationId: string | null;
+  readonly serverTick: number;
+  readonly occurredAt: string;
+  readonly actor: string | null;
+  readonly data: Record<string, unknown>;
+  readonly source: string;
+}
+
+/** Event subscription error codes */
+export const EVENT_ERROR_CODES = {
+  SUBSCRIPTION_NOT_FOUND: 'EVENT_SUBSCRIPTION_NOT_FOUND',
+  SUBSCRIPTION_EXPIRED: 'EVENT_SUBSCRIPTION_EXPIRED',
+  RUNTIME_NOT_RUNNING: 'RUNTIME_NOT_RUNNING',
+  INVALID_FILTER: 'EVENT_INVALID_FILTER',
+  MAX_SUBSCRIPTIONS_EXCEEDED: 'EVENT_MAX_SUBSCRIPTIONS_EXCEEDED',
+} as const;
+
+/** Maximum concurrent subscriptions per runtime */
+export const MAX_SUBSCRIPTIONS_PER_RUNTIME = 10;
+
+/** Default subscription TTL (5 minutes) */
+export const SUBSCRIPTION_TTL_MS = 300_000;
+
+/** Maximum events to buffer per subscription */
+export const MAX_EVENTS_PER_SUBSCRIPTION = 10_000;
+
+// ============================================================================
+// Runtime Pool IPC
+// ============================================================================
+
+/** Runtime pool status */
+export interface PoolStatusResult {
+  readonly total: number;
+  readonly idle: number;
+  readonly acquired: number;
+  readonly evicted: number;
+  readonly expired: number;
+  readonly maxPoolSize: number;
+  readonly maxIdleMs: number;
+  readonly maxReuseCount: number;
+}
+
+/** Pool entry for list operations */
+export interface PoolEntryInfo {
+  readonly poolId: string;
+  readonly runtimeImageId: string;
+  readonly runtimeId: string;
+  readonly bootId: string;
+  readonly state: 'IDLE' | 'ACQUIRED' | 'EVICTED' | 'EXPIRED';
+  readonly reuseCount: number;
+  readonly acquiredAt: number;
+  readonly lastActivityAt: number;
+  readonly createdAt: number;
+}
+
+/** Pool status query params */
+export interface PoolStatusParams {}
+
+/** Pool acquire params */
+export interface PoolAcquireParams {
+  readonly runtimeImageId: string;
+  readonly runtimeId: string;
+  readonly bootId: string;
+}
+
+/** Pool acquire result */
+export interface PoolAcquireResult {
+  readonly poolId: string;
+  readonly reuseCount: number;
+  readonly reused: boolean;
+}
+
+/** Pool release params */
+export interface PoolReleaseParams {
+  readonly poolId: string;
+}
+
+/** Pool release result */
+export interface PoolReleaseResult {
+  readonly state: string;
+  readonly evicted: boolean;
+}
+
+/** Pool evict params */
+export interface PoolEvictParams {
+  readonly poolId: string;
+}
+
+/** Pool evict result */
+export interface PoolEvictResult {
+  readonly evicted: boolean;
+}
+
+/** Pool list params */
+export interface PoolListParams {
+  readonly runtimeImageId?: string;
+}
+
+/** Pool list result */
+export interface PoolListResult {
+  readonly entries: PoolEntryInfo[];
+  readonly total: number;
+}
+
+/** Pool reset params */
+export interface PoolResetParams {}
+
+/** Pool reset result */
+export interface PoolResetResult {
+  readonly evicted: number;
+}
+
+// ============================================================================
+// Profile IPC
+// ============================================================================
+
+/** Profile list params */
+export interface ProfileListParams {}
+
+/** Profile list result */
+export interface ProfileListResult {
+  readonly profiles: Array<{
+    readonly id: string;
+    readonly status: string;
+    readonly minecraftVersion: string;
+    readonly paperBuild: number;
+    readonly verificationStatus: string;
+  }>;
+  readonly activeProfileId: string;
+}
+
+/** Profile get params */
+export interface ProfileGetParams {
+  readonly profileId: string;
+}
+
+/** Profile get result */
+export interface ProfileGetResult {
+  readonly id: string;
+  readonly status: string;
+  readonly minecraftVersion: string;
+  readonly paperBuild: number;
+  readonly verificationStatus: string;
+  readonly javaVersion: number;
+  readonly nodeVersion: string;
+  readonly gradleVersion: string;
 }

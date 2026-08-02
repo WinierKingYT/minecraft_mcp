@@ -42,6 +42,17 @@ const KNOWN_METHODS: readonly IpcMethod[] = [
   'plugin.diagnose',
   'scenario.run',
   'evidence.get',
+  'events.subscribe',
+  'events.unsubscribe',
+  'events.list',
+  'pool.status',
+  'pool.acquire',
+  'pool.release',
+  'pool.evict',
+  'pool.list',
+  'pool.reset',
+  'profile.list',
+  'profile.get',
 ];
 
 /** Hata nesnesinden IPC hatası üretir; kod yoksa güvenli varsayılana düşer. */
