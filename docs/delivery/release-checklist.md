@@ -5,7 +5,7 @@
 - [ ] Hedef kullanıcı ve JTBD onaylı
 - [ ] V1 kapsamı tek anlamlı
 - [ ] Non-goals açık
-- [ ] M2B conditional sonucu kesin
+- [x] M2B conditional sonucu kesin — SPIKE-ACTOR-001 kısmen başarılı; doğrulanan capability'ler V1'de, kalanlar V1.1'de (bkz. `milestone-acceptance.md` E18)
 
 ## Compatibility
 
@@ -101,7 +101,7 @@
 - [ ] Incident response
 - [ ] Known limitations
 - [ ] Üç gerçek proje
-- [ ] P0/P1 closed — açık P0 epic yok; E18 (Protocol Actor) M2B kararına bağlı koşullu açık. M2B V1 dışına tanımlanınca kapanır (matris: `milestone-acceptance.md`)
+- [x] P0/P1 closed — tüm P0/P1 epic'ler kapanış kanıtıyla kilitlendi; E18 koşullu konsepti SPIKE-ACTOR-001 ile karara bağlandı (kısmen başarılı, doğrulanan capability'ler V1'de) — matris: `milestone-acceptance.md`
 
 ## V1.1 çıkış koşulları
 

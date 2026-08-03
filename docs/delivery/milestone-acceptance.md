@@ -91,7 +91,7 @@ V1.1, V1 sınırına dokunmadan yedi yatay yeteneği paketler: event-driven göz
 - [x] Compatibility manifest mevcut (`docs/operations/compatibility-manifest.md`)
 - [x] Incident response mevcut (`docs/operations/incident-response.md`)
 - [x] Documentation gates geçiyor (`pnpm run check:docs` — 79 files pass)
-- [ ] P0/P1 closed
+- [x] P0/P1 closed
 
 ### P0/P1 epic kapanış matrisi
 
@@ -116,7 +116,7 @@ V1.1, V1 sınırına dokunmadan yedi yatay yeteneği paketler: event-driven göz
 | E15 | Deterministic Fixtures | P1 | `cow-fixture.test.ts`, `malicious-fixtures.test.ts` | ✅ |
 | E16 | Scenario DSL | P1 | `scenario-parser.test.ts`, `scenario-dsl.md` | ✅ |
 | E17 | Assertions and Reports | P1 | `scenario-evidence.test.ts` (assertion-result) | ✅ |
-| E18 | Protocol Actor | P1 / conditional | `actor-client.test.ts`, `actor-inventory.test.ts` — M2B kararına bağlı | ⚠️ |
+| E18 | Protocol Actor | P1 / conditional | `actor-client.test.ts` (14), `actor-inventory.test.ts` (10) — SPIKE-ACTOR-001 kısmen başarılı; doğrulanan capability'ler V1'de, kalanlar V1.1'de | ✅ |
 | E19 | Security Hardening | P0 | `process-security`, `container-security`, `injection-security`, `recovery-security` | ✅ |
 | E20 | Installer and Doctor | P1 | `apps/cli/test/doctor.test.ts` (10 check), install/uninstall | ✅ |
 | E21 | Beta Projects | P1 | `three-project-validation.test.ts` (39 tests) | ✅ |
@@ -124,4 +124,4 @@ V1.1, V1 sınırına dokunmadan yedi yatay yeteneği paketler: event-driven göz
 
 ✅ = kapanış kanıtı mevcut ve test yeşil · ⚠️ = koşullu açık (M2B)
 
-**Sonuç:** V1'de kapanmayı engelleyen **açık P0 epic yoktur**. Yalnızca E18 koşullu açıktır ve M2B kararına bağlıdır — V1 P0/P1 closed, E18'i M2B dışında tanımladıktan sonra kapatılabilir (bkz. `release-checklist.md` → M2B conditional sonucu kesin).
+**Sonuç:** Tüm P0/P1 epic'ler kapanış kanıtıyla kilitlendi. E18 (Protocol Actor) koşullu konsepti SPIKE-ACTOR-001 ile karara bağlandı: kısmen başarılı — `test_actor.protocol`, `player.break_block`, `player.move`, `player.look`, `player.chat`, `plugin.command.typed`, `actor.disconnect` doğrulandı ve V1'de; `actor.message.read` ve `player.state.read` V1.1'de derinleştirilecek. V1 P0/P1 closed durumundadır.
