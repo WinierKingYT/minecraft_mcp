@@ -103,6 +103,22 @@
 - [ ] Üç gerçek proje
 - [ ] P0/P1 closed
 
+## V1.1 çıkış koşulları
+
+V1.1 yedi yatay yeteneği paketler. V1'den ayrı çıkış, V1 sınırına (destructive agent tool, orphan, path escape, secret leak) dokunmadığı sürece yapılabilir.
+
+- [ ] Event subscription — filtrelenen olaylar doğru istemciye ulaşır
+- [ ] Runtime pool — runtime yeniden kullanımı image bazlı ve reuse-count limitli
+- [ ] İkinci Paper profili — multi-profile diverjans `checkSecondProfile` ile teşhis edilir
+- [ ] Performance profiler — metrikler çıkar
+- [ ] Permission — geçici izin, `runtime_discard` ile geri alınır (kalıcı izin yok)
+- [ ] Copy-on-write fixture — immutable
+- [ ] Actor inventory — envanter izlenir
+- [ ] MCP yüzeyi — read-only V1.1 tool'ları developer profilinde; mutation tool'ları debug'da; R4 `pool_evict`/`pool_reset` hiçbir profilde yok
+- [ ] Capability registry yeşil — `validate-registry.mjs` (46 capability, 109 error, 3 profil)
+- [ ] E2E + entegrasyon + unit testleri istikrarlı
+- [ ] Doctor V1.1 check'leri (`compatibility_profiles`, `capability_registry`) geçer
+
 ## Release artifact'leri
 
 MCP package · Supervisor package · Bridge JAR · Actor package (M2B açıksa) · compatibility profile · capability registry · JSON schemas · error catalog · SBOM · checksums · changelog · migration notes · known limitations · install/uninstall · incident response.

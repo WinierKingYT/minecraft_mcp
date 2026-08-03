@@ -62,8 +62,25 @@ Bu kriterler [`roadmap.md`](roadmap.md) ve [`release-checklist.md`](release-chec
 - [x] Path escape yok (`process-security.test.ts` — ST-PATH-001)
 - [x] Container host secret erişimi yok (`container-security.test.ts` — ST-CONTAINER-SECRET-001)
 - [x] 100 lifecycle orphan `%0` (`lifecycle-stress.test.ts` — ST-LIFECYCLE-001, 0 orphans in 100 cycles)
-- [x] Doctor doğru teşhis (`apps/cli/`, `doctor` CI job, 8 health checks)
+- [x] Doctor doğru teşhis (`apps/cli/`, `doctor` CI job, 10 health checks — V1.1'de `compatibility_profiles` ve `capability_registry` eklendi)
 - [x] Üç gerçek proje (`fixtures/projects/`, `three-project-validation.test.ts` — 39 tests)
+
+## V1.1
+
+V1.1, V1 sınırına dokunmadan yedi yatay yeteneği paketler: event-driven gözlem, runtime yeniden kullanımı, multi-profile diverjans, performans görünürlüğü, geçici izin yönetimi, immutable fixture'lar ve actor envanteri.
+
+- [x] Event subscription: olay filtresi (tip/actor), TTL, buffer limiti, eşzamanlı abonelikler (`event-subscription.test.ts`, `integration-v11.test.ts`)
+- [x] Runtime pool: acquire/release/evict/reset, image bazlı yeniden kullanım, reuse-count limiti (`runtime-pool.test.ts`)
+- [x] İkinci Paper profili: `paper-26.2-build-87-v1` diverjans için; `checkSecondProfile` doctor check ≥2 verified profil arar
+- [x] Performance profiler: timing/derleme metrikleri (`performance-profiler.test.ts`)
+- [x] Permission: native Paper + LuckPerms adapter, attach/detach/check/set_op — yalnızca `runtime_discard` (kalıcı izin üretmez) (`permission-adapter.test.ts`)
+- [x] Copy-on-write fixture: immutable fixture snapshot'ları (`cow-fixture.test.ts`)
+- [x] Actor inventory: actor envanter takibi (`actor-inventory.test.ts`)
+- [x] V1.1 tool hatları MCP yüzeyinde: `pool_status`/`pool_list`/`profile_list`/`profile_get`/`permission_check` (developer, R0); `pool_acquire`/`pool_release`/`permission_attach`/`permission_detach`/`permission_set_op` (debug, R2); `pool_evict`/`pool_reset` hiçbir profilde yok (R4, ADR-0007)
+- [x] Capability registry: 12 yeni kayıt, `validate-registry.mjs` yeşil (46 capability, 109 error kodu, 3 profil)
+- [x] Entegrasyon: pool + event subscription + scenario veri akışı tek akışta (`integration-v11.test.ts` — CT-INT-V11-001)
+- [x] E2E smoke: developer profilinde V1.1 getter'ları listede, mutation tool'ları yok; supervisor'sız `SUPERVISOR_UNAVAILABLE` (`v11-e2e.test.ts` — CT-MCP-V11-E2E-001)
+- [x] Unit: V1.1 tool davranışı (başarı/input/error yolları) (`v11-tools.test.ts` — CT-MCP-V11-001)
 
 ## V1
 
