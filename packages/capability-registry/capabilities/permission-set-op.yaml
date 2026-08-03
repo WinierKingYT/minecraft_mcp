@@ -1,0 +1,37 @@
+id: permission.set_op
+version: 1
+milestone: V1.1
+summary: Test actor'una operatör statüsü atar veya kaldırır.
+status: planned
+
+exposure:
+  developer_tool: null
+  debug_tool: permission_set_op
+  bridge_operation: permission.set_op
+  dsl_step: null
+
+risk:
+  effect: mutation
+  scope: disposable_runtime
+  reversibility: runtime_discard
+  approval: none
+  exposure: agent_visible
+  cost: low
+  level: R2
+
+contracts:
+  input: schemas/permission-set-op.input.json
+  output: schemas/permission-set-op.output.json
+
+limits:
+  timeout_ms: 10000
+  requires_idempotency: true
+
+errors:
+  - SUPERVISOR_UNAVAILABLE
+  - PERMISSION_PROVIDER_UNSUPPORTED
+  - TOOL_INPUT_INVALID
+
+tests:
+  unit: [UT-PERMISSION-SET-OP-001]
+  contract: [CT-PERMISSION-SET-OP-001]

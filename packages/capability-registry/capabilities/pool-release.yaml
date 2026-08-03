@@ -1,0 +1,35 @@
+id: pool.release
+version: 1
+milestone: V1.1
+summary: Havuzdaki bir runtime'ı serbest bırakır.
+status: planned
+
+exposure:
+  developer_tool: null
+  debug_tool: pool_release
+  bridge_operation: pool.release
+  dsl_step: null
+
+risk:
+  effect: mutation
+  scope: disposable_runtime
+  reversibility: runtime_discard
+  approval: none
+  exposure: agent_visible
+  cost: low
+  level: R2
+
+contracts:
+  input: schemas/pool-release.input.json
+  output: schemas/pool-release.output.json
+
+limits:
+  timeout_ms: 10000
+  requires_idempotency: true
+
+errors:
+  - SUPERVISOR_UNAVAILABLE
+
+tests:
+  unit: [UT-POOL-RELEASE-001]
+  contract: [CT-POOL-RELEASE-001]

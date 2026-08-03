@@ -1,0 +1,37 @@
+id: permission.detach
+version: 1
+milestone: V1.1
+summary: Test actor'undan daha önce atanmış bir izni kaldırır.
+status: planned
+
+exposure:
+  developer_tool: null
+  debug_tool: permission_detach
+  bridge_operation: permission.detach
+  dsl_step: null
+
+risk:
+  effect: mutation
+  scope: disposable_runtime
+  reversibility: runtime_discard
+  approval: none
+  exposure: agent_visible
+  cost: low
+  level: R2
+
+contracts:
+  input: schemas/permission-detach.input.json
+  output: schemas/permission-detach.output.json
+
+limits:
+  timeout_ms: 10000
+  requires_idempotency: true
+
+errors:
+  - SUPERVISOR_UNAVAILABLE
+  - PERMISSION_PROVIDER_UNSUPPORTED
+  - TOOL_INPUT_INVALID
+
+tests:
+  unit: [UT-PERMISSION-DETACH-001]
+  contract: [CT-PERMISSION-DETACH-001]

@@ -1,0 +1,35 @@
+id: profile.get
+version: 1
+milestone: V1.1
+summary: Belirtilen uyumluluk profilinin detaylarını döndürür.
+status: planned
+
+exposure:
+  developer_tool: profile_get
+  debug_tool: null
+  bridge_operation: profile.get
+  dsl_step: null
+
+risk:
+  effect: read
+  scope: disposable_runtime
+  reversibility: reversible
+  approval: none
+  exposure: agent_visible
+  cost: low
+  level: R0
+
+contracts:
+  input: schemas/profile-get.input.json
+  output: schemas/profile-get.output.json
+
+limits:
+  timeout_ms: 5000
+
+errors:
+  - SUPERVISOR_UNAVAILABLE
+  - CONFIG_INVALID
+
+tests:
+  unit: [UT-PROFILE-GET-001]
+  contract: [CT-PROFILE-GET-001]

@@ -18,6 +18,11 @@ profiles:
       - plugin_diagnose
       - operation_get
       - operation_cancel
+      - pool_status
+      - pool_list
+      - profile_list
+      - profile_get
+      - permission_check
       - scenario_validate
       - scenario_run
       - evidence_get
@@ -31,6 +36,11 @@ profiles:
       - runtime_get
       - runtime_stop
       - runtime_release
+      - pool_acquire
+      - pool_release
+      - permission_attach
+      - permission_detach
+      - permission_set_op
       - minecraft_server_get
       - minecraft_plugin_list
       - minecraft_plugin_get

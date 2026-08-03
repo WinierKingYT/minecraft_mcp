@@ -1,0 +1,34 @@
+id: pool.list
+version: 1
+milestone: V1.1
+summary: Havuzdaki runtime'ların listesini döndürür.
+status: planned
+
+exposure:
+  developer_tool: pool_list
+  debug_tool: null
+  bridge_operation: pool.list
+  dsl_step: null
+
+risk:
+  effect: read
+  scope: disposable_runtime
+  reversibility: reversible
+  approval: none
+  exposure: agent_visible
+  cost: low
+  level: R0
+
+contracts:
+  input: schemas/pool-list.input.json
+  output: schemas/pool-list.output.json
+
+limits:
+  timeout_ms: 5000
+
+errors:
+  - SUPERVISOR_UNAVAILABLE
+
+tests:
+  unit: [UT-POOL-LIST-001]
+  contract: [CT-POOL-LIST-001]

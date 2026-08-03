@@ -1,0 +1,35 @@
+id: pool.evict
+version: 1
+milestone: V1.1
+summary: Havuzdaki bir runtime'ı zorla tahliye eder.
+status: planned
+
+exposure:
+  developer_tool: null
+  debug_tool: null
+  bridge_operation: pool.evict
+  dsl_step: null
+
+risk:
+  effect: delete
+  scope: disposable_runtime
+  reversibility: destructive
+  approval: none
+  exposure: agent_visible
+  cost: low
+  level: R4
+
+contracts:
+  input: schemas/pool-evict.input.json
+  output: schemas/pool-evict.output.json
+
+limits:
+  timeout_ms: 10000
+
+errors:
+  - SUPERVISOR_UNAVAILABLE
+  - SUPERVISOR_UNAVAILABLE
+
+tests:
+  unit: [UT-POOL-EVICT-001]
+  contract: [CT-POOL-EVICT-001]

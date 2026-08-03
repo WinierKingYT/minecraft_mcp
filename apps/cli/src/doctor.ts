@@ -198,6 +198,50 @@ function checkSupervisorBinary(): CheckResult {
   };
 }
 
+export function checkSecondProfile(root: string): CheckResult {
+  // V1.1: birden fazla uyumluluk profili (ör. ikinci Paper build'i) tanımlı
+  // olmalı; diverjans Gateway'in multi-profile desteğine bağlıdır.
+  const profileDir = join(root, 'compatibility');
+  if (!existsSync(profileDir)) {
+    return { name: 'compatibility_profiles', status: 'skip', message: 'compatibility/ yok' };
+  }
+
+  const yamlFiles = readdirSync(profileDir).filter((f) => f.endsWith('.yaml'));
+  const verifiedCount = yamlFiles.filter((f) =>
+    readFileSync(join(profileDir, f), 'utf-8').includes('status: verified'),
+  ).length;
+
+  if (verifiedCount < 2) {
+    return {
+      name: 'compatibility_profiles',
+      status: 'warn',
+      message: `${verifiedCount}/2 profil doğrulandı (V1.1 diverge gerektirir)`,
+      details: 'V1.1 multi-profile: en az iki verified profil tanımlayın',
+    };
+  }
+  return {
+    name: 'compatibility_profiles',
+    status: 'pass',
+    message: `${verifiedCount} verified profil`,
+  };
+}
+
+export function checkCapabilityRegistry(root: string): CheckResult {
+  const capDir = join(root, 'packages', 'capability-registry', 'capabilities');
+  if (!existsSync(capDir)) {
+    return { name: 'capability_registry', status: 'skip', message: 'capability-registry yok' };
+  }
+  const capabilityFiles = readdirSync(capDir).filter((f) => f.endsWith('.yaml'));
+  if (capabilityFiles.length === 0) {
+    return { name: 'capability_registry', status: 'warn', message: 'capability kaydı yok' };
+  }
+  return {
+    name: 'capability_registry',
+    status: 'pass',
+    message: `${capabilityFiles.length} capability kaydı`,
+  };
+}
+
 function checkBridgeJar(root: string): CheckResult {
   const possiblePaths = [
     join(root, 'bridge', 'paper', 'build', 'libs', 'paper-*.jar'),
@@ -234,6 +278,8 @@ export async function runDoctor(options: DoctorOptions): Promise<void> {
   checks.push(checkMcpServerBinary());
   checks.push(checkSupervisorBinary());
   checks.push(checkBridgeJar(root));
+  checks.push(checkSecondProfile(root));
+  checks.push(checkCapabilityRegistry(root));
 
   if (options.json) {
     const output = {

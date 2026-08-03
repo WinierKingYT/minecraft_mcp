@@ -20,6 +20,9 @@ const { createBuildTools } = await import('./tools/build.js');
 const { createRuntimeTools } = await import('./tools/runtime.js');
 const { createDiagnoseTools } = await import('./tools/diagnose.js');
 const { createOperationTools } = await import('./tools/operation.js');
+const { createPoolTools } = await import('./tools/pool.js');
+const { createProfileTools } = await import('./tools/profile.js');
+const { createPermissionTools } = await import('./tools/permission.js');
 const { createScenarioTools } = await import('./tools/scenario.js');
 const { createEvidenceTools } = await import('./tools/evidence.js');
 const { McpServer } = await import('./server.js');
@@ -92,6 +95,18 @@ for (const [definition, handler] of createDiagnoseTools({ supervisor: connectSup
 }
 
 for (const [definition, handler] of createOperationTools({ supervisor: connectSupervisor })) {
+  facade.register(definition, handler);
+}
+
+for (const [definition, handler] of createPoolTools({ supervisor: connectSupervisor })) {
+  facade.register(definition, handler);
+}
+
+for (const [definition, handler] of createProfileTools({ supervisor: connectSupervisor })) {
+  facade.register(definition, handler);
+}
+
+for (const [definition, handler] of createPermissionTools({ supervisor: connectSupervisor })) {
   facade.register(definition, handler);
 }
 

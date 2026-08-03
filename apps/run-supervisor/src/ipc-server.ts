@@ -53,6 +53,10 @@ const KNOWN_METHODS: readonly IpcMethod[] = [
   'pool.reset',
   'profile.list',
   'profile.get',
+  'permission.attach',
+  'permission.detach',
+  'permission.check',
+  'permission.set_op',
 ];
 
 /** Hata nesnesinden IPC hatası üretir; kod yoksa güvenli varsayılana düşer. */

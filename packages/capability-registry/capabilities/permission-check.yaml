@@ -1,0 +1,36 @@
+id: permission.check
+version: 1
+milestone: V1.1
+summary: Test actor'unun belirtilen izne sahip olup olmadığını kontrol eder.
+status: planned
+
+exposure:
+  developer_tool: permission_check
+  debug_tool: null
+  bridge_operation: permission.check
+  dsl_step: null
+
+risk:
+  effect: read
+  scope: disposable_runtime
+  reversibility: reversible
+  approval: none
+  exposure: agent_visible
+  cost: low
+  level: R0
+
+contracts:
+  input: schemas/permission-check.input.json
+  output: schemas/permission-check.output.json
+
+limits:
+  timeout_ms: 10000
+
+errors:
+  - SUPERVISOR_UNAVAILABLE
+  - PERMISSION_PROVIDER_UNSUPPORTED
+  - TOOL_INPUT_INVALID
+
+tests:
+  unit: [UT-PERMISSION-CHECK-001]
+  contract: [CT-PERMISSION-CHECK-001]

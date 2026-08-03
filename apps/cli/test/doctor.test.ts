@@ -7,6 +7,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp, writeFile, mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
+import { checkSecondProfile, checkCapabilityRegistry } from '../src/doctor.js';
 
 // Import the check functions directly for testing
 // We test the internal logic by creating temporary environments
@@ -72,6 +73,47 @@ describe('mcpdev doctor: compatibility profile detection', () => {
       'utf-8',
     );
     assert.ok(!content.includes('status: verified'), 'profile is not verified');
+  });
+});
+
+describe('mcpdev doctor: V1.1 checks', () => {
+  test('iki verified profil varsa pass döner', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'doctor-v11-'));
+    await mkdir(join(dir, 'compatibility'), { recursive: true });
+    for (const file of ['paper-26.2-build-84-v1.yaml', 'paper-26.2-build-87-v1.yaml']) {
+      await writeFile(join(dir, 'compatibility', file), 'id: x\nverification:\n  status: verified\n');
+    }
+
+    const result = checkSecondProfile(dir);
+    assert.equal(result.status, 'pass');
+    assert.equal(result.name, 'compatibility_profiles');
+  });
+
+  test('tek verified profil varsa warn döner (V1.1 diverge gerektirir)', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'doctor-v11-'));
+    await mkdir(join(dir, 'compatibility'), { recursive: true });
+    await writeFile(join(dir, 'compatibility', 'paper-26.2-build-84-v1.yaml'), 'verification:\n  status: verified\n');
+
+    const result = checkSecondProfile(dir);
+    assert.equal(result.status, 'warn');
+  });
+
+  test('capability kayıtları varsa capability_registry pass döner', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'doctor-cap-'));
+    await mkdir(join(dir, 'packages', 'capability-registry', 'capabilities'), { recursive: true });
+    await writeFile(join(dir, 'packages', 'capability-registry', 'capabilities', 'pool-status.yaml'), 'id: pool.status\n');
+
+    const result = checkCapabilityRegistry(dir);
+    assert.equal(result.status, 'pass');
+    assert.equal(result.message, '1 capability kaydı');
+  });
+
+  test('capability kaydı yoksa capability_registry warn döner', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'doctor-cap-'));
+    await mkdir(join(dir, 'packages', 'capability-registry', 'capabilities'), { recursive: true });
+
+    const result = checkCapabilityRegistry(dir);
+    assert.equal(result.status, 'warn');
   });
 });
 

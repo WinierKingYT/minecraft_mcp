@@ -54,6 +54,14 @@ import type {
   ProfileListResult,
   ProfileGetParams,
   ProfileGetResult,
+  PermissionAttachParams,
+  PermissionAttachResult,
+  PermissionDetachParams,
+  PermissionDetachResult,
+  PermissionCheckParams,
+  PermissionCheckResult,
+  PermissionSetOpParams,
+  PermissionSetOpResult,
 } from '@mcpdev/contracts';
 import { loadCompatibilityProfile, listCompatibilityProfiles, assertProfileUsable, type CompatibilityProfile } from './compatibility.js';
 import { resolveJavaForProfile, type JavaInstallation } from './java-toolchain.js';
@@ -67,6 +75,7 @@ import { validateGradleProject } from './gradle-validation.js';
 import { suggestAction } from './diagnostics.js';
 import { EvidenceStore } from '@mcpdev/evidence-model';
 import { EventSubscriptionManager } from './event-subscription.js';
+import { PermissionAdapter } from './permission-adapter.js';
 import type { MethodHandler } from './ipc-server.js';
 
 export interface ServiceOptions {
@@ -90,6 +99,7 @@ export class SupervisorService {
   readonly #evidence: EvidenceStore | null;
   readonly #profile: CompatibilityProfile;
   readonly #eventSubscriptions = new Map<string, EventSubscriptionManager>();
+  readonly #permissionAdapter: PermissionAdapter;
   readonly #startedAtMs = Date.now();
   #java: JavaInstallation | null = null;
 
@@ -115,6 +125,19 @@ export class SupervisorService {
     this.#evidence = options.evidenceStore ?? null;
     this.#profile = loadCompatibilityProfile(options.repoRoot, options.profileId);
     assertProfileUsable(this.#profile, 'prototype');
+    this.#permissionAdapter = new PermissionAdapter({
+      provider: 'native',
+      bridgeClient: {
+        action: async (operation, _args) => {
+          this.#log('DEBUG', 'permission.action', { operation });
+          return {};
+        },
+        query: async (operation, args) => {
+          this.#log('DEBUG', 'permission.query', { operation });
+          return { player: args['player'], permission: args['permission'], hasPermission: false, source: 'default' };
+        },
+      },
+    });
   }
 
   #log(level: string, event: string, fields: Record<string, unknown> = {}): void {
@@ -154,6 +177,10 @@ export class SupervisorService {
       'pool.reset': (params) => this.poolReset(params as PoolResetParams),
       'profile.list': (params) => this.profileList(params as ProfileListParams),
       'profile.get': (params) => this.profileGet(params as ProfileGetParams),
+      'permission.attach': (params) => this.permissionAttach(params as PermissionAttachParams),
+      'permission.detach': (params) => this.permissionDetach(params as PermissionDetachParams),
+      'permission.check': (params) => this.permissionCheck(params as PermissionCheckParams),
+      'permission.set_op': (params) => this.permissionSetOp(params as PermissionSetOpParams),
     };
   }
 
@@ -503,6 +530,39 @@ export class SupervisorService {
     };
   }
 
+  // ─── Permission handler'ları ───────────────────────────────────────
+
+  async permissionAttach(params: PermissionAttachParams): Promise<PermissionAttachResult> {
+    const attachment = await this.#permissionAdapter.attachPermission(
+      params.player,
+      params.permission,
+      params.value ?? true,
+      params.durationMs,
+    );
+    return {
+      attachmentId: attachment.attachmentId,
+      playerName: attachment.playerName,
+      permission: attachment.permission,
+      value: attachment.value,
+      createdAt: attachment.createdAt,
+      expiresAt: attachment.expiresAt,
+    };
+  }
+
+  async permissionDetach(params: PermissionDetachParams): Promise<PermissionDetachResult> {
+    await this.#permissionAdapter.detachPermission(params.attachmentId);
+    return { success: true };
+  }
+
+  async permissionCheck(params: PermissionCheckParams): Promise<PermissionCheckResult> {
+    return this.#permissionAdapter.checkPermission(params.player, params.permission);
+  }
+
+  async permissionSetOp(params: PermissionSetOpParams): Promise<PermissionSetOpResult> {
+    await this.#permissionAdapter.setOp(params.player, params.value);
+    return { success: true };
+  }
+
   // ─── Yeni IPC handler'ları ──────────────────────────────────────────
 
   async projectInspect(params: ProjectInspectParams): Promise<ProjectInspectResult> {
@@ -567,7 +627,7 @@ export class SupervisorService {
       distributionHostAllowlist: ['services.gradle.org'],
       expectedVersion: this.#profile.gradle?.wrapper_version ?? '',
       expectedDistributionSha256: this.#profile.gradle?.distribution_sha256 ?? null,
-      knownWrapperJarSha256: [],
+      knownWrapperJarSha256: this.#profile.gradle?.wrapper_jar_sha256 ? [this.#profile.gradle.wrapper_jar_sha256] : [],
       requireLockAndVerification: true,
     });
 
@@ -597,7 +657,7 @@ export class SupervisorService {
         distributionHostAllowlist: ['services.gradle.org'],
         expectedVersion: this.#profile.gradle?.wrapper_version ?? '',
         expectedDistributionSha256: this.#profile.gradle?.distribution_sha256 ?? null,
-        knownWrapperJarSha256: [],
+        knownWrapperJarSha256: this.#profile.gradle?.wrapper_jar_sha256 ? [this.#profile.gradle.wrapper_jar_sha256] : [],
         requireLockAndVerification: true,
       },
       javaMajor: this.#profile.java.runtime_major,

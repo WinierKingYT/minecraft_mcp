@@ -1,0 +1,34 @@
+id: profile.list
+version: 1
+milestone: V1.1
+summary: Mevcut uyumluluk profillerinin listesini döndürür.
+status: planned
+
+exposure:
+  developer_tool: profile_list
+  debug_tool: null
+  bridge_operation: profile.list
+  dsl_step: null
+
+risk:
+  effect: read
+  scope: disposable_runtime
+  reversibility: reversible
+  approval: none
+  exposure: agent_visible
+  cost: low
+  level: R0
+
+contracts:
+  input: schemas/profile-list.input.json
+  output: schemas/profile-list.output.json
+
+limits:
+  timeout_ms: 5000
+
+errors:
+  - SUPERVISOR_UNAVAILABLE
+
+tests:
+  unit: [UT-PROFILE-LIST-001]
+  contract: [CT-PROFILE-LIST-001]

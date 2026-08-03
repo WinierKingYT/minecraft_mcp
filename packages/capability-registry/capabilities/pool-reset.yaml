@@ -1,0 +1,34 @@
+id: pool.reset
+version: 1
+milestone: V1.1
+summary: Havuzdaki tüm runtime'ları temizler.
+status: planned
+
+exposure:
+  developer_tool: null
+  debug_tool: null
+  bridge_operation: pool.reset
+  dsl_step: null
+
+risk:
+  effect: delete
+  scope: disposable_runtime
+  reversibility: destructive
+  approval: none
+  exposure: agent_visible
+  cost: low
+  level: R4
+
+contracts:
+  input: schemas/pool-reset.input.json
+  output: schemas/pool-reset.output.json
+
+limits:
+  timeout_ms: 30000
+
+errors:
+  - SUPERVISOR_UNAVAILABLE
+
+tests:
+  unit: [UT-POOL-RESET-001]
+  contract: [CT-POOL-RESET-001]

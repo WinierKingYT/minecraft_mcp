@@ -66,7 +66,11 @@ export type IpcMethod =
   | 'pool.list'
   | 'pool.reset'
   | 'profile.list'
-  | 'profile.get';
+  | 'profile.get'
+  | 'permission.attach'
+  | 'permission.detach'
+  | 'permission.check'
+  | 'permission.set_op';
 
 export interface SupervisorHealthResult {
   readonly status: 'ok';
@@ -476,4 +480,61 @@ export interface ProfileGetResult {
   readonly javaVersion: number;
   readonly nodeVersion: string;
   readonly gradleVersion: string;
+}
+
+// ============================================================================
+// Permission IPC
+// ============================================================================
+
+/** Permission attach params */
+export interface PermissionAttachParams {
+  readonly player: string;
+  readonly permission: string;
+  readonly value?: boolean;
+  readonly durationMs?: number;
+}
+
+/** Permission attach result */
+export interface PermissionAttachResult {
+  readonly attachmentId: string;
+  readonly playerName: string;
+  readonly permission: string;
+  readonly value: boolean;
+  readonly createdAt: number;
+  readonly expiresAt: number | null;
+}
+
+/** Permission detach params */
+export interface PermissionDetachParams {
+  readonly attachmentId: string;
+}
+
+/** Permission detach result */
+export interface PermissionDetachResult {
+  readonly success: boolean;
+}
+
+/** Permission check params */
+export interface PermissionCheckParams {
+  readonly player: string;
+  readonly permission: string;
+}
+
+/** Permission check result */
+export interface PermissionCheckResult {
+  readonly player: string;
+  readonly permission: string;
+  readonly hasPermission: boolean;
+  readonly source: string;
+}
+
+/** Permission set op params */
+export interface PermissionSetOpParams {
+  readonly player: string;
+  readonly value: boolean;
+}
+
+/** Permission set op result */
+export interface PermissionSetOpResult {
+  readonly success: boolean;
 }

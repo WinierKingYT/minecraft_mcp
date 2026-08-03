@@ -72,6 +72,10 @@ function stubHandlers(overrides: Partial<Record<IpcMethod, MethodHandler>> = {})
     'pool.reset': async () => ({ evictedCount: 0 }),
     'profile.list': async () => ({ profiles: [], activeProfileId: 'paper-26.2-build-84-v1' }),
     'profile.get': async () => ({ id: 'paper-26.2-build-84-v1', status: 'active', minecraftVersion: '26.2', paperBuild: 84, verificationStatus: 'verified', javaVersion: 25, nodeVersion: '24.18.1', gradleVersion: '9.6.1' }),
+    'permission.attach': async () => ({ attachmentId: 'perm_test', playerName: 'p', permission: 'p', value: true, createdAt: 0, expiresAt: null }),
+    'permission.detach': async () => ({ success: true }),
+    'permission.check': async () => ({ player: 'p', permission: 'p', hasPermission: false, source: 'default' }),
+    'permission.set_op': async () => ({ success: true }),
   };
   return { ...base, ...overrides };
 }

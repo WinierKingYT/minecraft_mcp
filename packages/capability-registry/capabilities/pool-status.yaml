@@ -1,0 +1,34 @@
+id: pool.status
+version: 1
+milestone: V1.1
+summary: Runtime havuzunun durumunu raporlar.
+status: planned
+
+exposure:
+  developer_tool: pool_status
+  debug_tool: null
+  bridge_operation: pool.status
+  dsl_step: null
+
+risk:
+  effect: read
+  scope: disposable_runtime
+  reversibility: reversible
+  approval: none
+  exposure: agent_visible
+  cost: low
+  level: R0
+
+contracts:
+  input: schemas/pool-status.input.json
+  output: schemas/pool-status.output.json
+
+limits:
+  timeout_ms: 5000
+
+errors:
+  - SUPERVISOR_UNAVAILABLE
+
+tests:
+  unit: [UT-POOL-STATUS-001]
+  contract: [CT-POOL-STATUS-001]

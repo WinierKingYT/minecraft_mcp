@@ -100,6 +100,27 @@ TL-05 artık ek bir anlam taşır: `tools/list` sonucu `ttlMs` ile önbelleklene
 
 Profiller ve tool listeleri: [`capability-registry.md`](capability-registry.md)
 
+## V1.1 tool hatları
+
+V1.1 (runtime pool, multi-profile, permissions) `tools/list` yüzeyini genişletir. Yeni araçlar aynı profil kuralına tabidir ve capability kayıtlarında tanımlıdır:
+
+| Tool | Profile | Capability | Effect |
+|---|---|---|---|
+| `pool_status` | developer | `pool.status` | read |
+| `pool_list` | developer | `pool.list` | read |
+| `profile_list` | developer | `profile.list` | read |
+| `profile_get` | developer | `profile.get` | read |
+| `permission_check` | developer | `permission.check` | read |
+| `pool_acquire` | debug | `pool.acquire` | mutation |
+| `pool_release` | debug | `pool.release` | mutation |
+| `permission_attach` | debug | `permission.attach` | mutation |
+| `permission_detach` | debug | `permission.detach` | mutation |
+| `permission_set_op` | debug | `permission.set_op` | mutation |
+
+`pool_evict` ve `pool_reset` R4 seviyesindedir; ADR-0007 gereği hiçbir profilde agent yüzeyine çıkmaz (yalnızca GC/operator tarafında). İzin mutation'ları da runtime sonunda `runtime_discard` ile geri alınır; kalıcı izin değişikliği üretmez.
+
+Supervisor bağlı değilken tüm V1.1 araçları `SUPERVISOR_UNAVAILABLE` döndürür (ADR-0003: MCP Server Supervisor'ı doğurmaz). Testler: `CT-MCP-V11-E2E-001`, `CT-MCP-V11-001`.
+
 ## Error catalog
 
 Kayıt biçimi:
