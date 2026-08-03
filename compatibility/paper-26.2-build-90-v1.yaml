@@ -1,0 +1,132 @@
+# Paper 26.2 build 90 compatibility profile
+# Generated: 2026-08-02
+
+id: paper-26.2-build-90-v1
+status: active
+created_at: 2026-08-02
+
+verification:
+  status: unverified
+  verified_at: null
+  reason: >
+    New profile based on build 90. Requires full verification before use.
+  blocking_gates: []
+  verified_fields: []
+  pending_fields:
+    - minecraft.version
+    - paper.build
+    - paper.channel
+    - paper.api_coordinate
+    - paper.jar_sha256
+    - node.version
+    - gradle.wrapper_version
+    - gradle.distribution_sha256
+    - mcp.protocol_version
+    - mcp.sdk.server
+    - mcp.sdk.node
+    - npm_toolchain
+    - java.runtime_major
+    - java.toolchain_major
+    - gradle.wrapper_jar_sha256
+    - node.installed_version_matches_pin
+
+minecraft:
+  version: "26.2"
+
+paper:
+  channel: STABLE
+  build: 90
+  api_coordinate: "io.papermc.paper:paper-api:26.2.build.90-stable"
+  api_version: "26.2"
+  download_source: "PaperMC Downloads Service v3 (https://fill.papermc.io)"
+  checksum_policy: "download manifest SHA-256 must be stored and verified"
+  jar_sha256: null  # Must be filled after download
+  jar_filename: "paper-26.2-90.jar"
+  observed_download_url: null
+  hardcoded_download_url_allowed: false
+  user_agent_required: true
+  observed_newest_build: 90
+
+java:
+  runtime_major: 25
+  toolchain_major: 25
+  verified_distribution: "Eclipse Temurin 25.0.4.7-hotspot"
+
+node:
+  version: "24.18.1"
+  release_line: "LTS"
+  lts_codename: "Krypton"
+  security_release: true
+
+gradle:
+  wrapper_version: "9.6.1"
+  wrapper_jar_verification: required
+  wrapper_jar_sha256: "497c8c2a7e5031f6aa847f88104aa80a93532ec32ee17bdb8d1d2f67a194a9c7"
+  distribution_sha256: "9c0f7faeeb306cb14e4279a3e084ca6b596894089a0638e68a07c945a32c9e14"
+  distribution_url: "https://services.gradle.org/distributions/gradle-9.6.1-bin.zip"
+  distribution_url_allowlist:
+    - "services.gradle.org"
+  dependency_locking: required
+  dependency_verification: required
+  verification_mode: strict
+
+mcp:
+  protocol_version: "2026-07-28"
+  protocol_status: final
+  transport: "stdio"
+  tasks_extension: disabled
+  remote_transport: disabled
+  breaking_changes:
+    stateless_core: true
+    initialize_handshake_removed: true
+    session_id_header_removed: true
+    server_discover_optional_rpc: true
+    list_results_cacheable: true
+    multi_round_trip_requests: true
+    legacy_http_sse_deprecated: true
+  sdk:
+    server: "@modelcontextprotocol/server@2.0.0"
+    node: "@modelcontextprotocol/node@2.0.0"
+    channel: stable
+    linked: false
+  release_policy: >
+    Stable 2.x SDK released monthly. 1.x EOL after 2026-12-31.
+
+npm_toolchain:
+  package_manager: "pnpm@10.15.0"
+  typescript: "5.9.3"
+  ajv: "8.17.1"
+  ajv_formats: "3.0.1"
+  yaml: "2.8.1"
+  types_node: "24.7.0"
+  lockfile_committed: true
+
+protocols:
+  bridge: 1
+  scenario_dsl: 1
+  config_schema: 1
+  plugin_test_contract: 1
+  capability_registry: 1
+
+plugin_metadata_support:
+  plugin.yml:
+    status: supported
+    default: true
+  paper-plugin.yml:
+    status: experimental
+    default: false
+    enable_with_feature_flag: true
+  both_present:
+    status: supported
+    precedence: explicit_manifest_policy
+
+rules:
+  - "Moving version expressions (latest/current/stable) MUST NOT appear in artifact manifests."
+  - "Paper download URL MUST be resolved from the official Downloads Service response."
+  - "Downloads Service requests MUST send a specific User-Agent with a contact address."
+  - "Downloaded Paper JAR SHA-256 MUST match paper.jar_sha256 on every runtime creation."
+  - "Paper build, Paper API coordinate and plugin.yml api-version MUST be mutually consistent."
+  - "No runtime is started on a Java major other than java.runtime_major."
+  - "No release build is produced on a Node version other than node.version."
+  - "Prototype MAY run on another Gradle wrapper version; the release profile MUST NOT."
+  - "Moving to the stable SDK requires an ADR revision and a full conformance test run."

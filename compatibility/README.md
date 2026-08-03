@@ -1,10 +1,12 @@
 # Compatibility profiles
 
-Bir uyumluluk profili, ürünün üzerinde çalışmayı taahhüt ettiği **tek** sürüm kombinasyonunu kilitler. V1 yalnızca bir aktif profile sahiptir.
+Bir uyumluluk profili, ürünün üzerinde çalışmayı taahhüt ettiği **tek** sürüm kombinasyonunu kilitler. Aktif profil runtime üretir; diğer profiller diverjans (multi-profile) için tanımlanır ve doğrulanmadan kullanılamaz.
 
 | Profil | Durum | Doğrulama |
 |---|---|---|
 | [`paper-26.2-build-84-v1.yaml`](paper-26.2-build-84-v1.yaml) | `active` | ✅ `verified` |
+| [`paper-26.2-build-87-v1.yaml`](paper-26.2-build-87-v1.yaml) | `active` | ⏳ `unverified` |
+| [`paper-26.2-build-90-v1.yaml`](paper-26.2-build-90-v1.yaml) | `active` | ⏳ `unverified` |
 
 ## Kurallar
 

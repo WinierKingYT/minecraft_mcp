@@ -50,7 +50,7 @@ V1'de bilinen ve kasıtlı olan limitationlar. Bunlar hata değil, tasarım kara
 
 | Limitation | Etkisi | Öneri |
 |---|---|---|
-| Paper 26.2 build 84 ile sınırlı | Yalnızca bu Paper sürümü desteklenir | Yeni sürümler uyumluluk profili güncellenerek eklenecek |
+| Paper 26.2 build 84 aktif; 87 ve 90 unverified | Yalnızca verified profil (build 84) runtime üretir; 87/90 diverjans içindir ve doğrulanmadan kullanılamaz | `verify:compatibility` ile doğrulayın; yeni sürümler profil eklenerek gelir |
 | Java 25 toolchain | Yalnızca Java 25 ile test edilmiştir | Farklı Java sürümleri uyumsuz olabilir |
 | Node v24.18.1 | Yalnızca bu Node sürümü ile test edilmiştir | Daha eski sürümler desteklenmeyebilir |
 
