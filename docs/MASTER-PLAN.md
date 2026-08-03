@@ -69,25 +69,39 @@ Başarı ölçütleri: [`product/kpi.md`](product/kpi.md)
 
 ## 3. Uyumluluk profili
 
-Tek aktif profil: [`../compatibility/paper-26.2-build-84-v1.yaml`](../compatibility/paper-26.2-build-84-v1.yaml)
+Ayrıntılar: [`../compatibility/`](../compatibility/), doğrulama prosedürü: [`../compatibility/README.md`](../compatibility/README.md)
+
+Aktif verified profiller (3, hepsi `verification.status: verified`):
+
+| Profil | Build | Durum | Kanıt |
+|---|---|---|---|
+| [`paper-26.2-build-84-v1.yaml`](../compatibility/paper-26.2-build-84-v1.yaml) | `84` (STABLE, aktif) | ✅ verified | RunsService v3 + Maven + yerel toolchain |
+| [`paper-26.2-build-87-v1.yaml`](../compatibility/paper-26.2-build-87-v1.yaml) | `87` (STABLE) | ✅ verified | RunsService v3 + Maven |
+| [`paper-26.2-build-90-v1.yaml`](../compatibility/paper-26.2-build-90-v1.yaml) | `90` (STABLE, en yeni) | ✅ verified | RunsService v3 + Maven |
+
+Tablo bileşen kilikleri (tüm profillerde aynı):
 
 | Bileşen | Kilit | Doğrulama |
 |---|---|---|
-| Minecraft / Paper | `26.2`, STABLE build `84` | ⚠️ pending |
-| Paper API | `io.papermc.paper:paper-api:26.2.build.84-stable` | ⚠️ pending |
-| Java | runtime & toolchain major `25` | ⚠️ pending |
-| Node.js | `24.18.0` LTS | ⚠️ pending |
-| Gradle Wrapper | `9.6.1` | ⚠️ pending |
-| MCP protokol | `2026-07-28`, taşıma `stdio` | ⚠️ pending |
+| Minecraft / Paper | `26.2`, STABLE | ✅ verified (curl + Maven) |
+| Paper API | `io.papermc.paper:paper-api:26.2.build.<N>-stable` | ✅ Maven repo |
+| Java | runtime & toolchain major `25` (Temurin 25.0.4) | ✅ yerel `java -version` |
+| Node.js | `24.18.1` LTS | ✅ resmî index |
+| Gradle Wrapper | `9.6.1` | ✅ services.gradle.org |
+| Gradle dağıtım checksum | `distributionSha256Sum` | ✅ services.gradle.org |
+| MCP protokol | `2026-07-28`, taşıma `stdio` | ✅ MCP spec |
+| MCP SDK | `@modelcontextprotocol/*` `2.0.0` | ✅ npm registry |
 | Bridge protokol | `1` | n/a |
 | Scenario DSL | `1` | n/a |
 | Config schema | `1` | n/a |
 | Plugin test contract | `1` | n/a |
 | Capability registry | `1` | n/a |
 
-**Karar:** Profil `verification.status: unverified` olduğu sürece ürün `prototype` kanalındadır ve D0A kapatılamaz. Doğrulama prosedürü: [`../compatibility/README.md`](../compatibility/README.md)
+**Karar:** Yeni bir Paper build'i yalnızca yeni bir profil dosyası (`compatibility/paper-26.2-build-<N>-v1.yaml`) eklenerek ve canlı kaynaktan doğrulanarak kabul edilir. Doğrulama `scripts/verify-compatibility.mjs --profile=<id>` ile teyit edilir; JAR SHA-256 manifest'ten doldurulur ve `observed_download_url` saklanır. `verification.status: verified` olmayan profil runtime üretemez — bu durumda ürün `prototype` kanalındadır.
 
-**Karar (ADR-0005):** V1'in resmî plugin metadata desteği klasik `plugin.yml` içindir; `paper-plugin.yml` feature flag arkasında deneyseldir.
+**Karar:** `checkSecondProfile` doctor check en az iki verified profil arar; `compatibility-profiles.test.ts` en az üç profili doğrular (multi-profile diverjans, V1.1).
+
+**Karar (ADR-0005):** V1'in resmi plugin manifest desteği klasik `plugin.yml` içindir; `paper-plugin.yml` feature flag arkasında deneyseldir.
 
 ---
 
@@ -133,6 +147,10 @@ Ayrı process **olmayan** bileşenler:
 - Build Executor, Source Snapshotter, Runtime Registry, Operation Ledger, Garbage Collector → Run Supervisor modülleri
 
 **Karar (ADR-0003):** Process ownership bilgisi Supervisor'da yaşar; MCP Server çökmesi Paper process sahipliğini kaybettirmez.
+
+**Karar (operation ledger):** Tüm mutation ve lifecycle operation'ları Supervisor'da append-only `operation_ledger` içinde kaydedilir. Her kayıt şunları taşır: `operation_id`, `principal` (agent / user / supervisor), `started_at`/`finished_at`, `status`, `target_id`, argument fingerprint ve yapılandırılmış `result`. Ledger, `project_id` ve `server_instance_id` ile ayrışır; kullanıcı ve ajan erişimi farklı denetim izine gider. Yazma hatası operasyonu `OPERATION_LEDGER_WRITE_FAILED` olarak işaretler; cleanup failure ana operasyon sonucunu gizlemez (KPI-12, §17).
+
+**Karar (Garbage Collector):** Runtime ve compute resource'ları Supervisor'da çalışan Garbage Collector tarafından geri kazanılır. Üç aşama: (1) **mark** — sahipsiz veya TTL'si dolan runtime/resource tespiti; (2) **dry-run validation** — gerçek silmeden önce güvenlik ve ownership tekrar doğrulaması; (3) **reclaim** — ancak validation geçerse silme. Agent `DELETING` geçişini başlatamaz (bkz. §6); runtime silme yalnızca Garbage Collector'a aittir. Orphan process'ler icle edilir; veri himaye güvenilirliД§ı için claim yazma-korumalı iken aynı runtime hımz tek mark-supplice olmaz (bkz. §4 hazırlığı doğrulama testi: `lifecycle-stress`, `recovery-security`).
 
 ---
 
@@ -461,17 +479,20 @@ Doküman kalite kapıları:
 Ayrıntı: [`delivery/roadmap.md`](delivery/roadmap.md), [`delivery/milestone-acceptance.md`](delivery/milestone-acceptance.md), [`delivery/epics.md`](delivery/epics.md)
 Spike'lar: [`delivery/spikes/`](delivery/spikes/)
 
-| Aşama | Çıkış | Tahmin |
-|---|---|---|
-| D0A | Product freeze | 3–5 gün |
-| D0B | Feasibility spikes | 7–12 gün |
-| D0C | Architecture freeze + go/no-go | 2–3 gün |
-| M0 | Stable observation (read-only) | 10–15 gün |
-| M1 | Reproducible build and launch | 18–28 gün |
-| M2A | Server-side deterministic scenarios | 12–18 gün |
-| M2B | Protocol actor scenarios (conditional) | 12–25 gün |
-| M3 | Security hardening and beta | 15–25 gün |
-| V1 | Stable local release | 5–10 gün stabilization |
+| Aşama | Çıkış | Tahmin | Durum |
+|---|---|---|---|
+| D0A | Product init | 3–5 gün | ✅ |
+| D0B | Feasibility spikes | 7–12 gün | ✅ |
+| D0C | Architecture freeze + go/no-go | 2–3 gün | ✅ |
+| M0 | Stable observation (read-only) | 10–15 gün | ✅ |
+| M1 | Reproducible build and launch | 18–28 gün | ✅ |
+| M2A | Server-side deterministic scenarios | 12–18 gün | ✅ |
+| M2B | Protocol actor scenarios (conditional; SPIKE-ACTOR-001 kısmen başarılı) | 12–25 gün | ⚠️ kısmen |
+| M3 | Security hardening and beta | 15–25 gün | ✅ |
+| V1 | Stable local release | 5–10 gün stabilization | ✅ P0/P1 closed |
+| V1.1 | Yedi yatay yetenek (bkz. §25) | ayrı çıkış | ✅ |
+
+**V1.1 durumu:** üç verified profil (build 84/87/90), event subscription, runtime pool, permission adapter, COW fixture, actor inventory, performance profiler — tümü `milestone-acceptance.md`'de kapanış kanıtıyla. Doctor check'leri `compatibility_profiles` (≥2 verified) ve `capability_registry` (46 capability) geçer.
 
 Nihai uygulama sırası:
 
@@ -522,14 +543,58 @@ V1 koşulları: stable MCP 2.x SDK (veya açık release-blocker çözümü) · P
 
 ---
 
-## 25. V1 sonrası
+## 25. V1.1 yatay yetenekler
 
-Ayrıntı: [`delivery/beyond-v1.md`](delivery/beyond-v1.md)
+V1.1, V1 sınırına dokunmadan yedi yatay yetenek paketler (çıkış koşulları: [`delivery/release-checklist.md`](delivery/release-checklist.md)). Detaylar: capability registry, `docs/contracts/*`, `compatibility/`, `docs/delivery/milestone-acceptance.md`.
+
+| Çalışma | Sınır (imza) | Profil / Risk | Esas |
+|---|---|---|---|
+| Event subscription | `event_subscribe`, `event_unsubscribe`, `event_query` | developer R0 | olay filtresi (tip/actor), TTL, buffer limiti, eşzamanlı abonelikler |
+| Runtime pool | `pool_list`, `pool_status`, `pool_acquire`, `pool_release` | R0 getter / R2 mutation | acquire/release/evict/reset, image bazlı reuse, reuse-count limiti; `pool_evict`/`pool_reset` hiçbir profilde yok (R4, ADR-0007) |
+| Multi-profile diverjans | `profile_list`, `profile_get` | R0 | üç verified Paper build; `checkSecondProfile` doctor check |
+| Performance profiler | `perf_watch`, `perf_metrics` | R0 | timing, derleme metrikleri |
+| Permission adapter | `permission_attach`, `permission_detach`, `permission_check`, `permission_set_op` | R2 | native Paper + LuckPerms; yalnızca `runtime_discard`, kalıcı izin üretmez |
+| Copy-on-write fixture | `fixture_reset`, `fixture_inspect` | R0–R2 | immutable fixture snapshot'ları |
+| Actor inventory | `actor_list`, `actor_inventory` | R0–R1 | actor envanter takibi |
+
+**Karar (V1.1 ilkeleri):**
+- V1.1 tool hatları MCP yüzeyinde: read-only getter'lar `developer` (R0); mutation tool'ları `debug` (R2); R4 silme/rezet hiçbir profilde yok.
+- Eksik capability `CAPABILITY_UNAVAILABLE` döndürür; V1.1 araçları V1 sınırının davranışını değiştirmez.
+- V1.1, V1'den ayrı çıkış yapabilir ama destructive agent tool, orphan, path escape ve secret leak sınırlarına dokunamaz.
+
+---
+
+## 26. Sürümlenen bileşenler ve release artifact'leri
+
+Her release, aşağıdaki bileşenleri kendi sürümüyle üretir (detay: [`delivery/release-checklist.md`](delivery/release-checklist.md) → "Sürümlenen bileşenler" ve "Release artifact'leri").
+
+| Bileşen | Sürümlenen | Not |
+|---|---|---|
+| MCP Server | sürümlenir | tool facade, policy, scenario koordinasyonu, evidence API |
+| Run Supervisor | sürümlenir | trust, snapshot, build, runtime, ownership, Garbage Collector |
+| Bridge Plugin | sürümlenir | Paper içinde çalışan Java eklentisi; Bridge Protocol sürümü ayrı |
+| Bridge Protocol | sürümlenir | loopback HTTP contract (§11); supervisor + bridge eşleşmesi zorunlu |
+| Actor | koşullu | yalnızca M2B capability'leri için (conditional, §14) |
+| Scenario DSL | sürümlenir | scenario şematikleri ve validator |
+| Config Schema | sürümlenir | config migration versioned (§19) |
+| Capability Registry | sürümlenir | capability + error kayıtları tek kaynak (§9) |
+| Plugin Test Contract | sürümlenir | test-contract manifest şeması (§12) |
+| Compatibility Profile | sürümlenir | Paper build + toolchain kilidi (§3) |
+
+**Karar (sürüm eşleşmesi):** Yayınlanan bileşenler kendi aralarında geriye dönük uyumlu değildir; bir MCP/CLI/supervisor paket seti aynı sürümle yayınlanır. Capability registry ve compatibility profile yeni Paper build'i ile forward-compatible değildir — yeni build yeni profil dosyası gerektirir (§3).
+
+**Karar (migration):** Config migration versioned; bilinmeyen eski config sürümü açık hata üretir. Capability registry her sürümde error code çakışmasını DOC-GATE-04 ile reddeder.
+
+**Karar (artifact bütünlüğü):** Yayınlanan her artifact checksum ve SBOM taşır (scripts `generate-checksums.mjs`, `generate-sbom.mjs`); yayın doğrulaması CI'da ayrı job olarak çalışır.
+
+---
+
+## 27. V1 sonrası
 
 **Yasak genişleme biçimleri:** V1 tool handler içine remote auth eklemek · Paper scheduler içine Folia flag sıkıştırmak · Bridge içine LLM SDK koymak · serbest RCON fallback · hot reload'a güvenmek · live world'ü fixture yapmak · agent'a raw filesystem delete vermek · same-JVM auth'ı saldırgan plugin'e karşı güvenlik sınırı saymak.
 
 ---
 
-## 26. Resmî teknik dayanaklar
+## 28. Resmî teknik dayanaklar
 
 [`references.md`](references.md) — link checker ve compatibility profile audit'i CI içinde çalışır.
