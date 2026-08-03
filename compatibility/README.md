@@ -6,7 +6,7 @@ Bir uyumluluk profili, ürünün üzerinde çalışmayı taahhüt ettiği **tek*
 |---|---|---|
 | [`paper-26.2-build-84-v1.yaml`](paper-26.2-build-84-v1.yaml) | `active` | ✅ `verified` |
 | [`paper-26.2-build-87-v1.yaml`](paper-26.2-build-87-v1.yaml) | `active` | ⏳ `unverified` |
-| [`paper-26.2-build-90-v1.yaml`](paper-26.2-build-90-v1.yaml) | `active` | ⏳ `unverified` |
+| [`paper-26.2-build-90-v1.yaml`](paper-26.2-build-90-v1.yaml) | `active` | ✅ `verified` |
 
 ## Kurallar
 

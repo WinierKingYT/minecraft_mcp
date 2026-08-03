@@ -34,7 +34,7 @@ describe('Compatibility Profiles', () => {
     assert.ok(found, 'paper-26.2-build-90-v1 not found');
     assert.equal(found.minecraftVersion, '26.2');
     assert.equal(found.paperBuild, 90);
-    assert.equal(found.verificationStatus, 'unverified');
+    assert.equal(found.verificationStatus, 'verified');
   });
 
   test('listCompatibilityProfiles returns at least three profiles (multi-profile diverge)', () => {
@@ -62,7 +62,7 @@ describe('Compatibility Profiles', () => {
     const profile = loadCompatibilityProfile(REPO_ROOT, 'paper-26.2-build-90-v1');
     assert.equal(profile.id, 'paper-26.2-build-90-v1');
     assert.equal(profile.paper.build, 90);
-    assert.equal(profile.paper.jar_sha256, null); // Not yet verified
+    assert.ok(profile.paper.jar_sha256?.startsWith('26cfb1f2'), 'jar_sha256 verified');
     assert.equal(profile.java.runtime_major, 25);
   });
 

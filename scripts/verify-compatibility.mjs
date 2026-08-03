@@ -19,8 +19,9 @@ import { PATHS, ok } from './lib/registry.mjs';
 
 const WRITE = process.argv.includes('--write');
 const REQUIRE_VERIFIED = process.argv.includes('--require-verified');
+const PROFILE_ARG = process.argv.find((a) => a.startsWith('--profile='));
 
-const PROFILE_ID = 'paper-26.2-build-84-v1';
+const PROFILE_ID = PROFILE_ARG?.slice('--profile='.length) ?? 'paper-26.2-build-84-v1';
 const file = join(PATHS.compatibility, `${PROFILE_ID}.yaml`);
 const raw = readFileSync(file, 'utf8');
 const profile = parseYaml(raw);
