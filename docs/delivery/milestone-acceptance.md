@@ -71,7 +71,7 @@ V1.1, V1 sınırına dokunmadan yedi yatay yeteneği paketler: event-driven göz
 
 - [x] Event subscription: olay filtresi (tip/actor), TTL, buffer limiti, eşzamanlı abonelikler (`event-subscription.test.ts`, `integration-v11.test.ts`)
 - [x] Runtime pool: acquire/release/evict/reset, image bazlı yeniden kullanım, reuse-count limiti (`runtime-pool.test.ts`)
-- [x] Multi-profile diverjans: `paper-26.2-build-84-v1` (verified, aktif), `-87-v1` (unverified), `-90-v1` (verified) — üç profil, iki verified; `checkSecondProfile` doctor check ≥2 verified profil arar (geçer); `compatibility-profiles.test.ts` ≥3 profili doğrular
+- [x] Multi-profile diverjans: `paper-26.2-build-84-v1`, `-87-v1`, `-90-v1` (üçü de verified, aktif) — `checkSecondProfile` doctor check ≥2 verified profil arar (geçer); `compatibility-profiles.test.ts` ≥3 profili doğrular
 - [x] Performance profiler: timing/derleme metrikleri (`performance-profiler.test.ts`)
 - [x] Permission: native Paper + LuckPerms adapter, attach/detach/check/set_op — yalnızca `runtime_discard` (kalıcı izin üretmez) (`permission-adapter.test.ts`)
 - [x] Copy-on-write fixture: immutable fixture snapshot'ları (`cow-fixture.test.ts`)

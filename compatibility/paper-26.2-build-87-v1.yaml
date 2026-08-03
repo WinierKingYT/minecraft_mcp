@@ -6,13 +6,16 @@ status: active
 created_at: 2026-08-02
 
 verification:
-  status: unverified
-  verified_at: null
+  status: verified
+  verified_at: 2026-08-03
   reason: >
-    New profile based on build 87. Requires full verification before use.
+    Tüm alanlar canlı resmî kaynaktan doğrulandı: Paper build 87 (STABLE,
+    sha256 3ab75366...) Downloads Service v3'ten, api_coordinate
+    26.2.build.87-stable Maven repository'den, Java 25.0.4 Temurin yerelden,
+    Node v24.18.1 LTS resmî index'ten, Gradle 9.6.1 + dağıtım checksum'ı
+    services.gradle.org'tan doğrulandı. jar_sha256 manifest ile eşleşti.
   blocking_gates: []
-  verified_fields: []
-  pending_fields:
+  verified_fields:
     - minecraft.version
     - paper.build
     - paper.channel
@@ -29,6 +32,7 @@ verification:
     - java.toolchain_major
     - gradle.wrapper_jar_sha256
     - node.installed_version_matches_pin
+  pending_fields: []
 
 minecraft:
   version: "26.2"
@@ -40,9 +44,9 @@ paper:
   api_version: "26.2"
   download_source: "PaperMC Downloads Service v3 (https://fill.papermc.io)"
   checksum_policy: "download manifest SHA-256 must be stored and verified"
-  jar_sha256: null  # Must be filled after download
+  jar_sha256: "3ab7536642d04c504a06fe43174b8a94f8c5f25d5847d4672212413f6e54b906"
   jar_filename: "paper-26.2-87.jar"
-  observed_download_url: null
+  observed_download_url: "https://fill-data.papermc.io/v1/objects/3ab7536642d04c504a06fe43174b8a94f8c5f25d5847d4672212413f6e54b906/paper-26.2-87.jar"
   hardcoded_download_url_allowed: false
   user_agent_required: true
   observed_newest_build: 87
