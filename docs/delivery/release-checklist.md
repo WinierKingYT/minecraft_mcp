@@ -101,7 +101,7 @@
 - [ ] Incident response
 - [ ] Known limitations
 - [ ] Üç gerçek proje
-- [ ] P0/P1 closed
+- [ ] P0/P1 closed — açık P0 epic yok; E18 (Protocol Actor) M2B kararına bağlı koşullu açık. M2B V1 dışına tanımlanınca kapanır (matris: `milestone-acceptance.md`)
 
 ## V1.1 çıkış koşulları
 
