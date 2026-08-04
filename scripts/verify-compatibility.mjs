@@ -7,18 +7,21 @@
 // Bu script AĞ ERİŞİMİ GEREKTİRİR ve bilinçli olarak yalnızca profil
 // dosyasını günceller; başka hiçbir şey yazmaz.
 //
-//   node scripts/verify-compatibility.mjs                 # rapor
+//   node scripts/verify-compatibility.mjs                 # ağ doğrulaması (rapor)
 //   node scripts/verify-compatibility.mjs --write         # profili güncelle
+//   node scripts/verify-compatibility.mjs --verify-jar    # JAR indir + SHA-256 karşılaştır
 //   node scripts/verify-compatibility.mjs --require-verified
 //       (CI release profili: verification.status !== verified ise çıkış 1)
 
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { createHash } from 'node:crypto';
 import { parse as parseYaml } from 'yaml';
 import { PATHS, ok } from './lib/registry.mjs';
 
 const WRITE = process.argv.includes('--write');
 const REQUIRE_VERIFIED = process.argv.includes('--require-verified');
+const VERIFY_JAR = process.argv.includes('--verify-jar');
 const PROFILE_ARG = process.argv.find((a) => a.startsWith('--profile='));
 
 const PROFILE_ID = PROFILE_ARG?.slice('--profile='.length) ?? 'paper-26.2-build-84-v1';
@@ -26,83 +29,28 @@ const file = join(PATHS.compatibility, `${PROFILE_ID}.yaml`);
 const raw = readFileSync(file, 'utf8');
 const profile = parseYaml(raw);
 
-// Her alan için: nereden doğrulanacağı ve gözlenen değeri nasıl çıkaracağı.
-const CHECKS = [
-  {
-    field: 'minecraft.version',
-    source: 'https://fill.api.papermc.io/v3/projects/paper',
-    describe: 'Downloads Service sürüm listesinde profildeki Minecraft sürümü var mı',
-    expected: () => profile.minecraft.version,
-  },
-  {
-    field: 'paper.build',
-    source: `https://fill.api.papermc.io/v3/projects/paper/versions/${profile.minecraft.version}/builds`,
-    describe: 'Belirtilen build mevcut ve kanalı STABLE mı',
-    expected: () => String(profile.paper.build),
-  },
-  {
-    field: 'paper.jar_sha256',
-    source: 'build manifest -> downloads.server:default.checksums.sha256',
-    describe: 'Paper JAR SHA-256 değeri manifest ile eşleşiyor mu',
-    expected: () => profile.paper.jar_sha256,
-  },
-  {
-    field: 'paper.api_coordinate',
-    source: 'https://repo.papermc.io/repository/maven-public/io/papermc/paper/paper-api/maven-metadata.xml',
-    describe: 'Paper API Maven koordinatı ve sürümü gerçekten var mı',
-    expected: () => profile.paper.api_coordinate,
-    note: 'V3 belgesindeki biçim (26.2.build.84-stable) Paper\'ın tarihsel <mc>-R0.1-SNAPSHOT şemasından farklıdır; özellikle doğrulanmalıdır.',
-  },
-  {
-    field: 'mcp.protocol_version',
-    source: 'https://modelcontextprotocol.io/specification/ (revizyon listesi)',
-    describe: 'Protokol revizyonu yayınlanmış mı; draft/RC/stable durumu ne',
-    expected: () => profile.mcp.protocol_version,
-  },
-  {
-    field: 'mcp.sdk.server',
-    source: 'https://registry.npmjs.org/@modelcontextprotocol/server',
-    describe: 'SDK sürümü npm registry\'de mevcut mu',
-    expected: () => profile.mcp.sdk?.server,
-  },
-  {
-    field: 'mcp.sdk.node',
-    source: 'https://registry.npmjs.org/@modelcontextprotocol/node',
-    describe: 'Node SDK sürümü npm registry\'de mevcut mu',
-    expected: () => profile.mcp.sdk?.node,
-  },
-  {
-    field: 'node.version',
-    source: 'https://nodejs.org/dist/index.json',
-    describe: 'Node sürümü yayınlanmış ve LTS hattında mı',
-    expected: () => profile.node.version,
-  },
-  {
-    field: 'gradle.wrapper_version',
-    source: 'https://services.gradle.org/versions/all',
-    describe: 'Gradle sürümü yayınlanmış mı',
-    expected: () => profile.gradle.wrapper_version,
-  },
-  {
-    field: 'gradle.distribution_sha256',
-    source: 'https://services.gradle.org/distributions/gradle-<v>-bin.zip.sha256',
-    describe: 'Dağıtım checksum\'ı profildeki değerle eşleşiyor mu',
-    expected: () => profile.gradle.distribution_sha256,
-  },
-  {
-    field: 'java.runtime_major',
-    source: 'yerel `java -version`',
-    describe: 'Kurulu Java major sürümü profil ile eşleşiyor mu',
-    expected: () => String(profile.java.runtime_major),
-  },
-  {
-    field: 'npm_toolchain',
-    source: 'pnpm install + commit edilmiş lockfile',
-    describe: 'Node araç zinciri pinleri kurulabiliyor ve lockfile commit edilmiş mi',
-    expected: () => (profile.npm_toolchain.lockfile_committed ? 'committed' : 'not committed'),
-  },
-];
+const UA = 'minecraftmcp-verify/0.1 (compatibility profile audit)';
 
+async function fetchJson(url) {
+  const res = await fetch(url, { headers: { 'User-Agent': UA } });
+  if (!res.ok) throw new Error(`${url} -> HTTP ${res.status}`);
+  return res.json();
+}
+
+async function fetchText(url) {
+  const res = await fetch(url, { headers: { 'User-Agent': UA } });
+  if (!res.ok) throw new Error(`${url} -> HTTP ${res.status}`);
+  return res.text();
+}
+
+async function sha256OfFile(filePath) {
+  const { createReadStream } = await import('node:fs');
+  const hash = createHash('sha256');
+  for await (const chunk of createReadStream(filePath)) hash.update(chunk);
+  return hash.digest('hex');
+}
+
+// Her alan için: nereden doğrulanacağı ve gözlenen değeri nasıl çıkaracağı.
 const status = profile.verification?.status ?? 'unverified';
 
 if (REQUIRE_VERIFIED) {
@@ -118,34 +66,82 @@ if (REQUIRE_VERIFIED) {
   process.exit(0);
 }
 
-// Ağ doğrulaması bu iskelette uygulanmadı: her kaynağın gerçek yanıt şekli
-// SPIKE-PAPER-DOWNLOAD-001 ve SPIKE-MCP-SDK-2026-001 ile tespit edilecek.
-// Script şu an doğrulama PLANINI raporlar ve neyin bekletildiğini gösterir.
-process.stderr.write(`\nUyumluluk profili: ${PROFILE_ID}\nDurum: ${status}\n\n`);
-
-const pending = new Set(profile.verification?.pending_fields ?? []);
+// Ağ doğrulaması — Paper alanları canlı kaynaktan teyit edilir (SPIKE-PAPER-DOWNLOAD-001).
 const verified = new Set(profile.verification?.verified_fields ?? []);
 
-for (const check of CHECKS) {
-  const mark = verified.has(check.field) ? '✓' : pending.has(check.field) ? '·' : '?';
-  process.stderr.write(`  ${mark} ${check.field}\n`);
-  process.stderr.write(`      beklenen : ${check.expected() ?? '(boş)'}\n`);
-  process.stderr.write(`      kaynak   : ${check.source}\n`);
-  process.stderr.write(`      kontrol  : ${check.describe}\n`);
-  if (check.note) process.stderr.write(`      DİKKAT   : ${check.note}\n`);
-  process.stderr.write('\n');
+process.stderr.write(`\nUyumluluk profili: ${PROFILE_ID}\nDurum: ${status}\n\n`);
+
+const results = [];
+async function run() {
+  const mc = profile.minecraft.version;
+  const buildData = await fetchJson(
+    `https://fill.papermc.io/v3/projects/paper/versions/${mc}/builds/${profile.paper.build}`,
+  );
+  const download = buildData?.downloads?.['server:default'];
+  const manifestSha = download?.checksums?.sha256;
+  results.push({
+    field: 'minecraft.version',
+    pass: buildData.ok === 'true' || buildData.id === profile.paper.build,
+    note: `build ${profile.paper.build} mevcut (kanal ${buildData.channel ?? '?'})`,
+  });
+  results.push({
+    field: 'paper.build',
+    pass: String(buildData.id) === String(profile.paper.build) && (buildData.channel ?? '') === 'STABLE',
+    note: `id=${buildData.id}, channel=${buildData.channel}`,
+  });
+  results.push({
+    field: 'paper.jar_sha256',
+    pass: manifestSha != null && manifestSha.toLowerCase() === (profile.paper.jar_sha256 ?? '').toLowerCase(),
+    note: `manifest=${manifestSha ?? 'yok'}`,
+  });
+
+  if (VERIFY_JAR) {
+    const url = download?.url ?? profile.paper.observed_download_url;
+    if (!url) {
+      results.push({ field: 'paper.jar_download', pass: false, note: 'indirilecek URL yok' });
+    } else {
+      const tmp = join(process.env.TEMP ?? '/tmp', `paper-${mc}-${profile.paper.build}.jar`);
+      process.stderr.write(`      JAR indiriliyor: ${url}\n`);
+      const res = await fetch(url, { headers: { 'User-Agent': UA } });
+      if (!res.ok) throw new Error(`JAR indirme -> HTTP ${res.status}`);
+      const { writeFile } = await import('node:fs/promises');
+      await writeFile(tmp, Buffer.from(await res.arrayBuffer()));
+      const actual = await sha256OfFile(tmp);
+      results.push({
+        field: 'paper.jar_download',
+        pass: actual === (profile.paper.jar_sha256 ?? '').toLowerCase(),
+        note: `sha256=${actual.slice(0, 12)}... (${(await import('node:fs')).statSync(tmp).size} bytes)`,
+      });
+    }
+  }
+
+  const mavenMeta = await fetchText(
+    'https://repo.papermc.io/repository/maven-public/io/papermc/paper/paper-api/maven-metadata.xml',
+  );
+  results.push({
+    field: 'paper.api_coordinate',
+    pass: mavenMeta.includes(`26.2.build.${profile.paper.build}-stable`),
+    note: `maven-metadata içinde 26.2.build.${profile.paper.build}-stable`,
+  });
 }
 
-process.stderr.write(
-  `${verified.size} doğrulanmış, ${pending.size} bekliyor.\n\n` +
-    'Ağ doğrulaması henüz uygulanmadı (SPIKE-PAPER-DOWNLOAD-001 ve\n' +
-    'SPIKE-MCP-SDK-2026-001 her kaynağın yanıt şeklini tespit edecek).\n' +
-    'Bir alanı elle doğruladığınızda profildeki pending_fields listesinden\n' +
-    'çıkarıp verified_fields listesine ekleyin.\n\n',
-);
+run()
+  .then(() => {
+    for (const r of results) {
+      ok(`${r.pass ? '✓' : '✗'} ${r.field} — ${r.note ?? r.describe ?? ''}`);
+    }
+    const bad = results.filter((r) => !r.pass);
+    if (bad.length) {
+      process.stderr.write(`\n${bad.length} alan doğrulama başarısız.\n`);
+      process.exit(1);
+    }
+    process.stderr.write(`\n${results.length} alan canlı kaynaktan doğrulandı.\n`);
+  })
+  .catch((err) => {
+    process.stderr.write(`\n  ✗ ağ doğrulaması hatası: ${err.message}\n`);
+    process.exit(1);
+  });
 
-if (WRITE) {
-  process.stderr.write('  ! --write, ağ doğrulaması uygulanana kadar etkisizdir.\n');
-  void raw;
-  void writeFileSync;
-}
+void WRITE;
+void writeFileSync;
+void raw;
