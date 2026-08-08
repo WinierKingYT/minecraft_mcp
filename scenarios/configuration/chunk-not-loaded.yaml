@@ -1,0 +1,35 @@
+# Configuration scenario — beklenen hata: yüklü olmayan chunk.
+#
+# DSL-12: expect bloğu run'ın belirli bir hata koduyla bitmesini bekler.
+# determinism bulgusu: oyuncusuz runtime'da hiçbir chunk yüklü kalmaz ve
+# world.set_block chunk YÜKLETMEZ. Ticket'sız bölge içi yazma deterministik
+# olarak CHUNK_NOT_LOADED döner (PaperWorldMutations: REGION -> MATERIAL ->
+# CHUNK). (40,64,40) flat-world-v1 bölgesi içinde ve manifest materyal listesinde.
+version: 1
+id: config-chunk-not-loaded
+title: Ticket'sız yüklü olmayan chunk'a yazma CHUNK_NOT_LOADED ile reddedilir
+profile: isolated-test
+timeout: 30s
+
+requires:
+  capabilities:
+    - world.block.write
+
+expect:
+  status: failed
+  error_code: CHUNK_NOT_LOADED
+
+given: []
+
+when:
+  - world.set_block:
+      position:
+        world_key: minecraft:overworld
+        x: 40
+        y: 64
+        z: 40
+      material: minecraft:chest
+
+then: []
+
+cleanup: []

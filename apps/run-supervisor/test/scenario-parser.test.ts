@@ -364,3 +364,103 @@ cleanup:
   assert.equal(result.scenario?.then.length, 2);
   assert.equal(result.scenario?.cleanup.length, 1);
 });
+
+// ------------------------------------------------------------ expect bloğu
+
+test('validateScenario: expect failed + error_code geçerli, then boş olabilir', () => {
+  const raw = {
+    version: 1,
+    id: 'expect-failure',
+    title: 'Beklenen hata scenario',
+    profile: 'isolated-test',
+    timeout: '60s',
+    expect: { status: 'failed', error_code: 'CHUNK_NOT_LOADED' },
+    given: [],
+    when: [{ 'world.set_block': { position: { world_key: 'test:overworld', x: 40, y: 64, z: 40 }, material: 'minecraft:chest' } }],
+    then: [],
+    cleanup: [],
+  };
+
+  const result = validateScenario(raw);
+  assert.ok(result.valid, JSON.stringify(result.errors));
+  assert.equal(result.scenario?.expect?.status, 'failed');
+  assert.equal(result.scenario?.expect?.error_code, 'CHUNK_NOT_LOADED');
+});
+
+test('validateScenario: expect completed + boş then hata verir', () => {
+  const raw = {
+    version: 1,
+    id: 'expect-completed',
+    title: 'Beklenen basari scenario',
+    profile: 'isolated-test',
+    timeout: '60s',
+    expect: { status: 'completed' },
+    given: [],
+    when: [],
+    then: [],
+    cleanup: [],
+  };
+
+  const result = validateScenario(raw);
+  assert.ok(!result.valid);
+  assert.ok(result.errors.some((e) => e.field === 'then'));
+});
+
+test('validateScenario: expect.status geçersizse hata', () => {
+  const raw = {
+    version: 1,
+    id: 'expect-bad',
+    title: 'Gecersiz expect',
+    profile: 'isolated-test',
+    timeout: '60s',
+    expect: { status: 'cancelled' },
+    given: [],
+    when: [],
+    then: [{ 'assert.event': { type: 'test' } }],
+    cleanup: [],
+  };
+
+  const result = validateScenario(raw);
+  assert.ok(!result.valid);
+  assert.ok(result.errors.some((e) => e.field === 'expect.status'));
+});
+
+test('validateScenario: expect.error_code deseni geçersizse hata', () => {
+  const raw = {
+    version: 1,
+    id: 'expect-bad-code',
+    title: 'Gecersiz hata kodu',
+    profile: 'isolated-test',
+    timeout: '60s',
+    expect: { status: 'failed', error_code: 'küçük-kod' },
+    given: [],
+    when: [],
+    then: [],
+    cleanup: [],
+  };
+
+  const result = validateScenario(raw);
+  assert.ok(!result.valid);
+  assert.ok(result.errors.some((e) => e.field === 'expect.error_code'));
+});
+
+test('parseScenario: expect bloğu olmayan scenario expect taşımaz', async () => {
+  const yaml = `
+version: 1
+id: no-expect
+title: Expectsiz test senaryosu
+profile: isolated-test
+timeout: 60s
+given: []
+when: []
+then:
+  - assert.event:
+      type: test
+cleanup: []
+`;
+
+  const filePath = await createTempScenario(yaml);
+  const result = parseScenario(filePath);
+  assert.ok(result.valid);
+  assert.equal(result.scenario?.expect, undefined);
+});

@@ -12,6 +12,7 @@ import { mkdtemp, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { ScenarioEngine, type BridgeClientLike, type ProvisionedRuntime } from '../src/scenario-engine.js';
+import { BridgeClientError } from '../src/bridge-client.js';
 import type { ScenarioDefinition } from '../src/scenario-parser.js';
 
 // ------------------------------------------------------------ Test Helpers
@@ -54,6 +55,31 @@ function createFakeBridge(): FakeBridge {
         );
       }
       return {};
+    },
+    async events() {
+      return [];
+    },
+  };
+}
+
+/**
+ * Belirli bir action'da BridgeClientError koduyla hata fırlatan bridge.
+ * Config error scenario testleri (DSL-12) için kullanılır.
+ */
+function createFailingBridge(errorCode: string): FakeBridge {
+  const actions: FakeBridge['actions'] = [];
+  const queries: FakeBridge['queries'] = [];
+
+  return {
+    actions,
+    queries,
+    setBlock() {},
+    async query() {
+      return {};
+    },
+    async action(operation, args, idempotencyKey) {
+      actions.push({ operation, args, idempotencyKey });
+      throw new BridgeClientError(errorCode, `Beklenen hata: ${errorCode}`);
     },
     async events() {
       return [];
@@ -272,6 +298,163 @@ cleanup: []
     const result = await engine.run();
     assert.equal(result.status, 'failed');
     assert.equal(calls.length, 0, 'parse hatasında runtime provision edilmemeli');
+  } finally {
+    await cleanup();
+  }
+});
+
+// ------------------------------------------------------------ expect bloğu (DSL-12)
+
+test('engine: expect failed + error_code eşleşirse scenario completed sayılır', async () => {
+  const bridge = createFailingBridge('CHUNK_NOT_LOADED');
+  const { provider } = createRecordingProvider(bridge);
+  const { path, cleanup } = await writeScenario(`
+version: 1
+id: expect-chunk-error
+title: Beklenen chunk hatasi
+profile: isolated-test
+timeout: 30s
+expect:
+  status: failed
+  error_code: CHUNK_NOT_LOADED
+given: []
+when:
+  - world.set_block:
+      position: { world_key: minecraft:overworld, x: 40, y: 64, z: 40 }
+      material: minecraft:chest
+then: []
+cleanup: []
+`);
+
+  try {
+    const engine = new ScenarioEngine({
+      repoRoot: '.',
+      scenarioPath: path,
+      projectId: 'proj_test',
+      runtimeProvider: provider,
+    });
+
+    const result = await engine.run();
+    assert.equal(result.status, 'completed', 'beklenen hata görülünce scenario completed olmalı');
+    assert.equal(result.failed, 1, 'adım yine failed sayılır (kullanıcıya gerçek durum görünür)');
+    assert.equal(bridge.actions.length, 1);
+
+    await engine.disposeRuntime();
+  } finally {
+    await cleanup();
+  }
+});
+
+test('engine: expect error_code eşleşmezse scenario failed olur', async () => {
+  const bridge = createFailingBridge('REGION_NOT_ALLOWED');
+  const { provider } = createRecordingProvider(bridge);
+  const { path, cleanup } = await writeScenario(`
+version: 1
+id: expect-wrong-code
+title: Yanlis beklenen hata kodu
+profile: isolated-test
+timeout: 30s
+expect:
+  status: failed
+  error_code: CHUNK_NOT_LOADED
+given: []
+when:
+  - world.set_block:
+      position: { world_key: minecraft:overworld, x: 40, y: 64, z: 40 }
+      material: minecraft:chest
+then: []
+cleanup: []
+`);
+
+  try {
+    const engine = new ScenarioEngine({
+      repoRoot: '.',
+      scenarioPath: path,
+      projectId: 'proj_test',
+      runtimeProvider: provider,
+    });
+
+    const result = await engine.run();
+    assert.equal(result.status, 'failed', 'beklenenden farklı kod görülünce failed');
+    await engine.disposeRuntime();
+  } finally {
+    await cleanup();
+  }
+});
+
+test('engine: expect failed ama run başarılıysa scenario failed olur', async () => {
+  const bridge = createFakeBridge();
+  const { provider } = createRecordingProvider(bridge);
+  const { path, cleanup } = await writeScenario(`
+version: 1
+id: expect-not-failed
+title: Hata bekleniyor ama yok
+profile: isolated-test
+timeout: 30s
+expect:
+  status: failed
+  error_code: CHUNK_NOT_LOADED
+given: []
+when:
+  - world.set_block:
+      position: { world_key: minecraft:overworld, x: 0, y: 64, z: 0 }
+      material: minecraft:chest
+then: []
+cleanup: []
+`);
+
+  try {
+    const engine = new ScenarioEngine({
+      repoRoot: '.',
+      scenarioPath: path,
+      projectId: 'proj_test',
+      runtimeProvider: provider,
+    });
+
+    const result = await engine.run();
+    assert.equal(result.status, 'failed', 'beklenen hata oluşmayınca failed');
+    assert.equal(result.passed, 1);
+    await engine.disposeRuntime();
+  } finally {
+    await cleanup();
+  }
+});
+
+test('engine: expect completed + başarılı run completed kalır', async () => {
+  const bridge = createFakeBridge();
+  const { provider } = createRecordingProvider(bridge);
+  const { path, cleanup } = await writeScenario(`
+version: 1
+id: expect-completed-run
+title: Basari beklenen scenario
+profile: isolated-test
+timeout: 30s
+expect:
+  status: completed
+given: []
+when:
+  - world.set_block:
+      position: { world_key: minecraft:overworld, x: 0, y: 64, z: 0 }
+      material: minecraft:chest
+then:
+  - assert.block:
+      position: { world_key: minecraft:overworld, x: 0, y: 64, z: 0 }
+      material: minecraft:chest
+      within: 2s
+cleanup: []
+`);
+
+  try {
+    const engine = new ScenarioEngine({
+      repoRoot: '.',
+      scenarioPath: path,
+      projectId: 'proj_test',
+      runtimeProvider: provider,
+    });
+
+    const result = await engine.run();
+    assert.equal(result.status, 'completed');
+    await engine.disposeRuntime();
   } finally {
     await cleanup();
   }

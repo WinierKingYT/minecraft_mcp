@@ -51,6 +51,8 @@ export interface M2ADemoOptions {
   readonly backend?: 'container' | 'trusted-local';
   /** Plugin-enables scenario'sunu da koş (minimal-paper-plugin build edilir). */
   readonly pluginScenario?: boolean;
+  /** Config error scenario'larını da koş (scenarios/configuration/*, DSL-12). */
+  readonly errorScenarios?: boolean;
   readonly startupTimeoutMs?: number;
   readonly buildTimeoutMs?: number;
   /** Süreç bu demo için başlatıldıysa bittiğinde exit(0/1) yapılır (GC timer'ı event loop'u tutar). */
@@ -155,6 +157,13 @@ export async function runM2ADemo(options: M2ADemoOptions): Promise<M2ADemoEviden
     if (buildId) {
       scenarioPaths.push(resolve(options.repoRoot, 'scenarios', 'smoke', 'plugin-enables.yaml'));
     }
+    if (options.errorScenarios === true) {
+      scenarioPaths.push(
+        resolve(options.repoRoot, 'scenarios', 'configuration', 'region-not-allowed.yaml'),
+        resolve(options.repoRoot, 'scenarios', 'configuration', 'material-not-allowed.yaml'),
+        resolve(options.repoRoot, 'scenarios', 'configuration', 'chunk-not-loaded.yaml'),
+      );
+    }
 
     const scenarios: ScenarioRunEvidence[] = [];
     for (const scenarioPath of scenarioPaths) {
@@ -220,6 +229,7 @@ export async function runM2ADemo(options: M2ADemoOptions): Promise<M2ADemoEviden
 export async function runM2ADemoCli(args: string[]): Promise<void> {
   const [profileId = 'paper-26.2-build-84-v1', projectId = 'minimal-paper-plugin', repoRoot = process.cwd(), bridgeJarPath, paperCacheDir] = args;
   const pluginScenario = args.includes('--plugin');
+  const errorScenarios = args.includes('--errors');
   const backend = args.includes('--container') ? 'container' : 'trusted-local';
   const eulaAccepted = args.includes('--eula');
 
@@ -242,6 +252,7 @@ export async function runM2ADemoCli(args: string[]): Promise<void> {
     acceptMinecraftEula: true,
     backend,
     pluginScenario,
+    errorScenarios,
     exitWhenDone: true,
     log: (m) => console.log(m),
   });

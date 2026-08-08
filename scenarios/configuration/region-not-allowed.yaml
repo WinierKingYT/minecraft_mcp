@@ -1,0 +1,34 @@
+# Configuration scenario — beklenen hata: bölge dışı yazma.
+#
+# DSL-12: expect bloğu run'ın belirli bir hata koduyla bitmesini bekler.
+# world.set_block önce REGION kontrolü yapar (PaperWorldMutations: REGION ->
+# MATERIAL -> CHUNK). Fixture bölgesi flat-world-v1: (-64,-64,-64)..(64,320,64);
+# (1000,64,1000) bölge dışıdır ve deterministik olarak REGION_NOT_ALLOWED döner.
+version: 1
+id: config-region-not-allowed
+title: Fixture bölgesi dışına blok yazma REGION_NOT_ALLOWED ile reddedilir
+profile: isolated-test
+timeout: 30s
+
+requires:
+  capabilities:
+    - world.block.write
+
+expect:
+  status: failed
+  error_code: REGION_NOT_ALLOWED
+
+given: []
+
+when:
+  - world.set_block:
+      position:
+        world_key: minecraft:overworld
+        x: 1000
+        y: 64
+        z: 1000
+      material: minecraft:chest
+
+then: []
+
+cleanup: []

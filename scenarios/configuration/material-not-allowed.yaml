@@ -1,0 +1,35 @@
+# Configuration scenario — beklenen hata: izin verilmeyen materyal.
+#
+# DSL-12: expect bloğu run'ın belirli bir hata koduyla bitmesini bekler.
+# world.set_block material'ı fixture manifest'teki allowed listesine göre
+# doğrular (PaperWorldMutations: REGION -> MATERIAL -> CHUNK). diamond_block
+# flat-world-v1 manifestinde yoktur; bölge içi (0,64,0) konumuyla deterministik
+# olarak MATERIAL_NOT_ALLOWED döner.
+version: 1
+id: config-material-not-allowed
+title: Manifest dışı materyal MATERIAL_NOT_ALLOWED ile reddedilir
+profile: isolated-test
+timeout: 30s
+
+requires:
+  capabilities:
+    - world.block.write
+
+expect:
+  status: failed
+  error_code: MATERIAL_NOT_ALLOWED
+
+given: []
+
+when:
+  - world.set_block:
+      position:
+        world_key: minecraft:overworld
+        x: 0
+        y: 64
+        z: 0
+      material: minecraft:diamond_block
+
+then: []
+
+cleanup: []

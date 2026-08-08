@@ -18,6 +18,7 @@ Sürüm: `scenario_dsl: 1`
 | DSL-09 | Maksimum step ve timeout |
 | DSL-10 | Cleanup her terminal durumda denenir |
 | DSL-11 | Scenario başka scenario ile aynı runtime'ı paylaşmaz |
+| DSL-12 | `expect` bloğu beklenen terminal durumu ve hata kodunu sözleşmeye bağlar |
 
 DSL-03 ve DSL-04 birlikte, scenario dosyasının bir *program* değil bir *veri belgesi* olmasını garanti eder. DSL-05, ajanın sunucuya keyfî komut göndermesinin tek kapalı kapısıdır: komutlar yalnızca plugin test contract'ında tanımlı `command_id` üzerinden çağrılır.
 
@@ -105,3 +106,20 @@ cleanup:
 ```
 
 `expected` / `observed` / `evidence_ids` üçlüsü zorunludur (KPI-08). Kanıt kimliği taşımayan assertion sonucu şema doğrulamasından geçmez.
+
+## Beklenen hata scenario'ları (DSL-12)
+
+Config error scenario'ları, run'ın belirli bir terminal durumda bitmesini bekleyen `expect` bloğu taşır. Beklenti karşılanırsa scenario **completed** sayılır; karşılanmazsa **failed**:
+
+```yaml
+expect:
+  status: failed
+  error_code: REGION_NOT_ALLOWED
+```
+
+Kurallar:
+
+- `status` zorunludur; `completed | failed | timed_out` olabilir.
+- `error_code` opsiyoneldir; error catalog koduyla birebir eşleşmelidir (`^[A-Z][A-Z0-9_]*$`). Bridge hata kodları sınırda çevrilmez, olduğu gibi taşınır.
+- `status: failed` bekleyen scenario'da `then` boş olabilir — hata `when` (veya `given`) fazında beklenir; başarı bekleyen scenario'da `then` zorunludur.
+- Adım sonuçları (passed/failed) her durumda gerçek durumu yansıtır; yalnızca scenario düzeyi durum expect'e göre çözülür. İlk hatalı adımın `errorCode` alanı karşılaştırma için kullanılır.

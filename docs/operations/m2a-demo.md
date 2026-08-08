@@ -59,7 +59,7 @@ Bridge event ring buffer'ı boot'a özgüdür ve sequence 1'den başlar; `plugin
 
 ## Ölçülmüş sonuçlar
 
-Paper 26.2 build 84, Java 25 (Temurin 25.0.4.7), Windows 11, trusted-local, aynı fixture'la 3 scenario (build dahil tek koşu):
+Paper 26.2 build 84, Java 25 (Temurin 25.0.4.7), Windows 11, trusted-local, aynı fixture'la 6 scenario (build dahil tek koşu):
 
 | Ölçüm | Değer |
 |---|---|
@@ -67,14 +67,18 @@ Paper 26.2 build 84, Java 25 (Temurin 25.0.4.7), Windows 11, trusted-local, ayn�
 | read-block (3 adım: given/when/then) | 3/3, ~22.9 s |
 | chunk-ticket (ticket + set_block + assert) | 3/3, ~32.8 s |
 | plugin-enables (assert.event + assert.no_log) | 2/2, ~27.8 s |
+| config: region-not-allowed (DSL-12) | completed, `REGION_NOT_ALLOWED` ~22.3 s |
+| config: material-not-allowed (DSL-12) | completed, `MATERIAL_NOT_ALLOWED` ~23.3 s |
+| config: chunk-not-loaded (DSL-12) | completed, `CHUNK_NOT_LOADED` ~23.0 s |
 | Runtime READY gate | ~24-28 s |
 | GC kalıntı | 0 (gcSwept=true) |
 
-Toplam 8/8 assertion pasif. `scenario.engine_completed` kanıtları demo logunda (event buffer probe → assertion başlat/pasif → runtime.released discarded=true).
+Başarı scenario'larında 8/8 assertion, config scenario'larında 3/3 beklenen hata kodu birebir eşleşti (`scenario.expect_satisfied` logu expected/actual ikilisini taşır). `scenario.engine_completed` kanıtları demo logunda.
 
 ## Bilinen sınırlar
 
 - `evidence_ids` boş: demo evidence store yapılandırmaz (M2A sonrası için).
 - `scenario_assertion_event` history'ye eklendi ama MCP araç yüzeyinde assertion event görünürlüğü sonraki adıma kaldı.
 - 20x determinism koşusu ve JUnit/Markdown rapor formatları kapsam dışıdır (roadmap M2A).
+- Config error scenario'ları canlı koşumda `--errors` bayrağı ile; aksi halde default akış 3 scenario koşar.
 - CLI argümanlarıyla `node dist/...` çağrısı Start-Process quoting'inde sorun çıkarır; driver temp `.mjs` dosyalarından `runM2ADemo` çağrılır.

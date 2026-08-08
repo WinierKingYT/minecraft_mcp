@@ -84,6 +84,19 @@ export interface ScenarioRequires {
   readonly capabilities?: readonly string[];
 }
 
+/**
+ * Beklenen terminal durum (config error scenario, DSL-12).
+ *
+ * `expect` verilirse scenario yalnızca run'ın beklenen durumda bitmesi
+ * (ve isteniyorsa beklenen hata kodunun görülmesi) halinde completed
+ * sayılır. Status `failed` olan expect, `then` fazının boş olmasına
+ * izin verir — hata zaten `when` fazında beklenir.
+ */
+export interface ScenarioExpect {
+  readonly status: 'completed' | 'failed' | 'timed_out';
+  readonly error_code?: string;
+}
+
 export interface ScenarioDefinition {
   readonly version: 1;
   readonly id: string;
@@ -91,6 +104,7 @@ export interface ScenarioDefinition {
   readonly profile: 'isolated-test';
   readonly timeout: string;
   readonly requires?: ScenarioRequires;
+  readonly expect?: ScenarioExpect;
   readonly given: readonly Step[];
   readonly when: readonly Step[];
   readonly then: readonly Step[];
@@ -243,15 +257,47 @@ export function validateScenario(raw: Record<string, unknown>, _source?: string)
     }
   }
 
-  // then boşsa hata
+  // then boşsa hata — yalnızca status 'failed' bekleyen expect varsa boş olabilir
+  const expectRaw = raw['expect'] as Record<string, unknown> | undefined;
+  const expectsFailure = expectRaw !== undefined && expectRaw['status'] === 'failed';
   if (!raw['then'] || !Array.isArray(raw['then']) || (raw['then'] as unknown[]).length === 0) {
-    errors.push({ field: 'then', message: 'then alanı en az bir assertion içermelidir.' });
+    if (!expectsFailure) {
+      errors.push({ field: 'then', message: 'then alanı en az bir assertion içermelidir.' });
+    }
+  }
+
+  // expect bloğu doğrulaması (opsiyonel)
+  if (expectRaw !== undefined) {
+    if (typeof expectRaw !== 'object' || expectRaw === null) {
+      errors.push({ field: 'expect', message: 'expect bir nesne olmalıdır.' });
+    } else {
+      if (expectRaw['status'] !== 'completed' && expectRaw['status'] !== 'failed' && expectRaw['status'] !== 'timed_out') {
+        errors.push({
+          field: 'expect.status',
+          message: 'expect.status yalnızca "completed", "failed" veya "timed_out" olabilir.',
+        });
+      }
+      if (expectRaw['error_code'] !== undefined) {
+        if (typeof expectRaw['error_code'] !== 'string' || !/^[A-Z][A-Z0-9_]*$/.test(expectRaw['error_code'] as string)) {
+          errors.push({
+            field: 'expect.error_code',
+            message: 'expect.error_code büyük harf, rakam ve alt çizgi içeren bir hata kodu olmalıdır.',
+          });
+        }
+      }
+    }
   }
 
   // Gerekli capability'leri topla
   const requiredCapabilities = collectCapabilities(allSteps.map(({ name }) => ({ [name]: {} } as Step)));
 
   const requires = raw['requires'] as ScenarioRequires | undefined;
+  const expect = expectRaw !== undefined
+    ? {
+        status: (expectRaw['status'] ?? 'failed') as ScenarioExpect['status'],
+        ...(typeof expectRaw['error_code'] === 'string' ? { error_code: expectRaw['error_code'] } : {}),
+      }
+    : undefined;
 
   const scenario = errors.length === 0 && typeof raw['id'] === 'string'
     ? {
@@ -261,6 +307,7 @@ export function validateScenario(raw: Record<string, unknown>, _source?: string)
         profile: 'isolated-test' as const,
         timeout: (raw['timeout'] as string) ?? '60s',
         ...(requires !== undefined ? { requires } : {}),
+        ...(expect !== undefined ? { expect } : {}),
         given: (raw['given'] as readonly Step[]) ?? [],
         when: (raw['when'] as readonly Step[]) ?? [],
         then: (raw['then'] as readonly Step[]) ?? [],

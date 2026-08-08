@@ -85,6 +85,7 @@ export interface StepResult {
   readonly status: 'passed' | 'failed' | 'skipped' | 'error';
   readonly durationMs: number;
   readonly error?: string;
+  readonly errorCode?: string;
   readonly suggestedAction?: string;
 }
 
@@ -154,14 +155,16 @@ export class ScenarioEngine {
       );
     }
 
+    let scenario: ScenarioDefinition | undefined;
+
     try {
       // 1. Parse scenario
       const validation = await this.#parseAndValidate();
       if (!validation.valid || !validation.scenario) {
-        return await this.#buildResult(runId, startTime, 'failed');
+        return await this.#finalize(runId, startTime, 'failed');
       }
 
-      const scenario = validation.scenario;
+      scenario = validation.scenario;
       const timeoutMs = parseDuration(scenario.timeout) || DEFAULT_TIMEOUT_MS;
 
       // Evidence collector'ı güncelle
@@ -200,7 +203,7 @@ export class ScenarioEngine {
         this.#evidenceCollector?.addStepResult(result);
         if (result.status === 'failed' || result.status === 'error') {
           this.#evidenceCollector?.completePhase('given');
-          return await this.#buildResult(runId, startTime, 'failed');
+          return await this.#finalize(runId, startTime, 'failed', scenario);
         }
       }
       this.#evidenceCollector?.completePhase('given');
@@ -215,7 +218,7 @@ export class ScenarioEngine {
         this.#evidenceCollector?.addStepResult(result);
         if (result.status === 'failed' || result.status === 'error') {
           this.#evidenceCollector?.completePhase('when');
-          return await this.#buildResult(runId, startTime, 'failed');
+          return await this.#finalize(runId, startTime, 'failed', scenario);
         }
       }
       this.#evidenceCollector?.completePhase('when');
@@ -251,13 +254,13 @@ export class ScenarioEngine {
       const failedCount = this.#steps.filter((s) => s.status === 'failed' || s.status === 'error').length;
       const status = failedCount > 0 ? 'failed' : 'completed';
 
-      return await this.#buildResult(runId, startTime, status as 'completed' | 'failed');
+      return await this.#finalize(runId, startTime, status as 'completed' | 'failed', scenario);
     } catch (err) {
       this.#log('ERROR', 'scenario.engine_error', {
         scenario_run_id: runId,
         message: err instanceof Error ? err.message : String(err),
       });
-      return this.#buildResult(runId, startTime, 'failed');
+      return this.#finalize(runId, startTime, 'failed', scenario);
     }
   }
 
@@ -388,6 +391,10 @@ export class ScenarioEngine {
     } catch (err) {
       const durationMs = Date.now() - startTime;
       const error = err instanceof Error ? err.message : String(err);
+      const errorCode =
+        typeof err === 'object' && err !== null && 'code' in err && typeof (err as { code?: unknown }).code === 'string'
+          ? (err as { code: string }).code
+          : undefined;
       const suggestedAction = this.#getSuggestedAction(stepName, error);
 
       this.#log('WARN', 'scenario.step_failed', {
@@ -395,10 +402,11 @@ export class ScenarioEngine {
         phase,
         index,
         error,
+        ...(errorCode !== undefined ? { error_code: errorCode } : {}),
         duration_ms: durationMs,
       });
 
-      return { stepName, phase, index, status: 'failed', durationMs, error, suggestedAction };
+      return { stepName, phase, index, status: 'failed', durationMs, error, ...(errorCode !== undefined ? { errorCode } : {}), suggestedAction };
     }
   }
 
@@ -956,6 +964,41 @@ export class ScenarioEngine {
     if (error.includes('bulunamadı')) return 'Runtime durumunu ve bridge bağlantısını kontrol edin.';
     if (error.includes('zaman aşımı')) return 'Timeout süresini artırın veya daha basit bir scenario deneyin.';
     return `${stepName} adımı için gerekli capability ve runtime durumunu doğrulayın.`;
+  }
+
+  /**
+   * Sonucu expect bloğuna göre çözer (DSL-12: config error scenario).
+   *
+   * expect verildiyse scenario yalnızca run'ın beklenen durumda bitmesi ve
+   * beklenen hata kodunun görülmesi halinde completed sayılır; aksi halde
+   * failed döner. Expect verilmediyse ham durum aynen geçer.
+   */
+  async #finalize(
+    runId: string,
+    startTime: Date,
+    rawStatus: 'completed' | 'failed' | 'timed_out',
+    scenario?: ScenarioDefinition,
+  ): Promise<ScenarioRunResult> {
+    const expect = scenario?.expect;
+    if (!expect) {
+      return await this.#buildResult(runId, startTime, rawStatus);
+    }
+
+    const firstError = this.#steps.find((s) => s.status === 'failed' || s.status === 'error');
+    const actualCode = firstError?.errorCode;
+    const codeOk = expect.error_code === undefined || actualCode === expect.error_code;
+    const satisfied = rawStatus === expect.status && codeOk;
+    const status = satisfied ? 'completed' : 'failed';
+
+    this.#log(satisfied ? 'INFO' : 'WARN', satisfied ? 'scenario.expect_satisfied' : 'scenario.expect_mismatch', {
+      scenario_run_id: runId,
+      expected_status: expect.status,
+      actual_status: rawStatus,
+      ...(expect.error_code !== undefined ? { expected_error_code: expect.error_code } : {}),
+      ...(actualCode !== undefined ? { actual_error_code: actualCode } : {}),
+    });
+
+    return await this.#buildResult(runId, startTime, status);
   }
 
   async #buildResult(runId: string, startTime: Date, status: 'completed' | 'failed' | 'timed_out'): Promise<ScenarioRunResult> {

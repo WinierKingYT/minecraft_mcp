@@ -66,6 +66,27 @@
     },
     "cleanup": {
       "$ref": "#/$defs/stepList"
+    },
+    "expect": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status"
+      ],
+      "description": "Beklenen terminal durum (config error scenario, DSL-12). Status 'failed' ise then boş olabilir.",
+      "properties": {
+        "status": {
+          "enum": [
+            "completed",
+            "failed",
+            "timed_out"
+          ]
+        },
+        "error_code": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]*$"
+        }
+      }
     }
   },
   "$defs": {
