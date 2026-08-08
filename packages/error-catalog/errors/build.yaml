@@ -88,6 +88,36 @@ errors:
       profile: none
     tests: [CT-BUILD-RUN-001]
 
+  - code: BUILD_NOT_FOUND
+    owner: build
+    category: not_found
+    message: "Belirtilen build kaydı bulunamadı."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "build_id'yi plugin_build sonucundan doğrulayın; build kayıtları bellekte tutulur, süreç yeniden başladıysa kaybolmuştur."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: none
+    tests: [UT-BUILD-REGISTRY-001]
+
+  - code: ARTIFACT_INTEGRITY_MISMATCH
+    owner: build
+    category: integrity
+    message: "Build artifact'ı kayıt anındaki sha256 ile eşleşmiyor; dosya sonradan değiştirilmiş."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "Artifact'ı el ile değiştirmeyin; kaynağı yeniden build edip yeni build_id ile kullanın."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: strict-v1
+      removed_fields: [path]
+    terminal_state: FAILED
+    tests: [UT-BUILD-REGISTRY-001]
+
   - code: ARTIFACT_NOT_FOUND
     owner: build
     category: not_found
@@ -102,6 +132,21 @@ errors:
       profile: default-v1
     terminal_state: FAILED
     tests: [UT-ARTIFACT-SELECT-001]
+
+  - code: ARTIFACT_PERSIST_FAILED
+    owner: build
+    category: internal
+    message: "Build artifact'ı kalıcı depoya kopyalanamadı."
+    tool_result:
+      is_error: true
+      retryable: true
+      suggested_action: "Artifact deposunun (.mcpdev-data/artifacts) yazılabilir olduğunu doğrulayın ve build'i tekrarlayın; build kaydı silinen geçici dosyalara bağlanamaz."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: default-v1
+    terminal_state: FAILED
+    tests: [CT-BUILD-RUN-001]
 
   - code: ARTIFACT_AMBIGUOUS
     owner: build

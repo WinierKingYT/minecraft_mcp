@@ -53,7 +53,22 @@ async function runSession(requests: readonly unknown[]): Promise<{ stdout: strin
   for (const req of requests) {
     child.stdin.write(JSON.stringify(req) + '\n');
   }
-  await new Promise((res) => setTimeout(res, 200));
+
+  // Yanıtlar işlenmeden stdin kapanırsa server bekleyen istekleri bırakıp
+  // çıkabilir (race). Yanıt sayısı tamamlanana kadar beklenir; süre aşarsa
+  // stdin yine de kapatılır ve test gerçek durumu gözlemler.
+  const deadline = Date.now() + 5000;
+  await new Promise<void>((resolve) => {
+    const tick = (): void => {
+      const count = stdout.split('\n').filter((l) => l.trim() !== '').length;
+      if (count >= requests.length || Date.now() > deadline) {
+        resolve();
+        return;
+      }
+      setTimeout(tick, 25);
+    };
+    tick();
+  });
   child.stdin.end();
 
   await new Promise<void>((res) => child.on('close', () => res()));

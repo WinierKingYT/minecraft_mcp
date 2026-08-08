@@ -26,16 +26,50 @@ import {
   type ValidationResult,
 } from './scenario-parser.js';
 import type { BridgeClient } from './bridge-client.js';
-import type { RuntimeRegistry, RuntimeEntry } from './runtime-registry.js';
 import { ScenarioEvidenceCollector } from './scenario-evidence.js';
 import { ActorClient } from './actor-client.js';
+
+/**
+ * BridgeClient'ın engine'in kullandığı yüzeyi — birim testlerinde sahte
+ * implementasyonla değiştirilebilmesi için yapısal tip.
+ */
+export interface BridgeClientLike {
+  query(operation: string, args: Record<string, unknown>): Promise<Record<string, unknown>>;
+  action(operation: string, args: Record<string, unknown>, idempotencyKey?: string): Promise<Record<string, unknown>>;
+  events(bootId: string, after?: number, limit?: number): Promise<Array<Record<string, unknown>>>;
+}
+
+/**
+ * Scenario için hazırlanmış disposable runtime.
+ *
+ * determinism.md DSL-11: scenario'lar runtime PAYLAŞMAZ; provider her çağrıda
+ * yeni bir runtime hazırlar ve `dispose` onu temiz kapatır (stop + release).
+ */
+export interface ProvisionedRuntime {
+  readonly runtimeImageId: string;
+  /** Event cursor'ı için bridge boot kimliği. */
+  readonly bridgeBootId: string;
+  readonly bridgeClient: BridgeClientLike;
+  dispose(): Promise<void>;
+}
+
+/** Runtime hazırlama işi service katmanına aittir (runtime yaşam döngüsü sahibi). */
+export type ScenarioRuntimeProvider = (
+  scenario: ScenarioDefinition,
+  runId: string,
+) => Promise<ProvisionedRuntime>;
 
 export interface ScenarioEngineOptions {
   readonly repoRoot: string;
   readonly scenarioPath: string;
   readonly projectId: string;
-  readonly registry: RuntimeRegistry;
-  readonly getBridgeClient: (runtimeImageId: string) => BridgeClient | null;
+  /**
+   * Disposable runtime sağlayıcısı. Verilirse her scenario kendi runtime'ında
+   * koşar (DSL-11); verilmezse hazır bir runtime'a bağlanmaya çalışılır
+   * (bu yol yalnızca test amaçlıdır).
+   */
+  readonly runtimeProvider?: ScenarioRuntimeProvider;
+  readonly getBridgeClient?: (runtimeImageId: string) => BridgeClient | null;
   readonly getActorClient?: (runtimeImageId: string) => ActorClient | null;
   readonly evidenceStore?: {
     readonly put: (request: unknown) => Promise<{ readonly evidenceId: string }>;
@@ -81,9 +115,9 @@ export class ScenarioEngine {
   readonly #options: ScenarioEngineOptions;
   readonly #steps: StepResult[] = [];
   readonly #assertions: AssertionResult[] = [];
-  #bridgeClient: BridgeClient | null = null;
+  #bridgeClient: BridgeClientLike | null = null;
   #actorClient: ActorClient | null = null;
-  #runtimeEntry: RuntimeEntry | null = null;
+  #runtime: ProvisionedRuntime | null = null;
   #eventSequence = 0;
   #evidenceCollector: ScenarioEvidenceCollector | null = null;
 
@@ -202,7 +236,6 @@ export class ScenarioEngine {
         });
       }
       this.#evidenceCollector?.completePhase('then');
-
       // 8. cleanup adımlarını çalıştır
       if (scenario.cleanup.length > 0) {
         this.#log('INFO', 'scenario.phase_started', { phase: 'cleanup', run_id: runId });
@@ -226,6 +259,18 @@ export class ScenarioEngine {
         message: err instanceof Error ? err.message : String(err),
       });
       return this.#buildResult(runId, startTime, 'failed');
+    }
+  }
+
+  /**
+   * Provision edilen runtime'ı kapatır (DSL-11: disposable runtime).
+   * Engine run() sonrası çağrılır; runtime sağlanmadıysa no-op'tur.
+   */
+  async disposeRuntime(): Promise<void> {
+    const runtime = this.#runtime;
+    this.#runtime = null;
+    if (runtime) {
+      await runtime.dispose();
     }
   }
 
@@ -254,56 +299,47 @@ export class ScenarioEngine {
   }
 
   /**
-   * Çalıştırma için runtime sağlar.
+   * Çalıştırma için disposable runtime sağlar (DSL-11).
+   *
+   * runtimeProvider verilirse her scenario yeni bir runtime'da koşar ve
+   * run() sonunda `dispose` ile kapatılır. Verilmezse (yalnızca birim test)
+   * getBridgeClient üzerinden hazır bir runtime'a bağlanır.
    */
-  async #ensureRuntime(_scenario: ScenarioDefinition): Promise<void> {
-    // Şimdilik basit: mevcut bir READY runtime'a bağlan
-    // Gerçek uygulamada: requires.capabilities kontrolü + disposable runtime oluşturma
-    const readyEntry = this.#findReadyRuntime();
-    if (readyEntry) {
-      this.#runtimeEntry = readyEntry;
-      this.#log('INFO', 'scenario.runtime_reused', {
-        runtime_image_id: readyEntry.image.runtimeImageId,
+  async #ensureRuntime(scenario: ScenarioDefinition): Promise<void> {
+    if (this.#options.runtimeProvider) {
+      const runId = this.#options.version ?? 'scenario';
+      const runtime = await this.#options.runtimeProvider(scenario, runId);
+      this.#runtime = runtime;
+      this.#bridgeClient = runtime.bridgeClient;
+      this.#log('INFO', 'scenario.runtime_provisioned', {
+        runtime_image_id: runtime.runtimeImageId,
+        bridge_boot_id: runtime.bridgeBootId,
       });
-
-      // Bridge client'ı al
-      if (this.#options.getBridgeClient) {
-        this.#bridgeClient = this.#options.getBridgeClient(readyEntry.image.runtimeImageId);
-      }
-
-      // Actor client'ı al (M2B)
-      if (this.#options.getActorClient) {
-        this.#actorClient = this.#options.getActorClient(readyEntry.image.runtimeImageId);
-      }
-
       return;
     }
 
-    throw Object.assign(new Error('Çalıştırma için hazır runtime bulunamadı.'), {
-      code: 'SCENARIO_SCHEMA_INVALID',
-    });
-  }
+    // Yalnızca test yolu: hazır runtime'a bağlan
+    if (this.#options.getBridgeClient) {
+      const client = this.#options.getBridgeClient('');
+      if (client) {
+        this.#bridgeClient = client;
+        return;
+      }
+    }
 
-  /**
-   * READY durumundaki bir runtime'ı bulur.
-   */
-  #findReadyRuntime(): RuntimeEntry | null {
-    // RuntimeRegistry'nin internalsına erişmek için get methodunu kullan
-    // Şu an için basit bir yaklaşım: registry'den health kontrolü yap
-    return null;
+    throw Object.assign(new Error('Scenario için disposable runtime sağlanamadı.'), {
+      code: 'RUNTIME_UNAVAILABLE',
+    });
   }
 
   /**
    * Event sequence'i başlatır (mevcut event'lerin üzerine devam etmek için).
    */
   async #initEventSequence(): Promise<void> {
-    if (!this.#bridgeClient || !this.#runtimeEntry) return;
+    if (!this.#bridgeClient || !this.#runtime) return;
 
     try {
-      const runtime = this.#runtimeEntry.running;
-      if (!runtime) return;
-
-      const events = await this.#bridgeClient.events(runtime.handshake.bridge_boot_id, 0, 1);
+      const events = await this.#bridgeClient.events(this.#runtime.bridgeBootId, 0, 1);
       this.#eventSequence = events.length;
     } catch {
       // Event sequence başlatılamazsa sorun değil, 0'dan başlarız
@@ -431,6 +467,9 @@ export class ScenarioEngine {
       case 'world.set_block':
         await this.#stepWorldSetBlock(args);
         break;
+      case 'world.set_chunk_ticket':
+        await this.#stepWorldSetChunkTicket(args);
+        break;
       case 'player.break_block':
         await this.#stepPlayerBreakBlock(args);
         break;
@@ -471,7 +510,7 @@ export class ScenarioEngine {
       throw Object.assign(new Error('Bridge client mevcut değil.'), { code: 'BRIDGE_UNAVAILABLE' });
     }
 
-    const runtime = this.#runtimeEntry?.running;
+    const runtime = this.#runtime;
     if (!runtime) {
       throw Object.assign(new Error('Runtime çalışmıyor.'), { code: 'RUNTIME_NOT_RUNNING' });
     }
@@ -548,14 +587,39 @@ export class ScenarioEngine {
     const position = args['position'] as Position;
     const material = args['material'] as string;
 
-    //世界.set_block bir mutation'dır, action endpoint'i kullanılır
-    await this.#bridgeClient.action('world.set_block', {
-      world: position.world_key,
-      x: position.x,
-      y: position.y,
-      z: position.z,
-      material,
-    });
+    // world.set_block bir mutation'dır, action endpoint'i kullanılır (BR-08: idempotency key zorunlu)
+    await this.#bridgeClient.action(
+      'world.set_block',
+      {
+        world_key: position.world_key,
+        x: position.x,
+        y: position.y,
+        z: position.z,
+        material,
+      },
+      this.#newIdempotencyKey(),
+    );
+  }
+
+  async #stepWorldSetChunkTicket(args: Record<string, unknown>): Promise<void> {
+    if (!this.#bridgeClient) {
+      throw Object.assign(new Error('Bridge client mevcut değil.'), { code: 'BRIDGE_UNAVAILABLE' });
+    }
+
+    const position = args['position'] as Position;
+    const radius = args['radius'] as number | undefined;
+
+    // Dünya mutation'ları (BR-08: idempotency key zorunlu)
+    await this.#bridgeClient.action(
+      'world.set_chunk_ticket',
+      {
+        world_key: position.world_key,
+        x: position.x,
+        z: position.z,
+        ...(radius !== undefined && { radius }),
+      },
+      this.#newIdempotencyKey(),
+    );
   }
 
   async #stepPlayerBreakBlock(args: Record<string, unknown>): Promise<void> {
@@ -693,8 +757,8 @@ export class ScenarioEngine {
     const position = args['position'] as Position;
     const expectedMaterial = args['material'] as string;
 
-    const result = await this.#bridgeClient.query('get_block', {
-      world: position.world_key,
+    const result = await this.#bridgeClient.query('world.get_block', {
+      world_key: position.world_key,
       x: position.x,
       y: position.y,
       z: position.z,
@@ -763,7 +827,7 @@ export class ScenarioEngine {
   }
 
   async #assertEvent(args: Record<string, unknown>): Promise<{ passed: boolean; message: string }> {
-    if (!this.#bridgeClient || !this.#runtimeEntry?.running) {
+    if (!this.#bridgeClient || !this.#runtime) {
       throw Object.assign(new Error('Bridge client/Runtime mevcut değil.'), { code: 'BRIDGE_UNAVAILABLE' });
     }
 
@@ -772,7 +836,7 @@ export class ScenarioEngine {
     const expectedCancelled = args['cancelled'] as boolean | undefined;
 
     const events = await this.#bridgeClient.events(
-      this.#runtimeEntry.running.handshake.bridge_boot_id,
+      this.#runtime.bridgeBootId,
       this.#eventSequence,
       100,
     );
@@ -795,7 +859,7 @@ export class ScenarioEngine {
   }
 
   async #assertNoLog(args: Record<string, unknown>): Promise<{ passed: boolean; message: string }> {
-    if (!this.#bridgeClient || !this.#runtimeEntry?.running) {
+    if (!this.#bridgeClient || !this.#runtime) {
       throw Object.assign(new Error('Bridge client/Runtime mevcut değil.'), { code: 'BRIDGE_UNAVAILABLE' });
     }
 
@@ -923,5 +987,10 @@ export class ScenarioEngine {
 
   #sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  /** Mutation'lar için benzersiz idempotency anahtarı (BR-08). */
+  #newIdempotencyKey(): string {
+    return randomBytes(16).toString('hex');
   }
 }

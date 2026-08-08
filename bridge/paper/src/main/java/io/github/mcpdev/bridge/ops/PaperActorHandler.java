@@ -1,4 +1,4 @@
-/**
+/*
  * Paper API ile test actor'ları yöneten handler.
  *
  * M2B koşullu milestone'dur (ADR-0006, SPIKE-ACTOR-001).
@@ -9,7 +9,6 @@
 
 package io.github.mcpdev.bridge.ops;
 
-import com.mojang.authlib.GameProfile;
 import io.github.mcpdev.bridge.events.BridgeEvent;
 import io.github.mcpdev.bridge.events.EventRingBuffer;
 
@@ -35,6 +34,7 @@ import org.bukkit.profile.PlayerProfile;
  * olan test runtime'larında çalıştırılmalıdır. Gerçek kullanıcı hesapları
  * veya production credential kullanılmaz.
  */
+@SuppressWarnings("deprecation") // PlayerProfile test-only kullanımı
 public final class PaperActorHandler implements ActionDispatcher.ActorHandler {
 
     private final Server server;
@@ -279,7 +279,7 @@ public final class PaperActorHandler implements ActionDispatcher.ActorHandler {
                 "actor", actorId,
                 "command", fullCommand));
 
-        logger.info(() -> "Test actor " + actorId + " komut calistirdi: " + fullCommand);
+        logger.info("Test actor " + actorId + " komut calistirdi: " + fullCommand);
 
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("success", true);

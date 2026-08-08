@@ -1,5 +1,7 @@
 # Durum makineleri
 
+> **D0C kilidi (2026-08-07):** Bu durum makineleri Architecture Freeze itibarıyla **donmuştur**. Yeni durum veya geçiş ADR gerektirir; terminal durumların anlamları `UNKNOWN_OUTCOME` semantiği (kör retry yasağı) ve `DIRTY` (KPI-12) ile birlikte değiştirilemez.
+
 ## Run
 
 ```mermaid

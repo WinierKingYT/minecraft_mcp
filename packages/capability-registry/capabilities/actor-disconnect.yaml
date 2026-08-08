@@ -7,7 +7,7 @@ status: conditional
 exposure:
   developer_tool: null
   debug_tool: null
-  bridge_operation: null
+  bridge_operation: test_actor.disconnect_all
   dsl_step: actor.disconnect_all
 
 risk:

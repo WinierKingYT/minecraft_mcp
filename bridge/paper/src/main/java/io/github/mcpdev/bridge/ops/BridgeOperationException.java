@@ -36,6 +36,10 @@ public final class BridgeOperationException extends RuntimeException {
         return new BridgeOperationException("REGION_NOT_ALLOWED", 403, detail);
     }
 
+    public static BridgeOperationException materialNotAllowed(String detail) {
+        return new BridgeOperationException("MATERIAL_NOT_ALLOWED", 403, detail);
+    }
+
     public static BridgeOperationException capabilityUnavailable(String operation) {
         return new BridgeOperationException(
                 "CAPABILITY_UNAVAILABLE", 501, "Operation bu Bridge sürümünde uygulanmadı: " + operation);

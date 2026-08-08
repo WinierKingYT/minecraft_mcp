@@ -1,0 +1,51 @@
+id: world.chunk.ticket
+version: 1
+milestone: M2A
+summary: Fixture bölgesini açık chunk ticket'ı ile yüklü tutar; deterministic blok assertion'larının ön koşuludur.
+status: planned
+
+exposure:
+  developer_tool: null
+  debug_tool: null
+  bridge_operation: world.set_chunk_ticket
+  dsl_step: world.set_chunk_ticket
+
+risk:
+  effect: mutation
+  scope: fixture
+  reversibility: runtime_discard
+  approval: profile
+  exposure: agent_visible
+  cost: low
+  level: R2
+
+contracts:
+  input: schemas/world-chunk-ticket.input.json
+  output: schemas/world-chunk-ticket.output.json
+
+limits:
+  timeout_ms: 2000
+  max_radius: 4
+  region: fixture-area
+  requires_idempotency: true
+
+requires:
+  runtime_state: [READY]
+
+errors:
+  - RUNTIME_NOT_RUNNING
+  - WORLD_NOT_FOUND
+  - REGION_NOT_ALLOWED
+  - BRIDGE_BUSY
+  - BRIDGE_TIMEOUT
+  - MUTATION_UNKNOWN_OUTCOME
+  - CAPABILITY_UNAVAILABLE
+
+tests:
+  contract: [CT-WORLD-TICKET-001]
+  integration: [IT-WORLD-TICKET-001]
+
+notes: >
+  Okuyan operation'lar chunk YÜKLETMEZ (contracts/determinism.md: ölçülmüş
+  bulgu). Ticket, runtime hazırlanırken fixture manifest'indeki regions
+  tanımına göre alınır ve runtime discard ile birlikte bırakılır.

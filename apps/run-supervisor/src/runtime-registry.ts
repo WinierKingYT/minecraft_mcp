@@ -22,6 +22,10 @@ export interface RuntimeEntry {
   ownership: OwnershipRecord | null;
   readyGateMs: number | null;
   readonly createdAt: string;
+  /** Son durum geçişinin zaman damgası (ms) — GC retention'ı buna bakar. */
+  stateChangedAt: number;
+  /** Son launch denemesinin hata mesajı; yoksa null (plugin_diagnose okur). */
+  launchError: string | null;
 }
 
 export class RuntimeNotFoundError extends Error {
@@ -61,11 +65,21 @@ export class RuntimeRegistry {
     return this.#entries.size;
   }
 
-  /** Serbest bırakılmamış runtime sayısı — quota bu sayıya bakar. */
+  /** Quota'ya sayılan canlı durumlar (release/GC durumları hariç). */
+  static readonly ACTIVE_STATES: readonly RuntimeIpcState[] = [
+    'CREATED',
+    'STARTING',
+    'READY',
+    'STOPPING',
+    'STOPPED',
+    'CRASHED',
+  ];
+
+  /** Serbest bırakılmış (quota dışı) runtime sayısı. */
   get activeCount(): number {
     let count = 0;
     for (const entry of this.#entries.values()) {
-      if (entry.state !== 'RELEASED') count++;
+      if (RuntimeRegistry.ACTIVE_STATES.includes(entry.state)) count++;
     }
     return count;
   }
@@ -89,9 +103,29 @@ export class RuntimeRegistry {
       ownership: null,
       readyGateMs: null,
       createdAt: image.createdAt,
+      stateChangedAt: Date.now(),
+      launchError: null,
     };
     this.#entries.set(image.runtimeImageId, entry);
     return entry;
+  }
+
+  /**
+   * Durum geçişini kaydeder — `stateChangedAt` zaman damgası GC retention
+   * hesabının temelidir. Doğrudan `entry.state = ...` ataması yerine bu
+   * metot kullanılır.
+   */
+  updateState(entry: RuntimeEntry, state: RuntimeIpcState): void {
+    entry.state = state;
+    entry.stateChangedAt = Date.now();
+  }
+
+  /**
+   * Kaydı registry'den kaldırır (yalnızca GC — DELETED sonrası).
+   * RuntimeNotFoundError yaymaz; yoksa sessizce döner.
+   */
+  remove(runtimeImageId: string): boolean {
+    return this.#entries.delete(runtimeImageId);
   }
 
   get(runtimeImageId: string): RuntimeEntry {

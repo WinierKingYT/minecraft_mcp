@@ -46,10 +46,13 @@ function toPosix(path: string): string {
   return path.split(sep).join('/');
 }
 
-export async function findArtifactCandidates(projectRoot: string): Promise<ArtifactCandidate[]> {
+export async function findArtifactCandidates(
+  projectRoot: string,
+  dirs: readonly string[] = OUTPUT_DIRS,
+): Promise<ArtifactCandidate[]> {
   const candidates: ArtifactCandidate[] = [];
 
-  for (const dir of OUTPUT_DIRS) {
+  for (const dir of dirs) {
     const full = join(projectRoot, dir);
     if (!existsSync(full)) continue;
 
@@ -80,13 +83,21 @@ export interface SelectOptions {
    * bir kurala değil.
    */
   readonly expectedFileName?: string | undefined;
+  /**
+   * Artifact'ın aranacağı dizinler (proje köküne göre).
+   *
+   * Container build'te Gradle çıktısı `/output` dizinine yönlendirilir
+   * (kaynak mount read-only'dir); host tarafındaki mount köküne göre
+   * `['libs']` verilir.
+   */
+  readonly dirs?: readonly string[] | undefined;
 }
 
 export async function selectArtifact(
   projectRoot: string,
   options: SelectOptions = {},
 ): Promise<SelectedArtifact> {
-  const candidates = await findArtifactCandidates(projectRoot);
+  const candidates = await findArtifactCandidates(projectRoot, options.dirs);
 
   if (candidates.length === 0) {
     throw new ArtifactError(

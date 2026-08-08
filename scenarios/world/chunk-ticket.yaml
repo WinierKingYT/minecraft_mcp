@@ -1,0 +1,48 @@
+# World scenario — chunk ticket.
+#
+# determinism.md ölçülmüş bulgusu: oyuncusuz runtime'da chunk'lar yüklü
+# kalmaz ve okuma op'ları chunk YÜKLETMEZ. world.set_block, CHUNK_NOT_LOADED
+# ile reddeder. Bu scenario, world.set_chunk_ticket ile bölgeyi açıkça yüklü
+# tutar ve yazma-okuma döngüsünü deterministik hâle getirir (M2A, actor
+# gerektirmez).
+version: 1
+id: world-chunk-ticket
+title: Chunk ticket ile oyuncusuz bölgede blok yazma-okuma deterministik olur
+profile: isolated-test
+timeout: 60s
+
+requires:
+  capabilities:
+    - world.chunk.ticket
+    - world.block.write
+    - world.block.read
+
+given:
+  - world.set_chunk_ticket:
+      position:
+        world_key: minecraft:overworld
+        x: 40
+        z: 40
+      radius: 1
+
+  - world.set_block:
+      position:
+        world_key: minecraft:overworld
+        x: 40
+        y: 64
+        z: 40
+      material: minecraft:chest
+
+when: []
+
+then:
+  - assert.block:
+      position:
+        world_key: minecraft:overworld
+        x: 40
+        y: 64
+        z: 40
+      material: minecraft:chest
+      within: 5s
+
+cleanup: []

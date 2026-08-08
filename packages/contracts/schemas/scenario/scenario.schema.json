@@ -98,9 +98,13 @@
         "assert.player_message",
         "assert.player_state",
         "player.break_block",
+        "player.chat",
+        "player.look",
+        "player.move",
         "plugin.command",
         "test_actor.create",
-        "world.set_block"
+        "world.set_block",
+        "world.set_chunk_ticket"
       ],
       "$comment2": "END GENERATED: step-allowlist"
     },

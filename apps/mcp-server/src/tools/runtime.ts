@@ -22,12 +22,16 @@ export function createRuntimeTools(info: RuntimeToolsInfo): Array<[ToolDefinitio
     {
       name: 'plugin_launch',
       title: 'Plugin launch',
-      description: "Paper process'ini başlatır, Bridge handshake'ini bekler ve ready gate'i doğrular.",
+      description: "Paper process'ini başlatır, Bridge handshake'ini bekler ve ready gate'i doğrular. build_id verilirse o build'in ürettiği plugin JAR'ı runtime'a kurulur.",
       inputSchema: {
         type: 'object',
         additionalProperties: false,
         properties: {
           project_id: { type: 'string', description: 'Proje kimliği' },
+          build_id: {
+            type: 'string',
+            description: 'plugin_build sonucundaki build kimliği; bu buildin artifacti hedef plugin olarak kurulur',
+          },
           accept_eula: {
             type: 'boolean',
             description: 'Minecraft EULA kabulü (varsayılan: false)',
@@ -39,10 +43,14 @@ export function createRuntimeTools(info: RuntimeToolsInfo): Array<[ToolDefinitio
     },
     async (args, ctx) => {
       const projectId = args['project_id'];
+      const buildId = args['build_id'];
       const acceptEula = (args['accept_eula'] as boolean) ?? false;
 
       if (typeof projectId !== 'string') {
         return toolError(ctx.correlationId, 'TOOL_INPUT_INVALID', { field: 'project_id' });
+      }
+      if (buildId !== undefined && typeof buildId !== 'string') {
+        return toolError(ctx.correlationId, 'TOOL_INPUT_INVALID', { field: 'build_id' });
       }
 
       const client = await info.supervisor();
@@ -58,6 +66,7 @@ export function createRuntimeTools(info: RuntimeToolsInfo): Array<[ToolDefinitio
           state: string;
         }>('runtime.create', {
           acceptMinecraftEula: acceptEula,
+          ...(buildId ? { buildId } : {}),
         });
 
         // Step 2: Runtime'ı başlat

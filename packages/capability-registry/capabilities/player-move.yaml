@@ -1,0 +1,51 @@
+id: player.move
+version: 1
+milestone: M2B
+summary: Test actor'ı belirtilen dünya ve koordinata ışınlar; teleport gerçek oyuncu olarak işlenir.
+status: conditional
+
+exposure:
+  developer_tool: null
+  debug_tool: null
+  bridge_operation: player.move
+  dsl_step: player.move
+
+risk:
+  effect: mutation
+  scope: disposable_runtime
+  reversibility: runtime_discard
+  approval: profile
+  exposure: agent_visible
+  cost: low
+  level: R2
+
+contracts:
+  input: schemas/player-move.input.json
+  output: schemas/player-move.output.json
+
+limits:
+  timeout_ms: 10000
+  requires_idempotency: true
+
+requires:
+  runtime_state: [READY]
+  capabilities:
+    - test_actor.protocol
+
+errors:
+  - CAPABILITY_UNAVAILABLE
+  - ACTOR_UNAVAILABLE
+  - PLAYER_NOT_FOUND
+  - IDEMPOTENCY_KEY_ARGUMENT_MISMATCH
+  - MUTATION_UNKNOWN_OUTCOME
+
+tests:
+  contract: [CT-ACTOR-MOVE-001]
+  integration: [IT-ACTOR-MOVE-001]
+  security: [ST-PROC-001]
+
+notes: >
+  Teleport, gerçek oyuncu bağlantısı üzerinden işlenir; konum değişikliği
+  events/player.move olarak gözlemlenebilir. Yalnızca test runtime'a
+  bağlı actor'lar için geçerlidir (ADR-0006).
+

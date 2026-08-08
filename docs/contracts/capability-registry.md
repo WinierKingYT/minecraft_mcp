@@ -1,5 +1,7 @@
 # Capability Registry
 
+> **D0C kilidi (2026-08-07):** Registry biçimi (YAML kayıt + `capability.schema.json` + risk-matrix üretimi) Architecture Freeze itibarıyla **donmuştur**. Yeni capability eklemek şemaya uymayı gerektirir; biçim değişikliği ADR gerektirir. Kapı: `check:registry` (49 capability, 109 error kodu, 3 profil).
+
 Kaynak: [`../../packages/capability-registry/capabilities/`](../../packages/capability-registry/capabilities/)
 Şema: [`../../packages/capability-registry/schema/capability.schema.json`](../../packages/capability-registry/schema/capability.schema.json)
 
@@ -162,6 +164,9 @@ Aşağıdaki tablo `pnpm run gen` tarafından yenilenir; elle düzenlenmez.
 | `permission.detach` | V1.1 | mutation | disposable_runtime | runtime_discard | none | **R2** | — | `permission_detach` |
 | `permission.set_op` | V1.1 | mutation | disposable_runtime | runtime_discard | none | **R2** | — | `permission_set_op` |
 | `player.break_block` | M2B | mutation | fixture | runtime_discard | profile | **R2** | — | — |
+| `player.chat` | M2B | mutation | disposable_runtime | runtime_discard | profile | **R2** | — | — |
+| `player.look` | M2B | mutation | disposable_runtime | runtime_discard | profile | **R2** | — | — |
+| `player.move` | M2B | mutation | disposable_runtime | runtime_discard | profile | **R2** | — | — |
 | `player.state.read` | M0 | read | disposable_runtime | reversible | none | **R0** | — | `minecraft_player_get` |
 | `plugin.command.typed` | M2B | mutation | disposable_runtime | runtime_discard | profile | **R2** | — | — |
 | `plugin.diagnose` | M1 | read | disposable_runtime | reversible | none | **R0** | `plugin_diagnose` | — |
@@ -192,5 +197,6 @@ Aşağıdaki tablo `pnpm run gen` tarafından yenilenir; elle düzenlenmez.
 | `test_actor.protocol` | M2B | process | disposable_runtime | runtime_discard | profile | **R1** | — | — |
 | `world.block.read` | M0 | read | fixture | reversible | none | **R0** | — | `minecraft_world_get_block` |
 | `world.block.write` | M2A | mutation | fixture | runtime_discard | profile | **R2** | — | — |
+| `world.chunk.ticket` | M2A | mutation | fixture | runtime_discard | profile | **R2** | — | — |
 | `world.list` | M0 | read | fixture | reversible | none | **R0** | — | `minecraft_world_list` |
 <!-- END GENERATED: risk-matrix -->

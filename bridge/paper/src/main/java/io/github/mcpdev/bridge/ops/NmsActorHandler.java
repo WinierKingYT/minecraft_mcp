@@ -1,4 +1,4 @@
-/**
+/*
  * NMS ile gerçek oyuncu oluşturan actor handler.
  *
  * M2B koşullu milestone'dur (ADR-0006, SPIKE-ACTOR-001).
@@ -10,7 +10,6 @@
 
 package io.github.mcpdev.bridge.ops;
 
-import com.mojang.authlib.GameProfile;
 import io.github.mcpdev.bridge.events.BridgeEvent;
 import io.github.mcpdev.bridge.events.EventRingBuffer;
 
@@ -40,6 +39,7 @@ import org.bukkit.profile.PlayerProfile;
  * <p><strong>NMS bağımlılığı:</strong> Bu handler Paper 26.x ile uyumludur.
  * Paper'ın Mojang mappings kullanması sayesinde class adları sabittir.
  */
+@SuppressWarnings("deprecation") // PlayerProfile/kickPlayer/AsyncPlayerChatEvent test-only kullanımı
 public final class NmsActorHandler implements ActionDispatcher.ActorHandler {
 
     private final Server server;
@@ -117,8 +117,10 @@ public final class NmsActorHandler implements ActionDispatcher.ActorHandler {
      * - net.minecraft.world.level.Level
      */
     private void spawnNmsPlayer(String actorId, UUID actorUuid, World world) throws Exception {
-        // GameProfile oluştur
-        GameProfile gameProfile = new GameProfile(actorUuid, actorId);
+        // GameProfile'i reflection ile oluştur (compile-time authlib bağımlılığı yok)
+        Class<?> gameProfileClass = Class.forName("com.mojang.authlib.GameProfile");
+        java.lang.reflect.Constructor<?> gameProfileCtor = gameProfileClass.getConstructor(UUID.class, String.class);
+        Object gameProfile = gameProfileCtor.newInstance(actorUuid, actorId);
 
         // MinecraftServer al
         Object minecraftServer = getMinecraftServer();
@@ -168,15 +170,16 @@ public final class NmsActorHandler implements ActionDispatcher.ActorHandler {
         }
     }
 
-    private Object createServerPlayer(Object minecraftServer, Object serverLevel, GameProfile gameProfile) {
+    private Object createServerPlayer(Object minecraftServer, Object serverLevel, Object gameProfile) {
         try {
             // ServerPlayer constructor: ServerPlayer(MinecraftServer, ServerLevel, GameProfile)
             Class<?> serverPlayerClass = Class.forName("net.minecraft.server.level.ServerPlayer");
             Class<?> minecraftServerClass = Class.forName("net.minecraft.server.MinecraftServer");
             Class<?> serverLevelClass = Class.forName("net.minecraft.server.level.ServerLevel");
+            Class<?> gameProfileClass = Class.forName("com.mojang.authlib.GameProfile");
 
             java.lang.reflect.Constructor<?> constructor = serverPlayerClass.getConstructor(
-                    minecraftServerClass, serverLevelClass, GameProfile.class);
+                    minecraftServerClass, serverLevelClass, gameProfileClass);
 
             return constructor.newInstance(minecraftServer, serverLevel, gameProfile);
         } catch (Exception e) {
@@ -517,7 +520,7 @@ public final class NmsActorHandler implements ActionDispatcher.ActorHandler {
                 "actor", actorId,
                 "command", fullCommand));
 
-        logger.info(() -> "Test actor " + actorId + " komut calistirdi: " + fullCommand);
+        logger.info("Test actor " + actorId + " komut calistirdi: " + fullCommand);
 
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("success", true);

@@ -84,9 +84,32 @@ export interface SupervisorHealthResult {
   readonly javaMajor: number | null;
 }
 
+export interface DeterminismProfile {
+  readonly onlineMode: boolean;
+  readonly maxPlayers: number;
+  readonly viewDistance: number;
+  readonly simulationDistance: number;
+  readonly spawnProtection: number;
+  readonly spawnChunkRadius: number;
+  readonly levelSeed: string;
+  readonly difficulty: string;
+}
+
 export interface RuntimeCreateParams {
   readonly acceptMinecraftEula: boolean;
+  /**
+   * Başarılı bir build'in kimliği: build'in ürettiği plugin JAR'ı runtime'a
+   * hedef plugin olarak kurulur. Mutlak path kabul edilmez (FS-03); artifact
+   * Supervisor tarafında build kaydından çözümlenir ve sha256 yeniden doğrulanır.
+   */
+  readonly buildId?: string;
+  /** Supervisor iç akışları (scenario engine) için; araç yüzeyi bunu kullanmaz. */
   readonly targetPluginPaths?: readonly string[];
+  /**
+   * Determinism profili. Verilmezse DETERMINISTIC_DEFAULT_V1 kullanılır:
+   * online_mode=false, sabit seed, kapalı cycle'lar — bkz. contracts/determinism.md.
+   */
+  readonly determinism?: DeterminismProfile;
 }
 
 export interface RuntimeSummary {
@@ -108,7 +131,11 @@ export type RuntimeIpcState =
   | 'STOPPING'
   | 'STOPPED'
   | 'CRASHED'
-  | 'RELEASED';
+  | 'RELEASED'
+  | 'RETENTION'
+  | 'DELETE_VALIDATION'
+  | 'DELETING'
+  | 'DELETED';
 
 export interface RuntimeIdParams {
   readonly runtimeImageId: string;
@@ -192,11 +219,17 @@ export interface ProjectValidateResult {
 }
 
 export interface BuildRunParams {
-  readonly projectId: string;
-  readonly mode: 'build' | 'unit_test' | 'integration_test' | 'clean_build';
-  readonly network?: 'online' | 'offline';
-  readonly timeoutMs?: number;
-}
+    readonly projectId: string;
+    readonly mode: 'build' | 'unit_test' | 'integration_test' | 'clean_build';
+    readonly network?: 'online' | 'offline';
+    readonly timeoutMs?: number;
+    /**
+     * Build execution backend. Default: `trusted-local`.
+     * `container` yalnızca Supervisor'da Docker erişilebilir ve backend
+     * yapılandırılmışsa geçerlidir; aksi hâlde BACKEND_UNAVAILABLE döner.
+     */
+    readonly backend?: 'trusted-local' | 'container';
+  }
 
 export interface BuildRunResult {
   readonly buildId: string;
@@ -255,6 +288,17 @@ export interface PluginDiagnoseResult {
 export interface ScenarioRunParams {
   readonly scenarioPath: string;
   readonly projectId: string;
+  /**
+   * Kullanıcının açık Minecraft EULA kabulü; disposable runtime başlatmak için
+   * zorunludur. false verilirse EULA_NOT_ACCEPTED üretilir ve hiçbir dosya oluşmaz.
+   */
+  readonly acceptMinecraftEula: boolean;
+  /**
+   * Scenario'nun hedef plugin'i. Verilirse runtime yalnızca bu build'in
+   * artifact'ıyla oluşturulur; verilmezse plugin'siz runtime hazırlanır
+   * (server-state gibi plugin'den bağımsız scenario'lar).
+   */
+  readonly buildId?: string;
 }
 
 export interface ScenarioRunResult {

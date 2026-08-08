@@ -27,6 +27,9 @@ world/          Dünya durumu ve blok davranışı
 | Scenario | Actor gerektirir | Milestone |
 |---|---|---|
 | [`smoke/plugin-enables.yaml`](smoke/plugin-enables.yaml) | Hayır | M2A |
+| [`world/set-block.yaml`](world/set-block.yaml) | Hayır | M2A |
+| [`world/read-block.yaml`](world/read-block.yaml) | Hayır | M0 |
+| [`world/chunk-ticket.yaml`](world/chunk-ticket.yaml) | Hayır | M2A |
 
 ## Bekleme modeli
 

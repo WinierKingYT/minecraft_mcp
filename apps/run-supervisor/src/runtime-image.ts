@@ -68,6 +68,13 @@ export interface RuntimeImageRequest {
   readonly profile: CompatibilityProfile;
   readonly determinism?: DeterminismProfile;
   /**
+   * Fixture manifest'i (regions + allowed_materials). Verilirse runtime
+   * köküne `mcpdev-fixture.json` olarak yazılır; Bridge dünya mutation'larını
+   * (world.set_block, world.set_chunk_ticket) bu dosyadaki bölge/materyal
+   * sınırlarına göre uygular. Yoksa dünya mutation'ları devre dışı kalır.
+   */
+  readonly fixtureManifest?: Readonly<Record<string, unknown>>;
+  /**
    * Minecraft EULA kabulü.
    *
    * Ürün bunu KENDİLİĞİNDEN kabul etmez: eula.txt yazmak Mojang EULA'sını
@@ -206,6 +213,16 @@ export async function createRuntimeImage(request: RuntimeImageRequest): Promise<
 
   const bridgeSha = await sha256File(bridgeJarPath);
   await copyFile(bridgeJarPath, join(root, 'plugins', 'paper-bridge.jar'));
+
+  // Fixture manifest'i Bridge'in dünya mutation'larını sınırlandırması için
+  // runtime köküne yazılır (determinism.md: regions + allowed_materials).
+  if (request.fixtureManifest) {
+    await writeFile(
+      join(root, 'mcpdev-fixture.json'),
+      JSON.stringify(request.fixtureManifest, null, 2),
+      { mode: 0o600 },
+    );
+  }
 
   for (const [index, pluginPath] of (request.targetPluginPaths ?? []).entries()) {
     if (!existsSync(pluginPath)) {

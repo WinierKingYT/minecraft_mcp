@@ -54,6 +54,25 @@ Container'da build edilen artifact Trusted Local Paper üzerinde çalıştırıl
 
 Read-only source mount · disposable writable fs · host secret yok · network default deny · CPU/RAM/PID/disk quota · ayrı runtime identity · process tree cleanup · **no privileged container** · **no Docker socket mount** · read-only verified dependency cache · explicit artifact export.
 
+Canlı deney bulguları (SPIKE-EXECUTION-CONTAINER-001, closed) bu listenin
+**uygulama detaylarını** belirler:
+
+- Build **copy-in** modelidir: ro kaynak `/output` içinde disposable kopyaya
+  kopyalanır (Gradle 9 proje-içi `.gradle/` + `build/reports/problems`
+  yazımları ro kaynakta imkânsızdır).
+- Verified dependency cache doğrudan ro mount edilmez; wrapper `.lck`/`.ok`
+  yazımı yüzünden **tar seed** ile disposable alana kopyalanır.
+- Bellek limiti **swap kapalı** varsayılanla serttir (`--memory-swap` =
+  `--memory`; opsiyonel `maxSwapMb` ile açılır).
+- Paper runtime'ı için **seed fazı** vardır: Paperclip indirmesi ve world gen,
+  network'li kısa ömürlü seed container'ında tamamlanır (`Done (` poll);
+  asıl runtime container `--network none` + hazır world ile başlar.
+- Timeout sonrası container `docker rm -f` ile silinir (CLI kill orphan
+  bırakır).
+- Bridge yönetilen runtime tespiti ister (`-Dmcpdev.runtime.root`,
+  `-Dmcpdev.server.instance.id`, `.mcpdev-runtime` marker, `bridge-token`);
+  bunlar dışında HTTP yüzeyi açılmaz.
+
 ### 5. Provisioning modu Container zorunludur
 
 Ağ erişimi gerektiren tek mod olan `provisioning`, kullanıcı onayı ve Container backend olmadan çalışmaz.
@@ -79,7 +98,7 @@ Ağ erişimi gerektiren tek mod olan `provisioning`, kullanıcı onayı ve Conta
 **Olumsuz**
 
 - `launchPaper`'ın backend arayüzünde olması, Paper başlatma kodunu iki implementasyonda ayrı tutmayı gerektirir.
-- Container'da Paper başlatmak, port yayınlama ve loopback Bridge erişimi için ek ağ yapılandırması gerektirir — bu `SPIKE-EXECUTION-CONTAINER-001`'in açık sorusudur.
+- Container'da Paper başlatmak, seed fazı (network'li hazırlık) ve loopback Bridge erişimi (supervisor erişim katmanı) gerektirir — `SPIKE-EXECUTION-CONTAINER-001` (closed) bunları doğruladı; Bridge'e host erişimi M2B'de tasarlanır.
 - Eşleşme kuralı bazı kullanıcı akışlarını reddeder ve iyi bir hata mesajı gerektirir.
 
 **Kanıt:** `ST-BACKEND-DOWNGRADE-001`, `ST-CONTAINER-*`, `IT-BACKEND-PARITY-001`.

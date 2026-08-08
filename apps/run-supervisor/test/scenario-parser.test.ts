@@ -56,8 +56,8 @@ test('parseDuration: geçersiz format varsayılan değer döner', () => {
 
 // ------------------------------------------------------------ DSL_STEP_ALLOWLIST
 
-test('DSL_STEP_ALLOWLIST: 16 step içerir', () => {
-  assert.equal(DSL_STEP_ALLOWLIST.length, 16);
+test('DSL_STEP_ALLOWLIST: 17 step içerir', () => {
+  assert.equal(DSL_STEP_ALLOWLIST.length, 17);
 });
 
 test('DSL_STEP_ALLOWLIST: gerekli adımları içerir', () => {
@@ -65,6 +65,7 @@ test('DSL_STEP_ALLOWLIST: gerekli adımları içerir', () => {
     'test_actor.create',
     'test_actor.disconnect_all',
     'world.set_block',
+    'world.set_chunk_ticket',
     'assert.block',
     'assert.event',
     'assert.no_log',

@@ -1,0 +1,51 @@
+id: player.chat
+version: 1
+milestone: M2B
+summary: Test actor'ın oyun içi sohbet mesajı göndermesini sağlar; plugin listener'ları gözlemleyebilir.
+status: conditional
+
+exposure:
+  developer_tool: null
+  debug_tool: null
+  bridge_operation: player.chat
+  dsl_step: player.chat
+
+risk:
+  effect: mutation
+  scope: disposable_runtime
+  reversibility: runtime_discard
+  approval: profile
+  exposure: agent_visible
+  cost: low
+  level: R2
+
+contracts:
+  input: schemas/player-chat.input.json
+  output: schemas/player-chat.output.json
+
+limits:
+  timeout_ms: 10000
+  requires_idempotency: true
+
+requires:
+  runtime_state: [READY]
+  capabilities:
+    - test_actor.protocol
+
+errors:
+  - CAPABILITY_UNAVAILABLE
+  - ACTOR_UNAVAILABLE
+  - PLAYER_NOT_FOUND
+  - IDEMPOTENCY_KEY_ARGUMENT_MISMATCH
+  - MUTATION_UNKNOWN_OUTCOME
+
+tests:
+  contract: [CT-ACTOR-CHAT-001]
+  integration: [IT-ACTOR-CHAT-001]
+  security: [ST-INJECT-001]
+
+notes: >
+  Mesaj, test actor bağlantısı üzerinden gönderilir ve AsyncPlayerChatEvent
+  olarak yayılır; plugin iptal semantiği gözlemlenebilir. Mesaj metni VERİ
+  olarak işlenir, şablon olarak yorumlanmaz (ST-INJECT-001).
+

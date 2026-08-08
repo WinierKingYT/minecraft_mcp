@@ -1,4 +1,4 @@
-/**
+/*
  * Bridge action handler — mutation ve actor komutlarını işler.
  *
  * /v1/action endpoint'inden çağrılır. Actor komutları ve world.set_block
@@ -10,6 +10,7 @@
 package io.github.mcpdev.bridge.ops;
 
 import io.github.mcpdev.bridge.generated.BridgeOperation;
+import io.github.mcpdev.bridge.scheduler.MainThreadExecutor;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -17,10 +18,12 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Action dispatcher — operation'ları ilgili handler'a yönlendirir.
+ * Action dispatcher — mutation ve actor komutlarını işler.
  *
- * <p>QueryDispatcher'dan farklı olarak bu dispatcher mutation çalıştırır.
- * Her mutation idempotency key gerektirir (bridge.md BR-08).
+ * <p>/v1/action endpoint'inden çağrılır. Actor komutları ve world.set_block
+ * gibi mutation'lar burada işlenir.
+ *
+ * <p>M2B koşullu milestone'dur (ADR-0006).
  */
 public final class ActionDispatcher {
 
@@ -30,8 +33,17 @@ public final class ActionDispatcher {
     /** Actor handler — Paper API ile entegre çalışır. */
     private final ActorHandler actorHandler;
 
-    public ActionDispatcher(ActorHandler actorHandler) {
+    /** Dünya mutation'ları — world.set_block ve world.set_chunk_ticket. */
+    private final WorldMutations worldMutations;
+
+    /** Paper API çağrılarını ana thread'de çalıştırır. */
+    private final MainThreadExecutor executor;
+
+    public ActionDispatcher(
+            ActorHandler actorHandler, WorldMutations worldMutations, MainThreadExecutor executor) {
         this.actorHandler = actorHandler;
+        this.worldMutations = worldMutations;
+        this.executor = executor;
     }
 
     /**
@@ -73,6 +85,22 @@ public final class ActionDispatcher {
             case PLAYER_CHAT -> actorHandler.chat(arguments);
             case PLUGIN_COMMAND -> actorHandler.pluginCommand(arguments);
             case PLAYER_GET_STATE -> actorHandler.getState(arguments);
+            case WORLD_SET_BLOCK -> {
+                String worldKey = requireString(arguments, "world_key");
+                int x = requireInt(arguments, "x");
+                int y = requireInt(arguments, "y");
+                int z = requireInt(arguments, "z");
+                String material = requireString(arguments, "material");
+                yield worldMutations.setBlock(worldKey, x, y, z, material);
+            }
+            case WORLD_SET_CHUNK_TICKET -> {
+                String worldKey = requireString(arguments, "world_key");
+                int x = requireInt(arguments, "x");
+                int z = requireInt(arguments, "z");
+                Object radiusValue = arguments.get("radius");
+                int radius = radiusValue instanceof Number n ? n.intValue() : 1;
+                yield worldMutations.setChunkTicket(worldKey, x, z, radius);
+            }
             default -> throw new BridgeOperationException(
                     "UNSUPPORTED_OPERATION", 400,
                     "Bu operation action endpoint'i tarafından desteklenmiyor: " + operation);
@@ -90,9 +118,28 @@ public final class ActionDispatcher {
         return switch (op) {
             case TEST_ACTOR_CREATE, TEST_ACTOR_DISCONNECT_ALL,
                  PLAYER_BREAK_BLOCK, PLAYER_MOVE, PLAYER_LOOK, PLAYER_CHAT,
-                 PLUGIN_COMMAND -> true;
+                 PLUGIN_COMMAND, WORLD_SET_BLOCK, WORLD_SET_CHUNK_TICKET -> true;
             default -> false;
         };
+    }
+
+    private static String requireString(Map<String, Object> arguments, String key) {
+        Object value = arguments.get(key);
+        if (!(value instanceof String s) || s.isBlank()) {
+            throw BridgeOperationException.invalidArguments("\"" + key + "\" boş olmayan bir metin olmalıdır.");
+        }
+        return s;
+    }
+
+    private static int requireInt(Map<String, Object> arguments, String key) {
+        Object value = arguments.get(key);
+        if (value instanceof Integer i) {
+            return i;
+        }
+        if (value instanceof Long l && l >= Integer.MIN_VALUE && l <= Integer.MAX_VALUE) {
+            return l.intValue();
+        }
+        throw BridgeOperationException.invalidArguments("\"" + key + "\" tam sayı olmalıdır.");
     }
 
     /**
@@ -123,6 +170,8 @@ public final class ActionDispatcher {
             BridgeOperation.PLAYER_LOOK,
             BridgeOperation.PLAYER_CHAT,
             BridgeOperation.PLUGIN_COMMAND,
-            BridgeOperation.PLAYER_GET_STATE
+            BridgeOperation.PLAYER_GET_STATE,
+            BridgeOperation.WORLD_SET_BLOCK,
+            BridgeOperation.WORLD_SET_CHUNK_TICKET
     );
 }

@@ -2,13 +2,14 @@ id: world.block.write
 version: 1
 milestone: M2A
 summary: Fixture bölgesi içinde tek bir bloğu, izin verilen materyal listesinden bir değere ayarlar.
-status: planned
+status: implemented
 
 # NOT: debug_tool bilinçli olarak null'dır. V3 sözleşme belgesinin capability
 # örneği minecraft_world_set_block'u debug tool olarak gösteriyor, fakat aynı
 # belgenin debug profile listesi bu tool'u içermiyor. Profil listesi normatif
 # kabul edildi: setup mutation'ları yalnızca Scenario DSL üzerinden, scenario
-# bağlamında ve idempotency key ile yapılır. Karar D0C'de teyit edilmelidir.
+# bağlamında ve idempotency key ile yapılır. Karar D0C'de teyit edildi
+# (2026-08-07): debug tool eklenmeyecektir; mutation yüzeyi DSL ile sınırlıdır.
 exposure:
   developer_tool: null
   debug_tool: null

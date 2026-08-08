@@ -86,8 +86,12 @@ for (const file of files) {
     if (NEGATION.some((n) => lower.includes(n))) continue;
 
     // Muafiyet, paragrafın kendisinde veya hemen öncesinde olabilir.
+    // İşaret önce inline kod örneklerinden arındırılır: muafiyet işaretini
+    // literal gösteren metinler (`<!-- kpi-11-exempt: neden -->` örneği gibi)
+    // gerçek bir muafiyet değildir ve sayıma girmemelidir.
     const previous = paragraphs[i - 1] ?? '';
-    if (EXEMPT_MARKER.test(para) || EXEMPT_MARKER.test(previous)) {
+    const stripCodeInline = (p) => p.replace(/```[\s\S]*?```/g, '').replace(/`[^`\n]*`/g, '');
+    if (EXEMPT_MARKER.test(stripCodeInline(para)) || EXEMPT_MARKER.test(stripCodeInline(previous))) {
       exemptions += 1;
       continue;
     }

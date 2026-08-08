@@ -142,7 +142,7 @@ Karar: profil `24.18.1`'e taşındı ([ADR-0009](docs/adr/0009-node-security-pin
 
 | Engel | Etki | Durum |
 |---|---|---|
-| **Docker yok** | `SPIKE-EXECUTION-CONTAINER-001` çalıştırılamaz | Ertelendi — D0B'ye kadar gerekmiyor |
+| ~~**Docker yok**~~ | ~~`SPIKE-EXECUTION-CONTAINER-001` çalıştırılamaz~~ | ✅ Kapandı — Docker Desktop kuruldu; spike kapalı, container build canlı |
 | **İlk commit atılmadı** | ~200 dosya staged | Bekliyor |
 
 ---
@@ -480,10 +480,52 @@ toplam     220   + 5 gerçek Paper lifecycle + IPC uçtan uca + dogfood build
 
 ## Sırada — M1'in kalanı
 
-- Container execution backend (Docker gerekiyor)
+- Container execution backend'i tool zincirine bağlamak (build + runtime end-to-end)
 - Runtime registry kalıcılığı ve Garbage Collector
 - `project_inspect` / `project_validate` / `plugin_build` araçlarının IPC'ye bağlanması
 - Build edilen plugin'in disposable runtime'da başlatılması (M1 demosu)
+
+---
+
+# D0C — Architecture Freeze (2026-08-07) ✅ GO
+
+## Kapanan spike'lar ve ADR bağlantıları
+
+| Spike | Sonuç | Bağlandığı |
+|---|---|---|
+| `SPIKE-EXECUTION-CONTAINER-001` | **closed** — 15 deneyin tamamı beklenen sonucu verdi | ADR-0004 §4 (copy-in build, tar cache seed, swap-off, seed fazı, timeout `rm -f`, Bridge runtime tespiti) |
+| `SPIKE-WINDOWS-PROCESS-001` | **closed** — `taskkill /T /F`, 0 orphan; native addon gerekmez | Trusted Local (Windows M1'de destekli) |
+| `SPIKE-ACTOR-001` | **closed** — ADR-0006 uyumlu | ADR-0006, M2B koşulu sağlandı |
+| `SPIKE-MCP-SDK-2026-001` | **closed** — stable 2.0.0, fakat `2026-07-28` desteklenmiyor | ADR-0002/0008 — kendi transport korunur; SDK geçişi gecikme |
+| `SPIKE-PAPER-DOWNLOAD-001` | **closed** — üç profil de canlı kaynaktan doğrulandı | Compatibility profile (hepsi `verified`) |
+| `SPIKE-SAME-JVM-THREAT-001` | **closed** — limitation kabul edildi | ADR-0007 — T2 yalnızca Container |
+
+## Donan formatlar (değişiklik ADR gerektirir)
+
+| Öğe | Kilit kanıtı |
+|---|---|
+| Tool profile'ları | `verify:compatibility` — `paper-26.2-build-84/87/90-v1`, hepsi `verified` |
+| Capability registry formatı | `check:registry` — 49 capability, 109 error kodu, 3 profil; `check:schemas` 10 şema |
+| State machine'ler | `docs/architecture/state-machines.md` — `UNKNOWN_OUTCOME` ve `DIRTY` semantiği değiştirilemez |
+
+## D0C kararları
+
+1. **GO verildi.** M1 kalan işleri (runtime registry + IPC bağlantısı + container end-to-end) M0'da kanıtlanmış altyapının üzerine biner; yeni risk sınıfı yok.
+2. **`world.set_block` debug tool'u eklenmeyecek** — mutation yüzeyi Scenario DSL ile sınırlı (sapma #2 teyidi).
+3. **SDK geçişi V1 gate'i olarak açık kalır** — gecikme, engel değil; `mcp.sdk_prototype.linked: false`.
+4. **Container deney sonuçları ADR-0004'e işlendi** — çıkış kararı tablosunun ilk satırı geçerli (Container backend M1'de zorunlu default).
+
+## Doğrulama (2026-08-07)
+
+```text
+✓ verify:compatibility   üç profil verified (canlı kaynak)
+✓ check:registry         49 capability, 109 error kodu, 3 profil
+✓ check:schemas          10 şema, 49 kayıt
+✓ gen:check              7 generated dosya güncel
+✓ check:docs             81 markdown (5 KPI-11 muafiyeti)
+✓ check:parse            265 dosya, 33 gömülü kod bloğu
+✓ test (run-supervisor)  482/482 + canlı Docker testleri
+```
 
 ---
 
@@ -497,7 +539,7 @@ toplam     220   + 5 gerçek Paper lifecycle + IPC uçtan uca + dogfood build
 
 1. **Risk seviyesi türetimi.** Belgedeki tablo salt-okuma `project_inspect`'i R3 yapıyor, bu da ADR-0007'nin "R3/R4 agent-facing olamaz" kuralıyla çakışıyordu. `effect: read` için tavan R1'de tutuldu.
 
-2. **`world.set_block` debug tool'u.** V3'ün capability örneği `minecraft_world_set_block`'u debug tool gösteriyor, fakat aynı belgenin debug profile listesi içermiyor. Profil listesi normatif kabul edildi. **D0C'de teyit edilmeli.**
+2. **`world.set_block` debug tool'u.** V3'ün capability örneği `minecraft_world_set_block`'u debug tool gösteriyor, fakat aynı belgenin debug profile listesi içermiyor. Profil listesi normatif kabul edildi. **D0C'de teyit edildi (2026-08-07):** debug tool eklenmeyecektir — setup mutation'ları yalnızca Scenario DSL üzerinden yapılır (`world-block-write.yaml` içindeki NOT'a işlendi).
 
 3. **DOC-GATE-06 muafiyet mekanizması.** Fuzzy olumsuzlama kelime listesi meşru metinlerde 5 yanlış pozitif üretti. Listeyi genişletmek yerine greplenebilir `<!-- kpi-11-exempt: neden -->` işareti eklendi; muafiyet sayısı her koşuda raporlanır.
 

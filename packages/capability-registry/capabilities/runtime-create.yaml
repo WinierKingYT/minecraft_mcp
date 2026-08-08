@@ -1,7 +1,7 @@
 id: runtime.create
 version: 1
 milestone: M1
-summary: Paper JAR, Bridge, hedef artifact, fixture ve determinism profilinden disposable runtime image hazırlar.
+summary: Paper JAR, Bridge, hedef artifact, fixture ve determinism profilinden disposable runtime image hazırlar. Hedef plugin yalnızca build_id üzerinden çözümlenir; mutlak path kabul edilmez (FS-03).
 status: planned
 
 exposure:
@@ -28,6 +28,8 @@ limits:
 
 errors:
   - ARTIFACT_NOT_FOUND
+  - ARTIFACT_INTEGRITY_MISMATCH
+  - BUILD_NOT_FOUND
   - PAPER_JAR_CHECKSUM_INVALID
   - FIXTURE_NOT_FOUND
   - FIXTURE_PROFILE_MISMATCH

@@ -16,10 +16,10 @@
  * rapor aksi hâlde derlenmeyen bir kaynağa atıfta bulunurdu (KPI-09).
  */
 
-import { randomBytes } from 'node:crypto';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { createHash, randomBytes } from 'node:crypto';
+import { cp, mkdir, mkdtemp, readFile, rm, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { basename, dirname, join } from 'node:path';
 import type { ExecutionBackendKind } from '@mcpdev/contracts';
 import type { ProjectRegistry, RegisteredProject } from './project-registry.js';
 import { createSourceSnapshot, assertSnapshotUnchanged, type SourceSnapshot } from './source-snapshot.js';
@@ -30,6 +30,7 @@ import { selectArtifact, type SelectedArtifact } from './artifact-selection.js';
 import { parseDiagnostics, suggestAction, type DiagnosticsSummary } from './diagnostics.js';
 import { resolveJavaForProfile } from './java-toolchain.js';
 import { EvidenceStore, type EvidenceProducer } from '@mcpdev/evidence-model';
+import type { ContainerExecutionBackend } from './container-execution-backend.js';
 
 export interface BuildRequest {
   readonly projectId: string;
@@ -103,6 +104,22 @@ export interface BuildExecutorOptions {
    * doldurur; offline mod yalnızca okur.
    */
   readonly dependencyCacheDir?: string;
+  /**
+   * Container backend — `request.backend === 'container'` build'leri bu
+   * implementasyonla koşar. Verilmezse container istekleri BACKEND_UNAVAILABLE
+   * üretir (M1 öncesi davranış korunur).
+   */
+  readonly container?: ContainerExecutionBackend;
+  /**
+   * Artifact'ların kopyalandığı kalıcı depo kökü (M1).
+   *
+   * Container build'leri geçici çalışma dizininde üretilir ve executor
+   * temizliği o dizini siler; build kaydı silinen bir yolu gösteremez.
+   * Trusted Local artifact'leri de aynı depoya kopyalanır: proje `build/libs`
+   * çıktısı sonraki build'ler tarafından üzerine yazılabilir, build kaydının
+   * doğruladığı sha256 değeri kalıcı bir dosyaya bağlanmalıdır.
+   */
+  readonly artifactStoreDir: string;
   readonly log?: (level: string, event: string, fields: Record<string, unknown>) => void;
 }
 
@@ -115,6 +132,20 @@ export class BuildExecutor {
 
   #log(level: string, event: string, fields: Record<string, unknown> = {}): void {
     this.#options.log?.(level, event, fields);
+  }
+
+  /**
+   * Seçilen artifact'ı kalıcı depoya kopyalar ve sha256'yı kopya üzerinde
+   * yeniden hesaplar. Dönen artifact, build kaydının ve runtime launch'ın
+   * (build_id → plugin_launch) referans aldığı dosyayı taşır.
+   */
+  async #persistArtifact(artifact: SelectedArtifact, runId: string): Promise<SelectedArtifact> {
+    const target = join(this.#options.artifactStoreDir, runId, basename(artifact.absolutePath));
+    await mkdir(dirname(target), { recursive: true });
+    await cp(artifact.absolutePath, target);
+    const sha256 = createHash('sha256').update(await readFile(target)).digest('hex');
+    const byteSize = (await stat(target)).size;
+    return { ...artifact, absolutePath: target, sha256, byteSize };
   }
 
   /**
@@ -196,11 +227,12 @@ export class BuildExecutor {
     const project: RegisteredProject = registry.assertBuildAllowed(request.projectId);
     registry.assertBackendAllowed(request.projectId, request.backend);
 
-    if (request.backend !== 'trusted-local') {
+    const container = this.#options.container;
+    if (request.backend === 'container' && !container) {
       return failure(runId, null, null, [], {
         code: 'BACKEND_UNAVAILABLE',
-        message: `"${request.backend}" backend'i bu sürümde uygulanmadı.`,
-        suggestedAction: 'Trusted Local backend kullanın; Container backend M1 kapsamında eklenecek.',
+        message: `"container" backend'i bu sürümde yapılandırılmadı.`,
+        suggestedAction: 'Supervisor ayarlarında ContainerExecutionBackend bağlayın veya Trusted Local backend kullanın.',
       });
     }
 
@@ -236,20 +268,60 @@ export class BuildExecutor {
       ...(request.maxOutputBytes === undefined ? {} : { maxOutputBytes: request.maxOutputBytes }),
     });
 
-    // Java, uyumluluk profilindeki major sürüme sabitlenir; wrapper script'in
-    // PATH'ten bulacağı Java sürprizi ortadan kalkar.
-    const java = await resolveJavaForProfile(this.#options.javaMajor);
-
     const workDir = await mkdtemp(join(tmpdir(), 'mcpdev-build-'));
     let run: BuildRunResult;
+    let containerArtifact: SelectedArtifact | null = null;
+    let artifactPersisted = false;
     try {
-      run = await runBuild({
-        projectRoot: project.canonicalRoot,
-        workDir,
-        plan,
-        javaExecutable: java.executable,
-        ...(this.#options.dependencyCacheDir ? { dependencyCacheDir: this.#options.dependencyCacheDir } : {}),
-      });
+      if (request.backend === 'container') {
+        // Container build: kaynak ro mount + /output redirect (init script);
+        // çıktı host'taki mount köküne yazılır, artifact oradan seçilir.
+        const outputDir = join(workDir, 'output');
+        const result = await container!.runBuild(plan, {
+          projectId: request.projectId,
+          projectRoot: project.canonicalRoot,
+          outputDir,
+          ...(request.timeoutMs !== undefined ? { timeoutMs: request.timeoutMs } : {}),
+          ...(request.expectedArtifactFileName !== undefined
+            ? { expectedArtifactFileName: request.expectedArtifactFileName }
+            : {}),
+        });
+        run = {
+          exitCode: result.exitCode,
+          output: result.output,
+          truncated: result.output.length > plan.maxOutputBytes,
+          durationMs: 0,
+          timedOut: result.timedOut,
+          command: 'docker',
+          args: [],
+        };
+        containerArtifact = result.artifact;
+        // Artifact geçici workDir'de; persist edilmeden temizlenemez.
+        if (containerArtifact) {
+          try {
+            containerArtifact = await this.#persistArtifact(containerArtifact, runId);
+            artifactPersisted = true;
+          } catch (err) {
+            return failure(runId, snapshot, run, validation.findings, {
+              code: 'ARTIFACT_PERSIST_FAILED',
+              message: err instanceof Error ? err.message : String(err),
+              suggestedAction: 'Artifact deposunun yazılabilir olduğunu doğrulayın ve build\'i tekrarlayın.',
+            }, null, plan);
+          }
+        }
+      } else {
+        // Java, uyumluluk profilindeki major sürüme sabitlenir; wrapper script'in
+        // PATH'ten bulacağı Java sürprizi ortadan kalkar. (Container backend'de
+        // Java sürümünü image sabitler, burada çözüm gerekmez.)
+        const java = await resolveJavaForProfile(this.#options.javaMajor);
+        run = await runBuild({
+          projectRoot: project.canonicalRoot,
+          workDir,
+          plan,
+          javaExecutable: java.executable,
+          ...(this.#options.dependencyCacheDir ? { dependencyCacheDir: this.#options.dependencyCacheDir } : {}),
+        });
+      }
     } finally {
       // Geçici Gradle home ve HOME arkada bırakılmaz.
       await rm(workDir, { recursive: true, force: true }).catch(() => undefined);
@@ -300,9 +372,15 @@ export class BuildExecutor {
     // 7. Artifact seçimi
     let artifact: SelectedArtifact;
     try {
-      artifact = await selectArtifact(project.canonicalRoot, {
-        expectedFileName: request.expectedArtifactFileName,
-      });
+      if (containerArtifact) {
+        // Container build: artifact container içinde zaten deterministik seçildi
+        // (host mount üzerinden); yeniden seçim belirsizlik doğurabilirdi.
+        artifact = containerArtifact;
+      } else {
+        artifact = await selectArtifact(project.canonicalRoot, {
+          expectedFileName: request.expectedArtifactFileName,
+        });
+      }
     } catch (err) {
       const code = (err as { code?: string }).code ?? 'ARTIFACT_NOT_FOUND';
       return failure(runId, snapshot, run, validation.findings, {
@@ -310,6 +388,21 @@ export class BuildExecutor {
         message: err instanceof Error ? err.message : String(err),
         suggestedAction: 'Build çıktısını ve beklenen artifact adını kontrol edin.',
       }, diagnostics, plan);
+    }
+
+    // 7b. Kalıcı depo kopyası: proje build/libs çıktısı sonraki build'lerce
+    // üzerine yazılabilir; build kaydı depodaki kopyaya bağlanır. Container
+    // artifact'leri zaten depoda olduğundan tekrar kopyalanmaz.
+    if (!artifactPersisted) {
+      try {
+        artifact = await this.#persistArtifact(artifact, runId);
+      } catch (err) {
+        return failure(runId, snapshot, run, validation.findings, {
+          code: 'ARTIFACT_PERSIST_FAILED',
+          message: err instanceof Error ? err.message : String(err),
+          suggestedAction: 'Artifact deposunun yazılabilir olduğunu doğrulayın ve build\'i tekrarlayın.',
+        }, diagnostics, plan);
+      }
     }
 
     // 8. Kanıt yazımı ve provenance

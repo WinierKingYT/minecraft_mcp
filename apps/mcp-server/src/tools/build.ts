@@ -39,6 +39,11 @@ export function createBuildTools(info: BuildToolsInfo): Array<[ToolDefinition, T
             enum: ['online', 'offline'],
             description: 'Ağ erişim modu (varsayılan: offline)',
           },
+          backend: {
+            type: 'string',
+            enum: ['trusted-local', 'container'],
+            description: 'Execution backend (varsayılan: trusted-local)',
+          },
           timeout_seconds: {
             type: 'number',
             description: 'Build üst süresi saniye cinsinden (varsayılan: 120)',
@@ -52,6 +57,7 @@ export function createBuildTools(info: BuildToolsInfo): Array<[ToolDefinition, T
       const projectId = args['project_id'];
       const mode = args['mode'];
       const network = (args['network'] as string) ?? 'offline';
+      const backend = (args['backend'] as string) ?? 'trusted-local';
       const timeoutSeconds = (args['timeout_seconds'] as number) ?? 120;
 
       if (typeof projectId !== 'string') {
@@ -59,6 +65,12 @@ export function createBuildTools(info: BuildToolsInfo): Array<[ToolDefinition, T
       }
       if (typeof mode !== 'string' || !['build', 'unit_test', 'integration_test', 'clean_build'].includes(mode)) {
         return toolError(ctx.correlationId, 'TOOL_INPUT_INVALID', { field: 'mode' });
+      }
+      if (typeof network !== 'string' || !['online', 'offline'].includes(network)) {
+        return toolError(ctx.correlationId, 'TOOL_INPUT_INVALID', { field: 'network' });
+      }
+      if (typeof backend !== 'string' || !['trusted-local', 'container'].includes(backend)) {
+        return toolError(ctx.correlationId, 'TOOL_INPUT_INVALID', { field: 'backend' });
       }
 
       const client = await info.supervisor();
@@ -73,6 +85,7 @@ export function createBuildTools(info: BuildToolsInfo): Array<[ToolDefinition, T
             projectId,
             mode,
             network: network as 'online' | 'offline',
+            backend: backend as 'trusted-local' | 'container',
             timeoutMs: timeoutSeconds * 1000,
           },
           IPC_LAUNCH_TIMEOUT_MS,

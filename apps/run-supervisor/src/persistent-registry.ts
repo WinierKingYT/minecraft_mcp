@@ -10,11 +10,13 @@
 
 import { readFile, writeFile, rename, mkdir } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
-import { dirname } from 'node:path';
+import { dirname, join } from 'node:path';
 import { randomBytes } from 'node:crypto';
 import type { RuntimeIpcState } from '@mcpdev/contracts';
 import { RuntimeRegistry, type RuntimeEntry } from './runtime-registry.js';
 import type { RuntimeImage } from './runtime-image.js';
+import type { OwnershipRecord } from './ownership.js';
+import { BRIDGE_TOKEN_FILE, RUNTIME_MARKER_FILE, HANDSHAKE_FILE } from './runtime-image.js';
 
 export interface PersistedRuntimeRecord {
   readonly runtimeImageId: string;
@@ -24,6 +26,7 @@ export interface PersistedRuntimeRecord {
   readonly bridgeJarSha256: string;
   readonly createdAt: string;
   readonly readyGateMs: number | null;
+  readonly stateChangedAt: number;
   readonly runtimeRoot: string;
   readonly ownership: {
     readonly runtimeId: string;
@@ -68,8 +71,13 @@ export class PersistentRuntimeRegistry extends RuntimeRegistry {
   }
 
   /**
-   * Disk'ten registry'yi yükler.
-   * Dosya yoksa boş başlar.
+   * Disk'ten registry'yi yükler ve kayıtları belleğe geri kurar.
+   *
+   * Supervisor yeniden başladığında çalışan process'ler kaybolmuştur; bu
+   * yüzden CREATE/STARTING/READY kayıtları CRASHED'a çekilir. Dizinler yerinde
+   * kaldığı için GC bunları retention kurallarıyla toplar (runtime-gc.ts).
+   * Token kalıcılığa YAZILMAZ (secret); geri yüklenen kayıtlar yalnızca
+   * metadata + GC amaçlıdır (running: null).
    */
   async load(): Promise<void> {
     if (!existsSync(this.#filePath)) {
@@ -86,22 +94,49 @@ export class PersistentRuntimeRegistry extends RuntimeRegistry {
         return;
       }
 
-      this.#logEvent('INFO', 'persistent_registry.loaded', {
-        count: data.records.length,
-        updatedAt: data.updatedAt,
-      });
-
-      // Kayıtları yükle (running bilgisi disk'te saklanmaz, sadece metadata)
+      let restored = 0;
+      let crashed = 0;
       for (const record of data.records) {
-        if (record.state === 'CREATED' || record.state === 'STARTING' || record.state === 'READY') {
-          // Runtime hâlâ çalışıyorsa, durumunu CRASH olarak işaretle
-          // (Supervisor yeniden başladı, process artık mevcut olmayabilir)
+        const wasRunning = record.state === 'CREATED' || record.state === 'STARTING' || record.state === 'READY';
+        const restoredState: RuntimeIpcState = wasRunning ? 'CRASHED' : record.state;
+
+        if (wasRunning) {
+          crashed++;
           this.#logEvent('WARN', 'persistent_registry.runtime_was_running', {
             runtimeImageId: record.runtimeImageId,
             previousState: record.state,
           });
         }
+
+        const image: RuntimeImage = {
+          runtimeImageId: record.runtimeImageId,
+          runtimeRoot: record.runtimeRoot,
+          serverInstanceId: record.serverInstanceId,
+          // Yalnızca metadata; geri yüklendikten sonra process yoktur.
+          paperJarPath: '',
+          paperJarSha256: record.paperJarSha256,
+          bridgeJarSha256: record.bridgeJarSha256,
+          token: '',
+          tokenFile: join(record.runtimeRoot, BRIDGE_TOKEN_FILE),
+          markerFile: join(record.runtimeRoot, RUNTIME_MARKER_FILE),
+          handshakeFile: join(record.runtimeRoot, HANDSHAKE_FILE),
+          createdAt: record.createdAt,
+        };
+
+        const entry = super.register(image);
+        entry.state = restoredState;
+        entry.stateChangedAt = record.stateChangedAt;
+        entry.readyGateMs = record.readyGateMs;
+        entry.ownership = record.ownership as OwnershipRecord | null;
+        restored++;
       }
+
+      this.#dirty = false;
+      this.#logEvent('INFO', 'persistent_registry.loaded', {
+        count: restored,
+        crashed,
+        updatedAt: data.updatedAt,
+      });
     } catch (err) {
       this.#logEvent('ERROR', 'persistent_registry.load_failed', {
         error: err instanceof Error ? err.message : String(err),
@@ -125,6 +160,7 @@ export class PersistentRuntimeRegistry extends RuntimeRegistry {
         bridgeJarSha256: entry.image.bridgeJarSha256,
         createdAt: entry.createdAt,
         readyGateMs: entry.readyGateMs,
+        stateChangedAt: entry.stateChangedAt,
         runtimeRoot: entry.image.runtimeRoot,
         ownership: entry.ownership,
       })),
@@ -169,6 +205,19 @@ export class PersistentRuntimeRegistry extends RuntimeRegistry {
     const entry = super.register(image);
     this.#dirty = true;
     return entry;
+  }
+
+  /** State geçişini izler ve kalıcılığı kirletir. */
+  override updateState(entry: RuntimeEntry, state: RuntimeIpcState): void {
+    super.updateState(entry, state);
+    this.#dirty = true;
+  }
+
+  /** Kayıt kaldırmayı izler ve kalıcılığı kirletir. */
+  override remove(runtimeImageId: string): boolean {
+    const removed = super.remove(runtimeImageId);
+    if (removed) this.#dirty = true;
+    return removed;
   }
 
   /**

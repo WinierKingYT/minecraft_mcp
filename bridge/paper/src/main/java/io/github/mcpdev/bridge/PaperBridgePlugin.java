@@ -8,6 +8,7 @@ import io.github.mcpdev.bridge.http.BridgeHttpServer;
 import io.github.mcpdev.bridge.ops.ActionDispatcher;
 import io.github.mcpdev.bridge.ops.NmsActorHandler;
 import io.github.mcpdev.bridge.ops.PaperReadOperations;
+import io.github.mcpdev.bridge.ops.PaperWorldMutations;
 import io.github.mcpdev.bridge.ops.QueryDispatcher;
 import io.github.mcpdev.bridge.scheduler.PaperMainThreadExecutor;
 
@@ -72,7 +73,11 @@ public final class PaperBridgePlugin extends JavaPlugin implements Listener {
 
             // M2B Actor Handler (NMS ile gerçek oyuncu oluşturma)
             NmsActorHandler actorHandler = new NmsActorHandler(getServer(), events, getLogger());
-            ActionDispatcher actionDispatcher = new ActionDispatcher(actorHandler);
+            // M2A dünya mutation'ları: fixture manifest bölgesi + materyal sınırları
+            PaperWorldMutations worldMutations = new PaperWorldMutations(
+                    getServer(), context.runtimeRoot(), new PaperMainThreadExecutor(this, getServer()));
+            ActionDispatcher actionDispatcher = new ActionDispatcher(actorHandler, worldMutations,
+                    new PaperMainThreadExecutor(this, getServer()));
 
             BridgeEndpoints endpoints = new BridgeEndpoints(
                     this::health,

@@ -1,0 +1,107 @@
+/**
+ * Build Registry — başarılı build'lerin artifact provenance kaydı (bellek içi).
+ *
+ * Build sonucuyla plugin_launch arasındaki köprüdür: plugin_launch yalnızca
+ * `build_id` alır; mutlak path KABUL ETMEZ (FS-03). Artifact, bu kayıttan
+ * çözümlenir ve launch anında sha256 yeniden doğrulanır — araya giren her
+ * değişiklik (tamper/bozulma) ARTIFACT_INTEGRITY_MISMATCH üretir, sessizce
+ * geçilmez.
+ *
+ * Bellek içidir; build kayıtlarının kalıcılığı (disk üstü kayıt + retention)
+ * M2B kapsamıdır.
+ */
+
+import { createHash } from 'node:crypto';
+import { readFile } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
+
+export class BuildRegistryError extends Error {
+  constructor(
+    readonly code: 'BUILD_NOT_FOUND' | 'ARTIFACT_NOT_FOUND' | 'ARTIFACT_INTEGRITY_MISMATCH',
+    message: string,
+  ) {
+    super(message);
+    this.name = 'BuildRegistryError';
+  }
+}
+
+export interface BuildRecord {
+  readonly buildId: string;
+  readonly projectId: string;
+  readonly mode: string;
+  readonly backend: 'trusted-local' | 'container';
+  readonly status: 'completed' | 'failed';
+  /** Mutlak host yolu; başarısız build'lerde null. */
+  readonly artifactPath: string | null;
+  readonly artifactSha256: string | null;
+  /** Proje köküne göre yol (kanıt için). */
+  readonly artifactRelativePath: string | null;
+  readonly evidenceIds: readonly string[];
+  readonly durationMs: number;
+  readonly createdAt: string;
+}
+
+export interface ResolvedBuildArtifact {
+  readonly path: string;
+  readonly sha256: string;
+  readonly relativePath: string;
+}
+
+export class BuildRegistry {
+  readonly #records = new Map<string, BuildRecord>();
+
+  get size(): number {
+    return this.#records.size;
+  }
+
+  record(record: BuildRecord): void {
+    this.#records.set(record.buildId, record);
+  }
+
+  get(buildId: string): BuildRecord | null {
+    return this.#records.get(buildId) ?? null;
+  }
+
+  /**
+   * Build artifact'ini doğrulanmış biçimde çözer.
+   *
+   * Kapılar sırasıyla: build kaydı var → build başarılı → artifact yolu
+   * kayıtlı → dosya yerinde → sha256 yeniden eşleşiyor. Her kapı ayrı bir
+   * error kodu taşır (KPI-08).
+   */
+  async resolveArtifact(buildId: string): Promise<ResolvedBuildArtifact> {
+    const record = this.#records.get(buildId);
+    if (!record) {
+      throw new BuildRegistryError(
+        'BUILD_NOT_FOUND',
+        `Build kaydı bulunamadı: ${buildId}. Bu oturumda üretilmemiş veya retention sonrası düşmüş olabilir.`,
+      );
+    }
+    if (record.status !== 'completed' || !record.artifactPath || !record.artifactSha256) {
+      throw new BuildRegistryError(
+        'ARTIFACT_NOT_FOUND',
+        `"${buildId}" build'i artifact üretmedi (status: ${record.status}).`,
+      );
+    }
+    if (!existsSync(record.artifactPath)) {
+      throw new BuildRegistryError(
+        'ARTIFACT_NOT_FOUND',
+        `Build artifact dosyası yerinde değil: ${record.artifactPath}.`,
+      );
+    }
+
+    const actual = createHash('sha256').update(await readFile(record.artifactPath)).digest('hex');
+    if (actual !== record.artifactSha256) {
+      throw new BuildRegistryError(
+        'ARTIFACT_INTEGRITY_MISMATCH',
+        `Build artifact'ı kayıt anındaki sha256 ile eşleşmiyor.\n  beklenen: ${record.artifactSha256}\n  gerçek  : ${actual}`,
+      );
+    }
+
+    return {
+      path: record.artifactPath,
+      sha256: actual,
+      relativePath: record.artifactRelativePath ?? '',
+    };
+  }
+}

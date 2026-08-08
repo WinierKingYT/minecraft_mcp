@@ -5,6 +5,10 @@ plugins {
 group = "com.example"
 version = "1.0.0"
 
+// plugin.yml placeholder'ları: ${version} ve ${apiVersion} build sırasında
+// değiştirilir; apiVersion tanımsız kalırsa Paper manifest yüzünden reddeder.
+val apiVersion = "1.21"
+
 java {
     toolchain {
         languageVersion.set(JavaLanguageVersion.of(21))

@@ -2,6 +2,8 @@
 
 Bir uyumluluk profili, ürünün üzerinde çalışmayı taahhüt ettiği **tek** sürüm kombinasyonunu kilitler. Aktif profil runtime üretir; diğer profiller diverjans (multi-profile) için tanımlanır ve doğrulanmadan kullanılamaz.
 
+> **D0C kilidi (2026-08-07):** Bu üç profil Architecture Freeze itibarıyla **donmuştur**. Değişiklik ADR gerektirir (kural 3) ve tam conformance koşusu tetikler. `verify:compatibility` her koşuda doğrulama kapısıdır.
+
 | Profil | Durum | Doğrulama |
 |---|---|---|
 | [`paper-26.2-build-84-v1.yaml`](paper-26.2-build-84-v1.yaml) | `active` | ✅ `verified` |

@@ -1,0 +1,5 @@
+name: HostileProbe
+version: '1.0.0'
+main: com.hostile.HostileProbePlugin
+api-version: '26.2'
+description: SPIKE-SAME-JVM-THREAT-001 measurement probe (never in production)

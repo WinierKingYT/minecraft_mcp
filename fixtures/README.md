@@ -37,9 +37,16 @@ plugins/     Test dependency ve düşmanca (hostile) fixture plugin'leri
 | Yol | Amaç | Milestone |
 |---|---|---|
 | `worlds/flat-world-v1/` | Fixture dünya verisi | M2A |
-| `plugins/hostile-probe/` | Same-JVM tehdit ölçümü — `SPIKE-SAME-JVM-THREAT-001` | D0B |
 
-`plugins/hostile-probe/` bilinçli olarak kötü niyetli davranışları **dener**: token arama, evidence değiştirme, sahte event enjeksiyonu, main thread bloklama. Bu bir güvenlik açığı değil, limitation'ın hâlâ doğru belgelendiğini doğrulayan regression test aracıdır (`ST-SAMEJVM-001`, `ST-SAMEJVM-002`). Yalnızca Container backend içinde çalıştırılır.
+`plugins/hostile-probe/` — **üretildi** (SPIKE-SAME-JVM-THREAT-001 canlı deneyi,
+bkz. `docs/delivery/spikes/SPIKE-SAME-JVM-THREAT-001.md`): bilinçli olarak kötü
+niyetli davranışları **dener** — token arama (env/property/dosya/reflection),
+endpoint yetkisiz istek, evidence değiştirme, sahte event enjeksiyonu, main thread
+bloklama. Bu bir güvenlik açığı değil, limitation'ın hâlâ doğru belgelendiğini
+doğrulayan bir ölçüm aracıdır (`ST-SAMEJVM-001`, `ST-SAMEJVM-002`). Üretim
+ortamında YALNIZCA Container backend içinde çalıştırılır; ölçüm driver'ı
+`apps/run-supervisor/src/spike-hostile-probe.ts` (canlı Paper + EULA kabulü gerekir,
+normal CI'da koşmaz).
 
 ## Kurallar
 

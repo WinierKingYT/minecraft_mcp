@@ -33,6 +33,8 @@ export interface SmokeOptions {
   readonly keepRuntime?: boolean;
   readonly startupTimeoutMs?: number;
   readonly log?: (message: string) => void;
+  /** Runtime'a yüklenecek ek fixture plugin JAR'ları (örn. hostile-probe). */
+  readonly targetPluginPaths?: readonly string[];
 }
 
 export interface SmokeEvidence {
@@ -60,6 +62,7 @@ export interface SmokeEvidence {
   };
   readonly unauthorizedRejected: boolean;
   readonly mutationRejected: boolean;
+  readonly runtimeRoot: string;
 }
 
 export async function runM0Smoke(options: SmokeOptions): Promise<SmokeEvidence> {
@@ -84,6 +87,7 @@ export async function runM0Smoke(options: SmokeOptions): Promise<SmokeEvidence> 
     serverInstanceId,
     paperJarPath: jar.path,
     bridgeJarPath: options.bridgeJarPath,
+    ...(options.targetPluginPaths ? { targetPluginPaths: options.targetPluginPaths } : {}),
     profile,
     acceptMinecraftEula: options.acceptMinecraftEula,
   });
@@ -153,6 +157,7 @@ export async function runM0Smoke(options: SmokeOptions): Promise<SmokeEvidence> 
       cleanup,
       unauthorizedRejected,
       mutationRejected,
+      runtimeRoot,
     };
   } finally {
     // Terminal durum ne olursa olsun cleanup denenir (DSL-10 ruhu).

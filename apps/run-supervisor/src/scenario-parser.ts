@@ -17,6 +17,7 @@ export type StepName =
   | 'player.chat'
   | 'plugin.command'
   | 'world.set_block'
+  | 'world.set_chunk_ticket'
   | 'assert.block'
   | 'assert.player_state'
   | 'assert.player_message'
@@ -35,6 +36,7 @@ export const DSL_STEP_ALLOWLIST: readonly StepName[] = [
   'player.chat',
   'plugin.command',
   'world.set_block',
+  'world.set_chunk_ticket',
   'assert.block',
   'assert.player_state',
   'assert.player_message',
@@ -50,11 +52,12 @@ export const STEP_CAPABILITY_MAP: Readonly<Record<StepName, string>> = {
   'test_actor.create': 'test_actor.protocol',
   'test_actor.disconnect_all': 'actor.disconnect',
   'player.break_block': 'player.break_block',
-  'player.move': 'player.state.read',
-  'player.look': 'player.state.read',
-  'player.chat': 'actor.message.read',
+  'player.move': 'player.move',
+  'player.look': 'player.look',
+  'player.chat': 'player.chat',
   'plugin.command': 'plugin.command.typed',
   'world.set_block': 'world.block.write',
+  'world.set_chunk_ticket': 'world.chunk.ticket',
   'assert.block': 'world.block.read',
   'assert.player_state': 'player.state.read',
   'assert.player_message': 'actor.message.read',

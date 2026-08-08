@@ -23,6 +23,7 @@ const DSL_STEP_ALLOWLIST = [
   'player.chat',
   'plugin.command',
   'world.set_block',
+  'world.set_chunk_ticket',
   'assert.block',
   'assert.player_state',
   'assert.player_message',
@@ -116,6 +117,15 @@ const STEP_SCHEMAS: Readonly<Record<string, {
     args: [
       { name: 'position', type: 'Position', required: true, description: 'Blok konumu' },
       { name: 'material', type: 'string', required: true, description: 'Blok malzemesi (örn: minecraft:stone)' },
+    ],
+  },
+  'world.set_chunk_ticket': {
+    description: 'Bir bölgeye chunk ticket koyar; ticket chunk\'ların oyuncusuz da yüklü kalmasını sağlar.',
+    capability: 'world.chunk.ticket',
+    milestone: 'M2A',
+    args: [
+      { name: 'position', type: 'Position', required: true, description: 'Ticket merkezi (world_key, x, z kullanılır)' },
+      { name: 'radius', type: 'number', required: false, description: 'Yarıçap (1-4; varsayılan 1)' },
     ],
   },
   'assert.block': {
@@ -321,20 +331,36 @@ export function createScenarioTools(info: ScenarioToolsInfo): Array<[ToolDefinit
         properties: {
           scenario_path: { type: 'string', description: 'Scenario dosya yolu' },
           project_id: { type: 'string', description: 'Proje kimliği' },
+          accept_minecraft_eula: {
+            type: 'boolean',
+            description: 'Minecraft EULA\'sını kabul et (scenario gerçek bir Paper sunucusu başlatır; false verilirse sunucu başlamaz)',
+          },
+          build_id: {
+            type: 'string',
+            description: 'Plugin eklenecekse build kaydı kimliği (opsiyonel; verilmezse pluginsiz runtime)',
+          },
         },
-        required: ['scenario_path', 'project_id'],
+        required: ['scenario_path', 'project_id', 'accept_minecraft_eula'],
       },
       outputSchema: TOOL_RESULT_SCHEMA_REF,
     },
     async (args, ctx) => {
       const scenarioPath = args['scenario_path'];
       const projectId = args['project_id'];
+      const acceptMinecraftEula = args['accept_minecraft_eula'];
+      const buildId = args['build_id'];
 
       if (typeof scenarioPath !== 'string') {
         return toolError(ctx.correlationId, 'TOOL_INPUT_INVALID', { field: 'scenario_path' });
       }
       if (typeof projectId !== 'string') {
         return toolError(ctx.correlationId, 'TOOL_INPUT_INVALID', { field: 'project_id' });
+      }
+      if (typeof acceptMinecraftEula !== 'boolean') {
+        return toolError(ctx.correlationId, 'TOOL_INPUT_INVALID', { field: 'accept_minecraft_eula' });
+      }
+      if (buildId !== undefined && typeof buildId !== 'string') {
+        return toolError(ctx.correlationId, 'TOOL_INPUT_INVALID', { field: 'build_id' });
       }
 
       const client = await info.supervisor();
@@ -346,6 +372,8 @@ export function createScenarioTools(info: ScenarioToolsInfo): Array<[ToolDefinit
         const result = await client.call<ScenarioRunResult>('scenario.run', {
           scenarioPath,
           projectId,
+          acceptMinecraftEula,
+          ...(buildId !== undefined && { buildId }),
         });
 
         if (result.status === 'failed') {

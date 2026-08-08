@@ -37,8 +37,9 @@ class BridgeEndpointsTest {
     private HttpClient client;
 
     /** Test sırasında davranışı değiştirilebilen handler'lar. */
-    private BridgeEndpoints.EventsHandler eventsHandler;
-    private BridgeEndpoints.QueryHandler queryHandler;
+private BridgeEndpoints.EventsHandler eventsHandler;
+private BridgeEndpoints.QueryHandler queryHandler;
+private BridgeEndpoints.ActionHandler actionHandler;
 
     @BeforeEach
     void setUp() throws IOException {
@@ -65,12 +66,16 @@ class BridgeEndpointsTest {
             }
             throw BridgeOperationException.capabilityUnavailable(operation);
         };
+        actionHandler = (operation, arguments, idempotencyKey) ->
+                Map.of("operation", operation, "idempotency_key", idempotencyKey == null ? "" : idempotencyKey);
 
         BridgeEndpoints endpoints = new BridgeEndpoints(
                 () -> Map.of("ok", Boolean.TRUE),
                 () -> Map.of("bridge_protocol", 1),
                 (bootId, after, limit) -> eventsHandler.query(bootId, after, limit),
-                (operation, arguments) -> queryHandler.execute(operation, arguments));
+                (operation, arguments) -> queryHandler.execute(operation, arguments),
+                (operation, arguments, idempotencyKey) ->
+                        actionHandler.execute(operation, arguments, idempotencyKey));
 
         server = BridgeHttpServer.start(BridgeCredentials.of(TOKEN), endpoints);
         client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build();
