@@ -242,14 +242,14 @@ export async function runM1Demo(options: M1DemoOptions): Promise<M1DemoEvidence>
 }
 
 /**
- * Container build'i için host GRADLE_USER_HOME'undan seed kopyası çıkarır.
+ * Container build'i i�in host GRADLE_USER_HOME'undan seed kopyas� ��kar�r.
  *
- * Yalnızca gerçek gereksinimler kopyalanır: wrapper dists (dist'in `.ok`
- * işareti dahil) ve `caches/modules-2` (artifact + metadata). `.lck`/`.lock`/
- * `.tmp` dosyaları process'e özgüdür ve atlanır; `gradle.properties` gibi
- * credential taşıyabilecek dosyalar zaten kapsam dışındadır (Q6).
+ * Yaln�zca ger�ek gereksinimler kopyalan�r: wrapper dists (dist'in `.ok`
+ * i�areti dahil) ve `caches/modules-2` (artifact + metadata). `.lck`/`.lock`/
+ * `.tmp` dosyalar� process'e �zg�d�r ve atlan�r; `gradle.properties` gibi
+ * credential ta��yabilecek dosyalar zaten kapsam d���ndad�r (Q6).
  */
-async function seedGradleCache(targetRoot: string): Promise<string> {
+export async function seedGradleCache(targetRoot: string): Promise<string> {
   const home = join(homedir(), '.gradle');
   const seed = join(targetRoot, 'gradle-seed');
   for (const rel of ['wrapper/dists', 'caches/modules-2']) {

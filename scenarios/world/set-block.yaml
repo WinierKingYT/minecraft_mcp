@@ -1,6 +1,8 @@
 # World scenario — block yazma.
 #
 # Paper server'da belirli bir konuma blok yerleştirir ve doğrular.
+# world.set_block CHUNK_NOT_LOADED ile reddeder; hedef bölge önce chunk
+# ticket ile yüklü tutulur (determinism.md: oyuncusuz chunk yüklü kalmaz).
 # Bu scenario M2A milestone'unda çalışır (actor gerektirmez).
 version: 1
 id: world-set-block
@@ -10,11 +12,19 @@ timeout: 60s
 
 requires:
   capabilities:
+    - world.chunk.ticket
     - world.block.write
     - world.block.read
     - server.state.read
 
 given:
+  - world.set_chunk_ticket:
+      position:
+        world_key: minecraft:overworld
+        x: 10
+        z: 10
+      radius: 1
+
   - world.set_block:
       position:
         world_key: minecraft:overworld

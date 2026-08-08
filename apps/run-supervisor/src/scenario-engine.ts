@@ -118,7 +118,6 @@ export class ScenarioEngine {
   #bridgeClient: BridgeClientLike | null = null;
   #actorClient: ActorClient | null = null;
   #runtime: ProvisionedRuntime | null = null;
-  #eventSequence = 0;
   #evidenceCollector: ScenarioEvidenceCollector | null = null;
 
   constructor(options: ScenarioEngineOptions) {
@@ -333,14 +332,23 @@ export class ScenarioEngine {
   }
 
   /**
-   * Event sequence'i başlatır (mevcut event'lerin üzerine devam etmek için).
+   * Event sequence başlatılır.
+   *
+   * Cursor ilerletilmez: plugin.enabled gibi boot sırasında oluşan event'ler
+   * ring buffer'da kalır ve assertion'lar buffer'ın başından okur (buffer
+   * boot'a özgüdür, scenario runtime'ı paylaşmaz — DSL-11).
    */
   async #initEventSequence(): Promise<void> {
     if (!this.#bridgeClient || !this.#runtime) return;
 
     try {
+      // Ring buffer'ın en eski korunan event'inden itibaren okumak için
+      // cursor 0'da tutulur; #assertEvent after=0 ile tüm pencerede arar.
       const events = await this.#bridgeClient.events(this.#runtime.bridgeBootId, 0, 1);
-      this.#eventSequence = events.length;
+      this.#log('DEBUG', 'scenario.event_buffer_probe', {
+        event_count: events.length,
+        buffer_start_sequence: events.length > 0 ? events[0]!['sequence'] : 0,
+      });
     } catch {
       // Event sequence başlatılamazsa sorun değil, 0'dan başlarız
     }
@@ -427,8 +435,13 @@ export class ScenarioEngine {
           });
           return { stepName, phase: 'then', index, status: 'passed', durationMs };
         }
-      } catch {
+      } catch (err) {
         // Assertion değerlendirilemedi, tekrar dene
+        this.#log('DEBUG', 'scenario.assertion_retry', {
+          step_name: stepName,
+          index,
+          error: err instanceof Error ? err.message : String(err),
+        });
       }
 
       // Poll aralığı kadar bekle
@@ -837,7 +850,7 @@ export class ScenarioEngine {
 
     const events = await this.#bridgeClient.events(
       this.#runtime.bridgeBootId,
-      this.#eventSequence,
+      0,
       100,
     );
 
@@ -889,7 +902,7 @@ export class ScenarioEngine {
 
     const pluginName = args['name'] as string | undefined;
 
-    const result = await this.#bridgeClient.query('get_plugins', {});
+    const result = await this.#bridgeClient.query('plugin.list', {});
     const plugins = result['plugins'] as Array<Record<string, unknown>>;
 
     if (pluginName) {
@@ -918,7 +931,7 @@ export class ScenarioEngine {
     const expectedMotd = args['motd'] as string | undefined;
     const expectedMaxPlayers = args['max_players'] as number | undefined;
 
-    const result = await this.#bridgeClient.query('get_server_state', {});
+    const result = await this.#bridgeClient.query('server.get_state', {});
 
     if (expectedMotd && result['motd'] !== expectedMotd) {
       return {

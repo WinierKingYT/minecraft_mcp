@@ -86,6 +86,8 @@ Trust store · source snapshot · wrapper verification · dependency locking/ver
 
 Fixture manifest · determinism profile · disposable runtime per scenario · Scenario DSL · server/plugin/log/event/block assertion'ları · config error scenario · JSON/Markdown/JUnit · evidence provenance.
 
+> **Durum (M2A canlı demo):** Scenario DSL + assertion motoru (block/server_state/event/no_log) gerçek Paper'da koşuyor: 3 scenario, 8/8 assertion pasif, GC kalıntısız (`docs/operations/m2a-demo.md`). Kalan iş: config error scenario, JSON/Markdown/JUnit rapor formatları, evidence provenance, assertion event görünürlüğü, MCP araç yüzeyinde EULA akışının İnspector doğrulaması.
+
 ## M2B — Protocol Actor Scenarios
 
 **Tahmin:** 12–25 iş günü · **Koşul:** `SPIKE-ACTOR-001` başarılı (✅ closed)

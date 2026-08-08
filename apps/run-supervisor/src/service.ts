@@ -1067,8 +1067,15 @@ export class SupervisorService {
               await stopPaper(entry.running, 10_000).catch(() => undefined);
               entry.running = null;
               this.#registry.updateState(entry, 'STOPPED');
+            } else if (entry.state === 'CREATED' || entry.state === 'STARTING') {
+              // Launch'a ulaşamayan runtime: doğrudan STOPPED'a alınır ki
+              // release yapılabilsin (quota serbest kalır).
+              this.#registry.updateState(entry, 'STOPPED');
             }
-            await this.releaseRuntime({ runtimeImageId: summary.runtimeImageId }).catch(() => undefined);
+            await this.releaseRuntime({
+              runtimeImageId: summary.runtimeImageId,
+              discardImmediately: true,
+            }).catch(() => undefined);
           },
         };
       },

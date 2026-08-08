@@ -1,19 +1,28 @@
-# World scenario — block okuma.
+# World scenario — blok okuma.
 #
-# Paper server'dan belirli bir konumdaki bloğu okur ve doğrular.
-# Bu scenario M0 milestone'unda çalışır (actor gerektirmez).
+# determinism.md ölçülmüş bulgusu: oyuncusuz runtime'da hiçbir chunk yüklü
+# kalmaz (spawn chunk dahil) ve world.get_block chunk YÜKLETMEZ. Bu yüzden
+# okuma, önce world.set_chunk_ticket ile bölgeyi yüklü tutarak yapılır;
+# aksi hâlde CHUNK_NOT_LOADED döner.
 version: 1
 id: world-read-block
-title: Belirli bir konumdaki blok okunabilir ve doğrulanabilir
+title: Ticket ile yüklü bölgede blok okunabilir ve sunucu durumu doğrulanabilir
 profile: isolated-test
 timeout: 60s
 
 requires:
   capabilities:
+    - world.chunk.ticket
     - world.block.read
     - server.state.read
 
-given: []
+given:
+  - world.set_chunk_ticket:
+      position:
+        world_key: minecraft:overworld
+        x: 10
+        z: 10
+      radius: 1
 
 when: []
 
@@ -21,10 +30,10 @@ then:
   - assert.block:
       position:
         world_key: minecraft:overworld
-        x: 0
+        x: 10
         y: 64
-        z: 0
-      within: 10s
+        z: 10
+      within: 5s
 
   - assert.server_state:
       within: 5s

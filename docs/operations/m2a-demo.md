@@ -1,0 +1,80 @@
+# M2A scenario → canlı Paper demo
+
+M2A dikey dilim: **ScenarioEngine'in disposable runtime zincirine bağlanması** — YAML scenario dosyası → runtime provisioning (build + launch) → günlük adım eşlemesi → assertion'lar → runtime dispose + GC. Akış, MCP araçlarının IPC üzerinden çağırdığı handler'ların (`SupervisorService.handlers()`) birebir aynısını kullanır — `scenario_run` araç yüzeyiyle aynı kod yolundan geçer.
+
+Bu akış **gerçek Gradle build ve gerçek Paper** başlatır; normal `pnpm run check` içinde koşmaz:
+
+1. Minecraft EULA kabulü gerektirir — kullanıcı kararıdır.
+2. ~60 MB Paper JAR, dünya üretimi ve (container backend'de) Docker imajı ister.
+3. `JAVA_HOME` profildeki major'a (Java 25) işaret etmelidir; yoksa Gradle 21 bulur ve build reddedilir.
+
+## Ön koşullar
+
+| Gereksinim | Kaynak |
+|---|---|
+| Java 25 + `JAVA_HOME` env | `C:\Program Files\Eclipse Adoptium\jdk-25.0.4.7-hotspot` |
+| Bridge JAR (güncel!) | `bridge/paper/build/libs/paper-bridge-*.jar` |
+| Host Gradle cache (offline build için seed) | `~/.gradle` (wrapper dists + modules-2) |
+| EULA kabulü | Kullanıcı |
+
+```bash
+cd bridge/paper && ./gradlew jar --console=plain
+corepack pnpm --filter=@mcpdev/run-supervisor run build
+```
+
+Bayat bridge JAR en sık yaşanan canlı hatadır: JAR'da yeni mutation/event yoksa scenario adımları bilinmeyen action ile reddedilir. Her bridge değişikliğinden sonra jar yeniden derlenmeli.
+
+## Çalıştırma
+
+`runM2ADemo` çağrısı `acceptMinecraftEula` alanını **açıkça** ister. `backend` verilmezse `trusted-local` denenir. `--plugin` verilirse fixture build (offline, seed cache) koşulur ve `plugin-enables` scenario'su build id ile çalıştırılır:
+
+```bash
+node --input-type=module -e "import {runM2ADemo} from './apps/run-supervisor/dist/src/m2a-demo.js'; console.log(await runM2ADemo({repoRoot:process.cwd(), profileId:'paper-26.2-build-84-v1', bridgeJarPath:'./bridge/paper/build/libs/paper-bridge-0.1.0-prototype.0.jar', paperCacheDir:'./.cache/paper', acceptMinecraftEula:true, backend:'trusted-local', withPluginScenario:true, exitWhenDone:true, log:(m)=>console.log(m)}))"
+```
+
+## Akış
+
+```text
+(buildId verildiyse) build.run (offline, trusted-local)
+  -> runtime.create {buildId} -> runtime.launch -> READY gate (bridge boots)
+    -> scenario_run: given/when/then adım eşlemesi (YAML -> BridgeOperation)
+      -> world.set_chunk_ticket (idempotency anahtarlı) -> world.set_block / world.get_block
+      -> assert.block / assert.server_state (polling) / assert.event / assert.no_log
+        -> runtime.stop -> runtime.release {discardImmediately: true}
+          -> GC taraması: runtimeRootDir kalıntısız
+```
+
+## Scenario determinizmi
+
+Canlı Paper'dan öğrenilen kural: **oyuncusuz dünyada hiçbir chunk yüklü kalmaz** (spawn chunk dahil). Dünya mutasyonu yapan scenario'lar:
+
+- `requires: world.chunk.ticket` + `given` adımında `world.set_chunk_ticket` (çap 1-4 blok) içermelidir;
+- hedef konum, `world.chunk.ticket` capability'sinin izin verdiği radius sınırı içinde olmalıdır.
+
+Aksi halde `CHUNK_NOT_LOADED` ile `world.set_block`/`world.get_block` reddedilir.
+
+## Assertion'ların event cursor'u
+
+Bridge event ring buffer'ı boot'a özgüdür ve sequence 1'den başlar; `plugin.enabled` gibi olaylar boot sırasında, engine `then` fazından önce oluşur. `assert.event` cursor'u ilerletmez — her poll ring buffer'ın en eski korunan event'inden okur. Cursor'u "okunan kadar atla" mantığıyla kurmak boot olaylarını kaçırır (canlı bulgu: `plugin.enabled` timeout'u, düzeltme: buffer başından arama).
+
+## Ölçülmüş sonuçlar
+
+Paper 26.2 build 84, Java 25 (Temurin 25.0.4.7), Windows 11, trusted-local, aynı fixture'la 3 scenario (build dahil tek koşu):
+
+| Ölçüm | Değer |
+|---|---|
+| Build (offline, seed cache) | ~13.9 s, sha256 `4a82aae89b102682...` |
+| read-block (3 adım: given/when/then) | 3/3, ~22.9 s |
+| chunk-ticket (ticket + set_block + assert) | 3/3, ~32.8 s |
+| plugin-enables (assert.event + assert.no_log) | 2/2, ~27.8 s |
+| Runtime READY gate | ~24-28 s |
+| GC kalıntı | 0 (gcSwept=true) |
+
+Toplam 8/8 assertion pasif. `scenario.engine_completed` kanıtları demo logunda (event buffer probe → assertion başlat/pasif → runtime.released discarded=true).
+
+## Bilinen sınırlar
+
+- `evidence_ids` boş: demo evidence store yapılandırmaz (M2A sonrası için).
+- `scenario_assertion_event` history'ye eklendi ama MCP araç yüzeyinde assertion event görünürlüğü sonraki adıma kaldı.
+- 20x determinism koşusu ve JUnit/Markdown rapor formatları kapsam dışıdır (roadmap M2A).
+- CLI argümanlarıyla `node dist/...` çağrısı Start-Process quoting'inde sorun çıkarır; driver temp `.mjs` dosyalarından `runM2ADemo` çağrılır.
