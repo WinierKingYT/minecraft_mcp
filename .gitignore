@@ -19,6 +19,9 @@ data/
 *.db-wal
 *.db-shm
 
+# Local data store (artifact deposu, raporlar) — MUST NOT be committed
+.mcpdev-data/
+
 # Paper server JAR — MUST NOT be committed
 *.jar
 !**/gradle/wrapper/gradle-wrapper.jar

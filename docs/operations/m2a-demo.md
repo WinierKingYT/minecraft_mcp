@@ -29,8 +29,10 @@ Bayat bridge JAR en sık yaşanan canlı hatadır: JAR'da yeni mutation/event yo
 `runM2ADemo` çağrısı `acceptMinecraftEula` alanını **açıkça** ister. `backend` verilmezse `trusted-local` denenir. `--plugin` verilirse fixture build (offline, seed cache) koşulur ve `plugin-enables` scenario'su build id ile çalıştırılır:
 
 ```bash
-node --input-type=module -e "import {runM2ADemo} from './apps/run-supervisor/dist/src/m2a-demo.js'; console.log(await runM2ADemo({repoRoot:process.cwd(), profileId:'paper-26.2-build-84-v1', bridgeJarPath:'./bridge/paper/build/libs/paper-bridge-0.1.0-prototype.0.jar', paperCacheDir:'./.cache/paper', acceptMinecraftEula:true, backend:'trusted-local', withPluginScenario:true, exitWhenDone:true, log:(m)=>console.log(m)}))"
+node --input-type=module -e "import {runM2ADemo} from './apps/run-supervisor/dist/src/m2a-demo.js'; console.log(await runM2ADemo({repoRoot:process.cwd(), profileId:'paper-26.2-build-84-v1', bridgeJarPath:'./bridge/paper/build/libs/paper-bridge-0.1.0-prototype.0.jar', paperCacheDir:'./.cache/paper', acceptMinecraftEula:true, backend:'trusted-local', withPluginScenario:true, errorScenarios:true, reportDir:'./.mcpdev-data/reports', exitWhenDone:true, log:(m)=>console.log(m)}))"
 ```
+
+`reportDir` verilirse tüm scenario'lar bittikten sonra üç rapor formatı tek `report_id` ile üretilir (JSON · Markdown · JUnit XML, `scenario-report.ts`). Raporda mutlak host path bulunmaz; `scenario_path` repo köküne göre görelidir.
 
 ## Akış
 
@@ -75,10 +77,12 @@ Paper 26.2 build 84, Java 25 (Temurin 25.0.4.7), Windows 11, trusted-local, ayn�
 
 Başarı scenario'larında 8/8 assertion, config scenario'larında 3/3 beklenen hata kodu birebir eşleşti (`scenario.expect_satisfied` logu expected/actual ikilisini taşır). `scenario.engine_completed` kanıtları demo logunda.
 
+Rapor ölçümü (JSON/Markdown/JUnit): `rep_c467f99202f86d214363f7c0` — özet `total=6 passed=6 duration_ms=139254`, her scenario kendi `scenario_run_id` + adım/kanıt sayısıyla; Markdown tablosu ve JUnit XML aynı `report_id`'yi taşır.
+
 ## Bilinen sınırlar
 
 - `evidence_ids` boş: demo evidence store yapılandırmaz (M2A sonrası için).
 - `scenario_assertion_event` history'ye eklendi ama MCP araç yüzeyinde assertion event görünürlüğü sonraki adıma kaldı.
-- 20x determinism koşusu ve JUnit/Markdown rapor formatları kapsam dışıdır (roadmap M2A).
+- 20x determinism koşusu kapsam dışıdır (roadmap M2A).
 - Config error scenario'ları canlı koşumda `--errors` bayrağı ile; aksi halde default akış 3 scenario koşar.
 - CLI argümanlarıyla `node dist/...` çağrısı Start-Process quoting'inde sorun çıkarır; driver temp `.mjs` dosyalarından `runM2ADemo` çağrılır.

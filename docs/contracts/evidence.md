@@ -89,3 +89,5 @@ V1:
 - **No absolute host path in public report**
 
 Rapor formatları: JSON · Markdown · JUnit XML. Üçü aynı `report_id`'yi ve aynı provenance alanlarını taşır.
+
+**Uygulama:** `apps/run-supervisor/src/scenario-report.ts` (DSL-12 sonrası). JSON şeması `scenario-report-v1`; JUnit XML testcase başına scenario, `failure type="failed|timed_out"`; kamuya açık raporda mutlak host path reddedilir (`SCENARIO_REPORT_PATH_ABSOLUTE`) ve ayraçlar Unix formuna normalize edilir. Dosyalar atomik yazılır (temp-write + rename). Canlı kanıt: `docs/operations/m2a-demo.md` (`rep_c467f99202f86d214363f7c0`).

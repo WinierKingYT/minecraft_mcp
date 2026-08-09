@@ -32,6 +32,7 @@ import { SupervisorService } from './service.js';
 import { ProjectRegistry } from './project-registry.js';
 import { ContainerExecutionBackend } from './container-execution-backend.js';
 import { seedGradleCache } from './m1-demo.js';
+import { generateScenarioReports } from './scenario-report.js';
 import type { BuildRunResult, ScenarioRunResult } from '@mcpdev/contracts';
 
 export interface M2ADemoOptions {
@@ -53,6 +54,8 @@ export interface M2ADemoOptions {
   readonly pluginScenario?: boolean;
   /** Config error scenario'larını da koş (scenarios/configuration/*, DSL-12). */
   readonly errorScenarios?: boolean;
+  /** Verilirse scenario raporları (JSON/Markdown/JUnit) bu dizine yazılır. */
+  readonly reportDir?: string;
   readonly startupTimeoutMs?: number;
   readonly buildTimeoutMs?: number;
   /** Süreç bu demo için başlatıldıysa bittiğinde exit(0/1) yapılır (GC timer'ı event loop'u tutar). */
@@ -79,6 +82,12 @@ export interface M2ADemoEvidence {
   readonly gcSwept: boolean;
   readonly leftoverRuntimeDirs: readonly string[];
   readonly runtimeRoot: string;
+  readonly reports?: {
+    readonly reportId: string;
+    readonly jsonPath: string;
+    readonly markdownPath: string;
+    readonly junitPath: string;
+  };
 }
 
 export async function runM2ADemo(options: M2ADemoOptions): Promise<M2ADemoEvidence> {
@@ -208,6 +217,34 @@ export async function runM2ADemo(options: M2ADemoOptions): Promise<M2ADemoEviden
     const leftovers = (await readdir(runtimeRoot).catch(() => [])).filter((f) => f.startsWith('srv_'));
     log(`gc     : kalıntı dizin=${leftovers.length}`);
 
+    // Rapor üretimi (JSON/Markdown/JUnit, tek report_id).
+    let reports: M2ADemoEvidence['reports'];
+    if (options.reportDir) {
+      const outputs = await generateScenarioReports(
+        {
+          runId: buildId ?? `run_${Date.now()}`,
+          compatibilityProfile: profile.id,
+          fixtureId: 'flat-world-v1',
+          ...(options.projectId ? { projectId: options.projectId } : {}),
+          ...(buildId ? { buildArtifactId: `bart_${artifactSha256?.slice(0, 12)}` } : {}),
+          scenarios: scenarios.map((s) => ({
+            scenarioId: s.scenarioPath.split('\\').pop()!.split('/').pop()!.replace(/\.yaml$/, ''),
+            scenarioPath: s.scenarioPath.replace(/^.*?scenarios[\\/]/, 'scenarios/'),
+            scenarioRunId: s.scenarioRunId,
+            status: s.status as 'completed' | 'failed' | 'timed_out',
+            passed: s.passed,
+            failed: s.failed,
+            skipped: s.skipped,
+            durationMs: s.durationMs,
+            evidenceIds: s.evidenceIds,
+          })),
+        },
+        options.reportDir,
+      );
+      reports = outputs;
+      log(`rapor : ${outputs.reportId} (${outputs.jsonPath})`);
+    }
+
     return {
       backend,
       buildId,
@@ -216,6 +253,7 @@ export async function runM2ADemo(options: M2ADemoOptions): Promise<M2ADemoEviden
       gcSwept: leftovers.length === 0,
       leftoverRuntimeDirs: leftovers,
       runtimeRoot,
+      ...(reports ? { reports } : {}),
     };
   } finally {
     await service.shutdown().catch(() => undefined);
