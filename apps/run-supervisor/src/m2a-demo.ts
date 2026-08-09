@@ -27,6 +27,7 @@
 import { mkdtemp, readdir, rm } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
+import { EvidenceStore } from '@mcpdev/evidence-model';
 import { loadCompatibilityProfile, assertProfileUsable } from './compatibility.js';
 import { SupervisorService } from './service.js';
 import { ProjectRegistry } from './project-registry.js';
@@ -88,6 +89,14 @@ export interface M2ADemoEvidence {
     readonly markdownPath: string;
     readonly junitPath: string;
   };
+  /** Evidence provenance zinciri okuma-doğrulama sonucu. */
+  readonly evidence?: {
+    readonly evidenceCount: number;
+    readonly verified: boolean;
+    readonly sampleEvidenceId: string | null;
+    readonly sampleKind: string | null;
+    readonly sampleChecksum: string | null;
+  };
 }
 
 export async function runM2ADemo(options: M2ADemoOptions): Promise<M2ADemoEvidence> {
@@ -108,6 +117,12 @@ export async function runM2ADemo(options: M2ADemoOptions): Promise<M2ADemoEviden
   const runtimeRoot = options.runtimeRootDir ?? (await mkdtemp(join(tmpdir(), 'mcpdev-m2a-')));
 
   const dependencyCacheDir = await seedGradleCache(runtimeRoot);
+
+  // Evidence store: scenario_run_id -> evidence_id[] halkası buradan doldurulur.
+  // Kalıcı (repo içi, gitignore'lu) böylece demo sonrası chain incelenebilir.
+  const demoRunId = `run_${Date.now()}`;
+  const evidenceRoot = join(options.repoRoot, '.mcpdev-data', 'evidence', demoRunId);
+  const evidenceStore = new EvidenceStore(evidenceRoot);
 
   let backend = options.backend ?? 'trusted-local';
   let containerBackend: ContainerExecutionBackend | undefined;
@@ -134,6 +149,7 @@ export async function runM2ADemo(options: M2ADemoOptions): Promise<M2ADemoEviden
     version: '0.1.0-demo',
     projectRegistry,
     dependencyCacheDir,
+    evidenceStore,
     ...(containerBackend ? { containerExecutionBackend: containerBackend } : {}),
     log: (level, event, fields) =>
       log(`[svc] ${level} ${event}${fields ? ` ${JSON.stringify(fields)}` : ''}`),
@@ -214,6 +230,41 @@ export async function runM2ADemo(options: M2ADemoOptions): Promise<M2ADemoEviden
       }
     }
 
+    // Evidence provenance doğrulaması: üretilen kanıtlar store'dan okunur ve
+    // checksum yeniden doğrulanır (docs/contracts/evidence.md).
+    const evidenceCount = scenarios.reduce((acc, s) => acc + s.evidenceIds.length, 0);
+    let evidenceOutcome: M2ADemoEvidence['evidence'];
+    if (evidenceCount > 0) {
+      const sampleId = scenarios.find((s) => s.evidenceIds.length > 0)!.evidenceIds[0]!;
+      try {
+        const sample = (await h['evidence.get']({ evidenceId: sampleId })) as {
+          kind: string;
+          checksum: string;
+          byteSize: number;
+        };
+        evidenceOutcome = {
+          evidenceCount,
+          verified: true,
+          sampleEvidenceId: sampleId,
+          sampleKind: sample.kind,
+          sampleChecksum: sample.checksum,
+        };
+        log(
+          `evidence: ${evidenceCount} kanıt, örnek=${sampleId} kind=${sample.kind} ` +
+            `sha256=${sample.checksum.slice(0, 16)}... bytes=${sample.byteSize}`,
+        );
+      } catch (err) {
+        evidenceOutcome = {
+          evidenceCount,
+          verified: false,
+          sampleEvidenceId: sampleId,
+          sampleKind: null,
+          sampleChecksum: null,
+        };
+        log(`evidence: okuma hatası ${err instanceof Error ? err.message : String(err)}`);
+      }
+    }
+
     const leftovers = (await readdir(runtimeRoot).catch(() => [])).filter((f) => f.startsWith('srv_'));
     log(`gc     : kalıntı dizin=${leftovers.length}`);
 
@@ -254,6 +305,7 @@ export async function runM2ADemo(options: M2ADemoOptions): Promise<M2ADemoEviden
       leftoverRuntimeDirs: leftovers,
       runtimeRoot,
       ...(reports ? { reports } : {}),
+      ...(evidenceOutcome ? { evidence: evidenceOutcome } : {}),
     };
   } finally {
     await service.shutdown().catch(() => undefined);

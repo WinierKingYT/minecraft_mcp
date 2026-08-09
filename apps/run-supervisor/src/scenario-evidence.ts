@@ -14,9 +14,7 @@ export interface ScenarioEvidenceOptions {
   readonly scenarioId: string;
   readonly scenarioPath: string;
   readonly version: string;
-}
-
-export interface StepEvidence {
+}export interface StepEvidence {
   readonly stepName: string;
   readonly phase: 'given' | 'when' | 'then' | 'cleanup';
   readonly index: number;
@@ -48,6 +46,8 @@ export interface ScenarioRunEvidence {
   readonly scenarioId: string;
   readonly scenarioPath: string;
   readonly projectId: string;
+  readonly runtimeImageId: string;
+  readonly bridgeBootId: string;
   readonly startedAt: string;
   readonly completedAt: string;
   readonly durationMs: number;
@@ -83,10 +83,22 @@ export class ScenarioEvidenceCollector {
   readonly #evidenceIds: string[] = [];
   #currentSteps: StepEvidence[] = [];
   #phaseStartedAt: Date | null = null;
+  #runtimeImageId = '';
+  #bridgeBootId = '';
 
   constructor(store: EvidenceStore, options: ScenarioEvidenceOptions) {
     this.#store = store;
     this.#options = options;
+  }
+
+  /**
+   * Runtime provenance bilgisini bağlar (provenance zinciri: runtime_image_id
+   * -> server_instance -> scenario_run_id -> evidence_id[]).
+   * Engine, runtime provision edildikten sonra çağırır.
+   */
+  setRuntimeInfo(runtimeImageId: string, bridgeBootId: string): void {
+    this.#runtimeImageId = runtimeImageId;
+    this.#bridgeBootId = bridgeBootId;
   }
 
   /**
@@ -189,6 +201,8 @@ export class ScenarioEvidenceCollector {
       scenarioId: this.#options.scenarioId,
       scenarioPath: this.#options.scenarioPath,
       projectId: this.#options.projectId,
+      runtimeImageId: this.#runtimeImageId,
+      bridgeBootId: this.#bridgeBootId,
       startedAt: startedAt.toISOString(),
       completedAt: completedAt.toISOString(),
       durationMs,
@@ -210,6 +224,8 @@ export class ScenarioEvidenceCollector {
         producer: {
           component: 'run-supervisor',
           version: this.#options.version,
+          ...(this.#runtimeImageId ? { serverInstanceId: this.#runtimeImageId } : {}),
+          ...(this.#bridgeBootId ? { bridgeBootId: this.#bridgeBootId } : {}),
         },
         content: JSON.stringify(scenarioRunEvidence, null, 2),
         retentionHours: 72, // 3 gun sakla
@@ -239,6 +255,8 @@ export class ScenarioEvidenceCollector {
           producer: {
             component: 'run-supervisor',
             version: this.#options.version,
+            ...(this.#runtimeImageId ? { serverInstanceId: this.#runtimeImageId } : {}),
+            ...(this.#bridgeBootId ? { bridgeBootId: this.#bridgeBootId } : {}),
           },
           content: JSON.stringify(assertion, null, 2),
           retentionHours: 72,

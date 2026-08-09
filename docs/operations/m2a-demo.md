@@ -77,11 +77,13 @@ Paper 26.2 build 84, Java 25 (Temurin 25.0.4.7), Windows 11, trusted-local, ayn�
 
 Başarı scenario'larında 8/8 assertion, config scenario'larında 3/3 beklenen hata kodu birebir eşleşti (`scenario.expect_satisfied` logu expected/actual ikilisini taşır). `scenario.engine_completed` kanıtları demo logunda.
 
+Evidence provenance (`rep_8a3fbdba29a3913e7a768353` koşusu): 6 scenario 11 kanıt üretti (her run 1 run-level + her assertion 1 assertion-level), örnek okuma-doğrulaması geçti (`ev_31073041b411eb3cd781570d`, kind=assertion-result, sha256 `bd8641298832cee1...`, 2148 byte). Manifest producer'ı `serverInstanceId` (rimg_...) + `bridgeBootId` (boot_...) taşır; rapor her scenario için `evidence_ids` içerir. Store `.mcpdev-data/evidence/<runId>/` altında (gitignore'lu), content-addressed (checksum doğrulamalı okuma).
+
 Rapor ölçümü (JSON/Markdown/JUnit): `rep_c467f99202f86d214363f7c0` — özet `total=6 passed=6 duration_ms=139254`, her scenario kendi `scenario_run_id` + adım/kanıt sayısıyla; Markdown tablosu ve JUnit XML aynı `report_id`'yi taşır.
 
 ## Bilinen sınırlar
 
-- `evidence_ids` boş: demo evidence store yapılandırmaz (M2A sonrası için).
+- `evidence_ids` artık dolu: demo evidence store'u `.mcpdev-data/evidence/<runId>/` altında yapılandırır; scenario başına run-level + assertion-level kanıt yazılır.
 - `scenario_assertion_event` history'ye eklendi ama MCP araç yüzeyinde assertion event görünürlüğü sonraki adıma kaldı.
 - 20x determinism koşusu kapsam dışıdır (roadmap M2A).
 - Config error scenario'ları canlı koşumda `--errors` bayrağı ile; aksi halde default akış 3 scenario koşar.

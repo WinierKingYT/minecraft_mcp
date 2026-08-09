@@ -87,6 +87,8 @@ export interface StepResult {
   readonly error?: string;
   readonly errorCode?: string;
   readonly suggestedAction?: string;
+  /** Poll tabanlı assertion'larda deneme sayısı (then fazı). */
+  readonly attempts?: number;
 }
 
 export interface AssertionResult {
@@ -236,6 +238,11 @@ export class ScenarioEngine {
           passed: result.status === 'passed',
           message: result.error ?? 'Assertion başarılı.',
         });
+        this.#evidenceCollector?.addAssertionResult(
+          this.#assertions[this.#assertions.length - 1]!,
+          result.durationMs,
+          result.attempts ?? 1,
+        );
       }
       this.#evidenceCollector?.completePhase('then');
       // 8. cleanup adımlarını çalıştır
@@ -317,6 +324,8 @@ export class ScenarioEngine {
         runtime_image_id: runtime.runtimeImageId,
         bridge_boot_id: runtime.bridgeBootId,
       });
+      // Provenance zinciri: runtime_image_id -> scenario_run_id -> evidence
+      this.#evidenceCollector?.setRuntimeInfo(runtime.runtimeImageId, runtime.bridgeBootId);
       return;
     }
 
@@ -431,7 +440,10 @@ export class ScenarioEngine {
 
     const deadline = startTime + withinMs;
 
+    let attempts = 0;
+
     while (Date.now() < deadline) {
+      attempts += 1;
       try {
         const result = await this.#evaluateAssertion(stepName, args);
         if (result.passed) {
@@ -440,8 +452,9 @@ export class ScenarioEngine {
             step_name: stepName,
             index,
             duration_ms: durationMs,
+            attempts,
           });
-          return { stepName, phase: 'then', index, status: 'passed', durationMs };
+          return { stepName, phase: 'then', index, status: 'passed', durationMs, attempts };
         }
       } catch (err) {
         // Assertion değerlendirilemedi, tekrar dene
@@ -469,9 +482,10 @@ export class ScenarioEngine {
       step_name: stepName,
       index,
       duration_ms: durationMs,
+      attempts,
     });
 
-    return { stepName, phase: 'then', index, status: 'failed', durationMs, error };
+    return { stepName, phase: 'then', index, status: 'failed', durationMs, error, attempts };
   }
 
   /**

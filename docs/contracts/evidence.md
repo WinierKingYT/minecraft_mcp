@@ -91,3 +91,5 @@ V1:
 Rapor formatları: JSON · Markdown · JUnit XML. Üçü aynı `report_id`'yi ve aynı provenance alanlarını taşır.
 
 **Uygulama:** `apps/run-supervisor/src/scenario-report.ts` (DSL-12 sonrası). JSON şeması `scenario-report-v1`; JUnit XML testcase başına scenario, `failure type="failed|timed_out"`; kamuya açık raporda mutlak host path reddedilir (`SCENARIO_REPORT_PATH_ABSOLUTE`) ve ayraçlar Unix formuna normalize edilir. Dosyalar atomik yazılır (temp-write + rename). Canlı kanıt: `docs/operations/m2a-demo.md` (`rep_c467f99202f86d214363f7c0`).
+
+**Provenance uygulaması:** `scenario-evidence.ts` collector'ı her scenario run için run-level + assertion-level evidence yazar; manifest producer'ı `serverInstanceId` (runtime_image_id) ve `bridgeBootId` taşır (engine `setRuntimeInfo` ile bağlar). Demo `.mcpdev-data/evidence/<runId>/` altında content-addressed store yapılandırır ve koşum sonunda `evidence.get` ile checksum yeniden doğrulaması yapar. Canlı kanıt: 6 scenario, 11 kanıt (`docs/operations/m2a-demo.md`).

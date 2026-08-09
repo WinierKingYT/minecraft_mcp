@@ -1,224 +1,174 @@
 /**
- * Scenario Evidence Collector Testleri.
+ * Scenario Evidence Collector testleri — evidence provenance zinciri.
  *
- * ScenarioEvidenceCollector'ın doğru çalışmasını doğrular.
+ * docs/contracts/evidence.md: scenario_run_id -> evidence_id[] halkası
+ * collector tarafından doldurulur; her evidence content-addressed store'a
+ * redaction sonrası hash ile yazılır ve okumada checksum yeniden doğrulanır.
  */
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { EvidenceStore } from '@mcpdev/evidence-model';
 import { ScenarioEvidenceCollector, type ScenarioEvidenceOptions } from '../src/scenario-evidence.js';
-import type { StepResult, AssertionResult } from '../src/scenario-engine.js';
 
-// ------------------------------------------------------------ Mock Evidence Store
+const baseOptions: ScenarioEvidenceOptions = {
+  scenarioRunId: 'sr_test_1',
+  projectId: 'proj_test',
+  scenarioId: 'read-block',
+  scenarioPath: 'scenarios/world/read-block.yaml',
+  version: '0.1.0',
+};
 
-interface MockStore {
-  putCalls: Array<{ runId: string; kind: string; content: string }>;
-  put: (request: { runId: string; kind: string; content: string; [key: string]: unknown }) => Promise<{ evidenceId: string }>;
+async function withStore(fn: (store: EvidenceStore, root: string) => Promise<void>): Promise<void> {
+  const root = await mkdtemp(join(tmpdir(), 'evidence-collector-test-'));
+  try {
+    await fn(new EvidenceStore(root), root);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
 }
 
-function createMockStore(): MockStore {
-  const store: MockStore = {
-    putCalls: [],
-    async put(request) {
-      store.putCalls.push({ runId: request.runId, kind: request.kind, content: request.content });
-      return { evidenceId: `ev_${Date.now()}_${Math.random().toString(36).slice(2, 8)}` };
-    },
-  };
-  return store;
-}
+test('collector: flush run + assertion evidence yazar, producer runtime bilgisi taşır', async () => {
+  await withStore(async (store) => {
+    const collector = new ScenarioEvidenceCollector(store, baseOptions);
+    collector.setRuntimeInfo('rimg_test_1', 'boot_test_1');
 
-function createTestOptions(overrides: Partial<ScenarioEvidenceOptions> = {}): ScenarioEvidenceOptions {
-  return {
-    scenarioRunId: 'sr_test_123',
-    projectId: 'test-project',
-    scenarioId: 'test-scenario',
-    scenarioPath: '/test/scenario.yaml',
-    version: '0.1.0',
-    ...overrides,
-  };
-}
+    collector.startPhase('given');
+    collector.addStepResult({
+      stepName: 'world.set_chunk_ticket',
+      phase: 'given',
+      index: 0,
+      status: 'passed',
+      durationMs: 181,
+    });
+    collector.completePhase('given');
 
-function createTestStepResult(overrides: Partial<StepResult> = {}): StepResult {
-  return {
-    stepName: 'assert.block',
-    phase: 'then',
-    index: 0,
-    status: 'passed',
-    durationMs: 100,
-    ...overrides,
-  };
-}
+    collector.startPhase('then');
+    collector.addStepResult({
+      stepName: 'assert.block',
+      phase: 'then',
+      index: 0,
+      status: 'passed',
+      durationMs: 11,
+      attempts: 1,
+    });
+    collector.addAssertionResult(
+      { stepName: 'assert.block', passed: true, message: 'Assertion başarılı.' },
+      11,
+      1,
+    );
+    collector.completePhase('then');
 
-// ------------------------------------------------------------ Testler
+    const ids = await collector.flush(
+      'sr_test_1',
+      'completed',
+      new Date('2026-08-08T10:00:00Z'),
+      new Date('2026-08-08T10:00:01Z'),
+    );
 
-test('ScenarioEvidenceCollector: phase başlangıç ve tamamlama', () => {
-  const store = createMockStore();
-  const collector = new ScenarioEvidenceCollector(store as any, createTestOptions());
+    // 1 run-level + 1 assertion-level evidence
+    assert.equal(ids.length, 2);
+    assert.ok(ids.every((id) => id.startsWith('ev_')));
 
-  collector.startPhase('given');
-  // Phase tamamlanmadan önce step ekleyelim
-  collector.addStepResult(createTestStepResult({ phase: 'given' }));
-  collector.completePhase('given');
+    // Okuma checksum doğrulamasından geçmeli
+    const runManifest = await store.getManifest(ids[0]!);
+    assert.equal(runManifest.kind, 'assertion-result');
+    assert.equal(runManifest.producer.component, 'run-supervisor');
+    assert.equal(runManifest.producer.serverInstanceId, 'rimg_test_1');
+    assert.equal(runManifest.producer.bridgeBootId, 'boot_test_1');
+    assert.equal(runManifest.scenarioRunId, 'sr_test_1');
 
-  assert.equal(collector.phases.length, 1);
-  assert.equal(collector.phases[0]?.phase, 'given');
-  assert.equal(collector.phases[0]?.steps.length, 1);
-  assert.equal(collector.phases[0]?.passed, 1);
-  assert.equal(collector.phases[0]?.failed, 0);
+    const { text } = await store.get(ids[0]!);
+    const parsed = JSON.parse(text) as { runtimeImageId: string; bridgeBootId: string; totalPassed: number };
+    assert.equal(parsed.runtimeImageId, 'rimg_test_1');
+    assert.equal(parsed.bridgeBootId, 'boot_test_1');
+    assert.equal(parsed.totalPassed, 2);
+  });
 });
 
-test('ScenarioEvidenceCollector: birden fazla phase', () => {
-  const store = createMockStore();
-  const collector = new ScenarioEvidenceCollector(store as any, createTestOptions());
+test("collector: assertion failed evidence'ı message ve attempts ile yazılır", async () => {
+  await withStore(async (store) => {
+    const collector = new ScenarioEvidenceCollector(store, baseOptions);
+    collector.setRuntimeInfo('rimg_test_1', 'boot_test_1');
 
-  collector.startPhase('given');
-  collector.completePhase('given');
+    collector.startPhase('then');
+    collector.addStepResult({
+      stepName: 'assert.event',
+      phase: 'then',
+      index: 0,
+      status: 'failed',
+      durationMs: 5000,
+      error: 'Assertion assert.event süre aşımı (5000ms)',
+      attempts: 10,
+    });
+    collector.addAssertionResult(
+      { stepName: 'assert.event', passed: false, message: 'Assertion assert.event süre aşımı (5000ms)' },
+      5000,
+      10,
+    );
+    collector.completePhase('then');
 
-  collector.startPhase('when');
-  collector.completePhase('when');
+    const ids = await collector.flush(
+      'sr_test_1',
+      'failed',
+      new Date('2026-08-08T10:00:00Z'),
+      new Date('2026-08-08T10:00:06Z'),
+    );
 
-  collector.startPhase('then');
-  collector.completePhase('then');
-
-  assert.equal(collector.phases.length, 3);
-  assert.equal(collector.phases[0]?.phase, 'given');
-  assert.equal(collector.phases[1]?.phase, 'when');
-  assert.equal(collector.phases[2]?.phase, 'then');
+    const assertionManifest = await store.getManifest(ids[1]!);
+    const { text } = await store.get(ids[1]!);
+    const parsed = JSON.parse(text) as { stepName: string; passed: boolean; attempts: number; durationMs: number };
+    assert.equal(parsed.stepName, 'assert.event');
+    assert.equal(parsed.passed, false);
+    assert.equal(parsed.attempts, 10);
+    assert.equal(parsed.durationMs, 5000);
+    assert.equal(assertionManifest.retention.expiresAt > assertionManifest.retention.createdAt, true);
+  });
 });
 
-test('ScenarioEvidenceCollector: step sonuçları', () => {
-  const store = createMockStore();
-  const collector = new ScenarioEvidenceCollector(store as any, createTestOptions());
+test('collector: runtime bilgisi verilmezse producer yalnızca component/version taşır', async () => {
+  await withStore(async (store) => {
+    const collector = new ScenarioEvidenceCollector(store, baseOptions);
+    collector.startPhase('then');
+    collector.addAssertionResult({ stepName: 'assert.no_log', passed: true, message: 'ok' }, 14, 1);
+    collector.completePhase('then');
 
-  collector.startPhase('given');
-  collector.addStepResult(createTestStepResult({ phase: 'given', status: 'passed' }));
-  collector.addStepResult(createTestStepResult({ phase: 'given', status: 'failed', error: 'Test hatası' }));
-  collector.addStepResult(createTestStepResult({ phase: 'given', status: 'skipped' }));
-  collector.completePhase('given');
+    const ids = await collector.flush(
+      'sr_test_1',
+      'completed',
+      new Date('2026-08-08T10:00:00Z'),
+      new Date('2026-08-08T10:00:01Z'),
+    );
 
-  const phase = collector.phases[0];
-  assert.equal(phase?.steps.length, 3);
-  assert.equal(phase?.passed, 1);
-  assert.equal(phase?.failed, 1);
-  assert.equal(phase?.skipped, 1);
+    const manifest = await store.getManifest(ids[0]!);
+    assert.equal(manifest.producer.serverInstanceId, undefined);
+    assert.equal(manifest.producer.bridgeBootId, undefined);
+  });
 });
 
-test('ScenarioEvidenceCollector: assertion sonuçları', () => {
-  const store = createMockStore();
-  const collector = new ScenarioEvidenceCollector(store as any, createTestOptions());
+test('collector: secret içeren içerik redaction sonrası saklanır (no raw secret)', async () => {
+  await withStore(async (store) => {
+    const collector = new ScenarioEvidenceCollector(store, baseOptions);
+    collector.startPhase('then');
+    collector.addAssertionResult(
+      { stepName: 'assert.block', passed: false, message: 'token=abc123secretvalue' },
+      5,
+      2,
+    );
+    collector.completePhase('then');
 
-  const assertion: AssertionResult = {
-    stepName: 'assert.block',
-    passed: true,
-    message: 'Block assertion başarılı',
-    expected: 'minecraft:stone',
-    actual: 'minecraft:stone',
-  };
+    const ids = await collector.flush(
+      'sr_test_1',
+      'failed',
+      new Date('2026-08-08T10:00:00Z'),
+      new Date('2026-08-08T10:00:01Z'),
+    );
 
-  collector.addAssertionResult(assertion, 150, 3);
-
-  assert.equal(collector.assertions.length, 1);
-  assert.equal(collector.assertions[0]?.passed, true);
-  assert.equal(collector.assertions[0]?.durationMs, 150);
-  assert.equal(collector.assertions[0]?.attempts, 3);
-});
-
-test('ScenarioEvidenceCollector: flush evidence store\'a yazar', async () => {
-  const store = createMockStore();
-  const collector = new ScenarioEvidenceCollector(store as any, createTestOptions());
-
-  collector.startPhase('given');
-  collector.addStepResult(createTestStepResult({ phase: 'given' }));
-  collector.completePhase('given');
-
-  const startedAt = new Date('2026-01-01T00:00:00Z');
-  const completedAt = new Date('2026-01-01T00:00:01Z');
-
-  const evidenceIds = await collector.flush('sr_test_123', 'completed', startedAt, completedAt);
-
-  assert.ok(evidenceIds.length > 0);
-  assert.ok(store.putCalls.length > 0);
-  assert.equal(store.putCalls[0]?.runId, 'sr_test_123');
-});
-
-test('ScenarioEvidenceCollector: flush scenario run evidence içerir', async () => {
-  const store = createMockStore();
-  const collector = new ScenarioEvidenceCollector(store as any, createTestOptions());
-
-  collector.startPhase('given');
-  collector.addStepResult(createTestStepResult({ phase: 'given', status: 'passed' }));
-  collector.completePhase('given');
-
-  collector.startPhase('then');
-  collector.addStepResult(createTestStepResult({ phase: 'then', status: 'passed' }));
-  collector.completePhase('then');
-
-  await collector.flush('sr_test_123', 'completed', new Date(), new Date());
-
-  // İlk put çağrısı scenario run evidence'ı olmalı
-  const firstCall = store.putCalls[0];
-  assert.ok(firstCall);
-  
-  const evidence = JSON.parse(firstCall.content);
-  assert.equal(evidence.scenarioRunId, 'sr_test_123');
-  assert.equal(evidence.status, 'completed');
-  assert.equal(evidence.totalSteps, 2);
-  assert.equal(evidence.totalPassed, 2);
-  assert.equal(evidence.phases.length, 2);
-});
-
-test('ScenarioEvidenceCollector: flush assertion evidence\'ları ayrı yazar', async () => {
-  const store = createMockStore();
-  const collector = new ScenarioEvidenceCollector(store as any, createTestOptions());
-
-  collector.startPhase('then');
-  collector.addStepResult(createTestStepResult({ phase: 'then', status: 'passed' }));
-  collector.completePhase('then');
-
-  collector.addAssertionResult({
-    stepName: 'assert.block',
-    passed: true,
-    message: 'Basarili',
-  }, 100, 1);
-
-  await collector.flush('sr_test_123', 'completed', new Date(), new Date());
-
-  // En az 2 put çağrısı olmalı (1 scenario run + 1 assertion)
-  assert.ok(store.putCalls.length >= 2);
-});
-
-test('ScenarioEvidenceCollector: flush hata yönetimi', async () => {
-  const failingStore = {
-    async put() {
-      throw new Error('Store hatası');
-    },
-  };
-
-  const collector = new ScenarioEvidenceCollector(failingStore as any, createTestOptions());
-  collector.startPhase('given');
-  collector.completePhase('given');
-
-  // Hata fırlatmamalı
-  const evidenceIds = await collector.flush('sr_test', 'completed', new Date(), new Date());
-  assert.equal(evidenceIds.length, 0);
-});
-
-test('ScenarioEvidenceCollector: phases ve assertions getter', () => {
-  const store = createMockStore();
-  const collector = new ScenarioEvidenceCollector(store as any, createTestOptions());
-
-  collector.startPhase('given');
-  collector.addStepResult(createTestStepResult({ phase: 'given' }));
-  collector.completePhase('given');
-
-  collector.addAssertionResult({
-    stepName: 'test',
-    passed: true,
-    message: 'test',
-  }, 50, 1);
-
-  assert.ok(Array.isArray(collector.phases));
-  assert.ok(Array.isArray(collector.assertions));
-  assert.equal(collector.phases.length, 1);
-  assert.equal(collector.assertions.length, 1);
+    const { text } = await store.get(ids[0]!);
+    assert.ok(!text.includes('abc123secretvalue'), 'raw secret redaction ile maskelenmeli');
+    assert.ok(text.includes('[REDACTED]'));
+  });
 });

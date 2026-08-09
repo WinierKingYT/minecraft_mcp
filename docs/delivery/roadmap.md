@@ -86,7 +86,7 @@ Trust store · source snapshot · wrapper verification · dependency locking/ver
 
 Fixture manifest · determinism profile · disposable runtime per scenario · Scenario DSL · server/plugin/log/event/block assertion'ları · config error scenario · JSON/Markdown/JUnit · evidence provenance.
 
-> **Durum (M2A canlı demo):** Scenario DSL + assertion motoru (block/server_state/event/no_log) gerçek Paper'da koşuyor: 6 scenario, 8/8 assertion pasif + 3/3 config error scenario beklenen hata koduyla (DSL-12 `expect`), GC kalıntısız (`docs/operations/m2a-demo.md`). Rapor formatları (JSON/Markdown/JUnit XML, tek `report_id` + provenance) `scenario-report.ts` ile üretiliyor ve canlı koşumda doğrulandı. Kalan iş: evidence provenance, assertion event görünürlüğü, MCP araç yüzeyinde EULA akışının İnspector doğrulaması.
+> **Durum (M2A canlı demo):** Scenario DSL + assertion motoru (block/server_state/event/no_log) gerçek Paper'da koşuyor: 6 scenario, 8/8 assertion pasif + 3/3 config error scenario beklenen hata koduyla (DSL-12 `expect`), GC kalıntısız (`docs/operations/m2a-demo.md`). Rapor formatları (JSON/Markdown/JUnit XML, tek `report_id` + provenance) `scenario-report.ts` ile üretiliyor; evidence provenance zinciri canlı doğrulandı (11 kanıt, content-addressed store, manifest `serverInstanceId`/`bridgeBootId` taşır). Kalan iş: assertion event görünürlüğü, MCP araç yüzeyinde EULA akışının İnspector doğrulaması.
 
 ## M2B — Protocol Actor Scenarios
 
