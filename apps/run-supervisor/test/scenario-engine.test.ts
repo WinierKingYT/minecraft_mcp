@@ -353,6 +353,47 @@ cleanup: []
 
 // ------------------------------------------------------------ expect bloğu (DSL-12)
 
+test('engine: EULA_NOT_ACCEPTED engine hatası errorCode olarak sonuca taşınır', async () => {
+  const { path, cleanup } = await writeScenario(`
+version: 1
+id: eula-reject
+title: EULA reddi
+profile: isolated-test
+timeout: 30s
+requires:
+  capabilities:
+    - world.block.read
+given: []
+when: []
+then:
+  - assert.block:
+      position: { world_key: minecraft:overworld, x: 0, y: 64, z: 0 }
+      within: 1s
+cleanup: []
+`);
+
+  try {
+    const engine = new ScenarioEngine({
+      repoRoot: '.',
+      scenarioPath: path,
+      projectId: 'proj_test',
+      runtimeProvider: async () => {
+        throw Object.assign(new Error('Minecraft EULA kabul edilmeden runtime oluşturulamaz.'), {
+          code: 'EULA_NOT_ACCEPTED',
+        });
+      },
+    });
+
+    const result = await engine.run();
+    assert.equal(result.status, 'failed');
+    assert.equal(result.errorCode, 'EULA_NOT_ACCEPTED');
+    assert.equal(result.passed, 0);
+    assert.equal(result.evidenceIds.length, 0);
+  } finally {
+    await cleanup();
+  }
+});
+
 test('engine: expect failed + error_code eşleşirse scenario completed sayılır', async () => {
   const bridge = createFailingBridge('CHUNK_NOT_LOADED');
   const { provider } = createRecordingProvider(bridge);

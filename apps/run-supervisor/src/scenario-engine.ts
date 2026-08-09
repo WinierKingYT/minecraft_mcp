@@ -128,6 +128,8 @@ export class ScenarioEngine {
   #actorClient: ActorClient | null = null;
   #runtime: ProvisionedRuntime | null = null;
   #evidenceCollector: ScenarioEvidenceCollector | null = null;
+  /** Run'ı iptal eden engine düzeyi hata kodu (örn. EULA_NOT_ACCEPTED). */
+  #runErrorCode: string | null = null;
 
   constructor(options: ScenarioEngineOptions) {
     this.#options = options;
@@ -273,8 +275,13 @@ export class ScenarioEngine {
 
       return await this.#finalize(runId, startTime, status as 'completed' | 'failed', scenario);
     } catch (err) {
+      const errorCode = (err as { code?: unknown })?.code;
+      if (typeof errorCode === 'string') {
+        this.#runErrorCode = errorCode;
+      }
       this.#log('ERROR', 'scenario.engine_error', {
         scenario_run_id: runId,
+        ...(this.#runErrorCode ? { error_code: this.#runErrorCode } : {}),
         message: err instanceof Error ? err.message : String(err),
       });
       return this.#finalize(runId, startTime, 'failed', scenario);
@@ -1098,6 +1105,9 @@ export class ScenarioEngine {
     const failed = this.#steps.filter((s) => s.status === 'failed' || s.status === 'error').length;
     const skipped = this.#steps.filter((s) => s.status === 'skipped').length;
 
+    const firstError = this.#steps.find((s) => s.status === 'failed' || s.status === 'error');
+    const errorCode = firstError?.errorCode ?? this.#runErrorCode ?? undefined;
+
     // Evidence'ları flush et
     let evidenceIds: string[] = [];
     if (this.#evidenceCollector) {
@@ -1118,6 +1128,7 @@ export class ScenarioEngine {
       skipped,
       duration_ms: durationMs,
       evidence_count: evidenceIds.length,
+      ...(errorCode !== undefined ? { error_code: errorCode } : {}),
     });
 
     return {
@@ -1128,6 +1139,7 @@ export class ScenarioEngine {
       skipped,
       durationMs,
       evidenceIds,
+      ...(errorCode !== undefined ? { errorCode } : {}),
       assertions: this.#assertions,
     };
   }

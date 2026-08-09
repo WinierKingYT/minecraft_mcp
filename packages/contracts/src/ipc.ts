@@ -310,6 +310,12 @@ export interface ScenarioRunResult {
   readonly durationMs: number;
   readonly evidenceIds: readonly string[];
   /**
+   * Run'ı etkileyen hata kodu (varsa): ilk hatalı adımın kodu veya engine
+   * düzeyi hata (örn. EULA_NOT_ACCEPTED). completed run'larda da olabilir
+   * (DSL-12 config error scenario: beklenen hata gerçekleşmiştir).
+   */
+  readonly errorCode?: string;
+  /**
    * Assertion düzeyi sonuçlar (then fazı). MCP tool yüzeyinde her assertion'ın
    * durumu, deneme sayısı ve expected/actual değerleri buradan görünür.
    */

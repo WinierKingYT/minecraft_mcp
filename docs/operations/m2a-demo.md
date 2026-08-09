@@ -90,3 +90,5 @@ Rapor ölçümü (JSON/Markdown/JUnit): `rep_c467f99202f86d214363f7c0` — özet
 - 20x determinism koşusu kapsam dışıdır (roadmap M2A).
 - Config error scenario'ları canlı koşumda `--errors` bayrağı ile; aksi halde default akış 3 scenario koşar.
 - CLI argümanlarıyla `node dist/...` çağrısı Start-Process quoting'inde sorun çıkarır; driver temp `.mjs` dosyalarından `runM2ADemo` çağrılır.
+
+**MCP araç yüzeyi EULA akışı:** supervisor standalone (`mcpdev-supervisor start`, `apps/run-supervisor/src/main.ts`) + kontrol dosyası (named pipe endpoint) + mcp-server stdio zinciri üzerinden canlı doğrulandı — `accept_minecraft_eula=false` → `EULA_NOT_ACCEPTED` (error catalog `runtime.yaml`'a eklendi, 113 kod; `retryable=false`, `suggested_action` kabulü açıkça ister; runtime dizini oluşmaz, kanıt yok), `true` → gerçek Paper koşusu `completed` + `evidence_ids` (3) + `assertions[]`. Detaylar: [`../operations/mcp-eula-check.md`](../operations/mcp-eula-check.md).

@@ -377,11 +377,12 @@ export function createScenarioTools(info: ScenarioToolsInfo): Array<[ToolDefinit
         });
 
         if (result.status === 'failed') {
-          return toolError(ctx.correlationId, 'ASSERTION_FAILED', {
+          return toolError(ctx.correlationId, (result.errorCode ?? 'ASSERTION_FAILED') as never, {
             scenario_run_id: result.scenarioRunId,
             passed: result.passed,
             failed: result.failed,
             duration_ms: result.durationMs,
+            ...(result.errorCode !== undefined ? { error_code: result.errorCode } : {}),
             assertions: result.assertions,
           });
         }
@@ -394,6 +395,7 @@ export function createScenarioTools(info: ScenarioToolsInfo): Array<[ToolDefinit
           skipped: result.skipped,
           duration_ms: result.durationMs,
           evidence_ids: result.evidenceIds,
+          ...(result.errorCode !== undefined ? { error_code: result.errorCode } : {}),
           assertions: result.assertions,
         });
       } catch (err) {

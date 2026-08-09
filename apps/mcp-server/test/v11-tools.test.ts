@@ -13,6 +13,7 @@ import assert from 'node:assert/strict';
 import { createPoolTools } from '../src/tools/pool.js';
 import { createProfileTools } from '../src/tools/profile.js';
 import { createPermissionTools } from '../src/tools/permission.js';
+import { createScenarioTools } from '../src/tools/scenario.js';
 import type { SupervisorClient } from '../src/supervisor-client.js';
 import type { ToolDefinition, ToolHandler } from '../src/tools/facade.js';
 import type { ToolProfileName } from '@mcpdev/generated-types';
@@ -160,4 +161,108 @@ test('profile_get başarı yolu doğru IPC method adını kullanır', async () =
   const r = await fn({ profile_id: 'paper-26.2-build-84-v1' }, CTX);
   assert.equal(r.status, 'success');
   assert.equal(called, true);
+});
+
+test('scenario_run failed + errorCode EULA_NOT_ACCEPTED catalog mesajıyla tool hatası döner', async () => {
+  const info = {
+    scenariosDir: '.',
+    supervisor: async () => makeFakeSupervisor({
+      'scenario.run': () => ({
+        scenarioRunId: 'sr_test',
+        status: 'failed',
+        passed: 0,
+        failed: 0,
+        skipped: 0,
+        durationMs: 150,
+        evidenceIds: [],
+        errorCode: 'EULA_NOT_ACCEPTED',
+        assertions: [],
+      }),
+    }),
+  };
+  const [, fn] = tupleHandler(createScenarioTools(info), 'scenario_run');
+  const r = await fn(
+    {
+      scenario_path: 'scenarios/world/read-block.yaml',
+      project_id: 'proj_test',
+      accept_minecraft_eula: false,
+    },
+    CTX,
+  );
+  assert.equal(r.status, 'error');
+  assert.equal(r.error?.code, 'EULA_NOT_ACCEPTED');
+  assert.equal(r.error?.retryable, false);
+  assert.ok(r.error?.suggested_action?.includes('accept_minecraft_eula'));
+});
+
+test('scenario_run failed, errorCode yoksa ASSERTION_FAILED döner', async () => {
+  const info = {
+    scenariosDir: '.',
+    supervisor: async () => makeFakeSupervisor({
+      'scenario.run': () => ({
+        scenarioRunId: 'sr_test',
+        status: 'failed',
+        passed: 2,
+        failed: 1,
+        skipped: 0,
+        durationMs: 5000,
+        evidenceIds: ['ev_1'],
+        assertions: [],
+      }),
+    }),
+  };
+  const [, fn] = tupleHandler(createScenarioTools(info), 'scenario_run');
+  const r = await fn(
+    {
+      scenario_path: 'scenarios/world/read-block.yaml',
+      project_id: 'proj_test',
+      accept_minecraft_eula: true,
+    },
+    CTX,
+  );
+  assert.equal(r.status, 'error');
+  assert.equal(r.error?.code, 'ASSERTION_FAILED');
+});
+
+test('scenario_run success yanıtı assertion görünürlüğünü taşır', async () => {
+  const info = {
+    scenariosDir: '.',
+    supervisor: async () => makeFakeSupervisor({
+      'scenario.run': () => ({
+        scenarioRunId: 'sr_test',
+        status: 'completed',
+        passed: 2,
+        failed: 0,
+        skipped: 0,
+        durationMs: 2500,
+        evidenceIds: ['ev_1'],
+        assertions: [
+          {
+            stepName: 'assert.block',
+            passed: true,
+            message: 'Assertion başarılı.',
+            durationMs: 33,
+            attempts: 1,
+            expected: 'minecraft:chest',
+            actual: 'minecraft:chest',
+          },
+        ],
+      }),
+    }),
+  };
+  const [, fn] = tupleHandler(createScenarioTools(info), 'scenario_run');
+  const r = await fn(
+    {
+      scenario_path: 'scenarios/world/read-block.yaml',
+      project_id: 'proj_test',
+      accept_minecraft_eula: true,
+    },
+    CTX,
+  );
+  assert.equal(r.status, 'success');
+  const data = r.data as { assertions: Array<{ stepName: string; expected: string; actual: string }> };
+  assert.equal(data.assertions.length, 1);
+  assert.equal(data.assertions[0]!.stepName, 'assert.block');
+  assert.equal(data.assertions[0]!.expected, 'minecraft:chest');
+  assert.equal(data.assertions[0]!.actual, 'minecraft:chest');
 });
