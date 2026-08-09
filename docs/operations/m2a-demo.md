@@ -85,6 +85,8 @@ Rapor ölçümü (JSON/Markdown/JUnit): `rep_c467f99202f86d214363f7c0` — özet
 
 - `evidence_ids` artık dolu: demo evidence store'u `.mcpdev-data/evidence/<runId>/` altında yapılandırır; scenario başına run-level + assertion-level kanıt yazılır.
 - `scenario_assertion_event` history'ye eklendi ama MCP araç yüzeyinde assertion event görünürlüğü sonraki adıma kaldı.
+
+**Assertion görünürlüğü (MCP araç yüzeyi):** `scenario_run` dönüşü her assertion için `step_name/passed/message/duration_ms/attempts/expected/actual` taşır. Canlı örnekler (`rep_1efd8e0c7b7c80be236ec7a8` koşusu): `assert.block` → `expected="minecraft:chest" actual="minecraft:chest"`, `assert.event` → `actual` tam event nesnesi (`sequence:1, type:"plugin.enabled"`), `assert.no_log` → `expected=0 actual=0`. Poll deneme sayısı `attempts` alanında; config error scenario'larında `then` boş olduğundan `assertions=0`.
 - 20x determinism koşusu kapsam dışıdır (roadmap M2A).
 - Config error scenario'ları canlı koşumda `--errors` bayrağı ile; aksi halde default akış 3 scenario koşar.
 - CLI argümanlarıyla `node dist/...` çağrısı Start-Process quoting'inde sorun çıkarır; driver temp `.mjs` dosyalarından `runM2ADemo` çağrılır.

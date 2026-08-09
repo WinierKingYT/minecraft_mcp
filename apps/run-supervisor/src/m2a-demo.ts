@@ -202,8 +202,17 @@ export async function runM2ADemo(options: M2ADemoOptions): Promise<M2ADemoEviden
         })) as ScenarioRunResult;
         log(
           `scenario: status=${result.status} passed=${result.passed} failed=${result.failed} ` +
-            `duration_ms=${result.durationMs} evidence=${result.evidenceIds.length}`,
+            `duration_ms=${result.durationMs} evidence=${result.evidenceIds.length} ` +
+            `assertions=${result.assertions.length}`,
         );
+        for (const assertion of result.assertions) {
+          log(
+            `  assert: ${assertion.stepName} ${assertion.passed ? 'PASSED' : 'FAILED'} ` +
+              `attempts=${assertion.attempts} duration_ms=${assertion.durationMs} ` +
+              (assertion.expected !== undefined ? `expected=${JSON.stringify(assertion.expected)} ` : '') +
+              (assertion.actual !== undefined ? `actual=${JSON.stringify(assertion.actual)}` : ''),
+          );
+        }
         scenarios.push({
           scenarioPath,
           scenarioRunId: result.scenarioRunId,

@@ -309,6 +309,21 @@ export interface ScenarioRunResult {
   readonly skipped: number;
   readonly durationMs: number;
   readonly evidenceIds: readonly string[];
+  /**
+   * Assertion düzeyi sonuçlar (then fazı). MCP tool yüzeyinde her assertion'ın
+   * durumu, deneme sayısı ve expected/actual değerleri buradan görünür.
+   */
+  readonly assertions: readonly ScenarioAssertionResult[];
+}
+
+export interface ScenarioAssertionResult {
+  readonly stepName: string;
+  readonly passed: boolean;
+  readonly message: string;
+  readonly durationMs: number;
+  readonly attempts: number;
+  readonly expected?: unknown;
+  readonly actual?: unknown;
 }
 
 export interface EvidenceGetParams {

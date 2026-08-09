@@ -56,7 +56,7 @@ test('collector: flush run + assertion evidence yazar, producer runtime bilgisi 
       attempts: 1,
     });
     collector.addAssertionResult(
-      { stepName: 'assert.block', passed: true, message: 'Assertion başarılı.' },
+      { stepName: 'assert.block', passed: true, message: 'Assertion başarılı.', durationMs: 12, attempts: 1 },
       11,
       1,
     );
@@ -105,7 +105,7 @@ test("collector: assertion failed evidence'ı message ve attempts ile yazılır"
       attempts: 10,
     });
     collector.addAssertionResult(
-      { stepName: 'assert.event', passed: false, message: 'Assertion assert.event süre aşımı (5000ms)' },
+      { stepName: 'assert.event', passed: false, message: 'Assertion assert.event süre aşımı (5000ms)', durationMs: 5000, attempts: 10 },
       5000,
       10,
     );
@@ -133,7 +133,7 @@ test('collector: runtime bilgisi verilmezse producer yalnızca component/version
   await withStore(async (store) => {
     const collector = new ScenarioEvidenceCollector(store, baseOptions);
     collector.startPhase('then');
-    collector.addAssertionResult({ stepName: 'assert.no_log', passed: true, message: 'ok' }, 14, 1);
+    collector.addAssertionResult({ stepName: 'assert.no_log', passed: true, message: 'ok', durationMs: 14, attempts: 1 }, 14, 1);
     collector.completePhase('then');
 
     const ids = await collector.flush(
@@ -154,7 +154,7 @@ test('collector: secret içeren içerik redaction sonrası saklanır (no raw sec
     const collector = new ScenarioEvidenceCollector(store, baseOptions);
     collector.startPhase('then');
     collector.addAssertionResult(
-      { stepName: 'assert.block', passed: false, message: 'token=abc123secretvalue' },
+      { stepName: 'assert.block', passed: false, message: 'token=abc123secretvalue', durationMs: 10, attempts: 1 },
       5,
       2,
     );

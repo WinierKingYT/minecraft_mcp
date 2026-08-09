@@ -382,6 +382,7 @@ export function createScenarioTools(info: ScenarioToolsInfo): Array<[ToolDefinit
             passed: result.passed,
             failed: result.failed,
             duration_ms: result.durationMs,
+            assertions: result.assertions,
           });
         }
 
@@ -393,6 +394,7 @@ export function createScenarioTools(info: ScenarioToolsInfo): Array<[ToolDefinit
           skipped: result.skipped,
           duration_ms: result.durationMs,
           evidence_ids: result.evidenceIds,
+          assertions: result.assertions,
         });
       } catch (err) {
         const error = err as { code?: string; message?: string };

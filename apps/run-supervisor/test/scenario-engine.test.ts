@@ -157,6 +157,54 @@ cleanup: []
   }
 });
 
+test('engine: assertion görünürlüğü — assertions listesi expected/actual/attempts/duration taşır', async () => {
+  const bridge = createFakeBridge();
+  const { provider } = createRecordingProvider(bridge);
+  const { path, cleanup } = await writeScenario(`
+version: 1
+id: assertion-visibility
+title: Assertion görünürlüğü
+profile: isolated-test
+timeout: 30s
+requires:
+  capabilities:
+    - world.block.read
+given: []
+when: []
+then:
+  - assert.block:
+      position: { world_key: minecraft:overworld, x: 0, y: 64, z: 0 }
+      material: minecraft:air
+      within: 2s
+cleanup: []
+`);
+
+  try {
+    const engine = new ScenarioEngine({
+      repoRoot: '.',
+      scenarioPath: path,
+      projectId: 'proj_test',
+      runtimeProvider: provider,
+    });
+
+    const result = await engine.run();
+    assert.equal(result.status, 'completed');
+    assert.equal(result.assertions.length, 1);
+    const assertion = result.assertions[0]!;
+    assert.equal(assertion.stepName, 'assert.block');
+    assert.equal(assertion.passed, true);
+    assert.equal(assertion.expected, 'minecraft:air');
+    assert.equal(assertion.actual, 'minecraft:air');
+    assert.ok(assertion.durationMs >= 0);
+    assert.ok(assertion.attempts >= 1);
+    assert.match(assertion.message, /başar/i);
+
+    await engine.disposeRuntime();
+  } finally {
+    await cleanup();
+  }
+});
+
 test('engine: world.set_chunk_ticket ve world.set_block action endpointinden idempotency key ile gider', async () => {
   const bridge = createFakeBridge();
   const { provider } = createRecordingProvider(bridge);

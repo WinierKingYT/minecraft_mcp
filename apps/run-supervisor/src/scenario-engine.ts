@@ -89,12 +89,18 @@ export interface StepResult {
   readonly suggestedAction?: string;
   /** Poll tabanlı assertion'larda deneme sayısı (then fazı). */
   readonly attempts?: number;
+  /** Assertion görünürlüğü: beklenen değer (then fazı). */
+  readonly expected?: unknown;
+  /** Assertion görünürlüğü: gerçekte bulunan değer (then fazı). */
+  readonly actual?: unknown;
 }
 
 export interface AssertionResult {
   readonly stepName: string;
   readonly passed: boolean;
   readonly message: string;
+  readonly durationMs: number;
+  readonly attempts: number;
   readonly expected?: unknown;
   readonly actual?: unknown;
 }
@@ -237,6 +243,10 @@ export class ScenarioEngine {
           stepName: Object.keys(step)[0]!,
           passed: result.status === 'passed',
           message: result.error ?? 'Assertion başarılı.',
+          durationMs: result.durationMs,
+          attempts: result.attempts ?? 1,
+          ...(result.expected !== undefined ? { expected: result.expected } : {}),
+          ...(result.actual !== undefined ? { actual: result.actual } : {}),
         });
         this.#evidenceCollector?.addAssertionResult(
           this.#assertions[this.#assertions.length - 1]!,
@@ -454,7 +464,16 @@ export class ScenarioEngine {
             duration_ms: durationMs,
             attempts,
           });
-          return { stepName, phase: 'then', index, status: 'passed', durationMs, attempts };
+          return {
+            stepName,
+            phase: 'then',
+            index,
+            status: 'passed',
+            durationMs,
+            attempts,
+            ...(result.expected !== undefined ? { expected: result.expected } : {}),
+            ...(result.actual !== undefined ? { actual: result.actual } : {}),
+          };
         }
       } catch (err) {
         // Assertion değerlendirilemedi, tekrar dene
@@ -540,7 +559,10 @@ export class ScenarioEngine {
   /**
    * Assertion'ı değerlendirir.
    */
-  async #evaluateAssertion(stepName: string, args: Record<string, unknown>): Promise<{ passed: boolean; message: string }> {
+  async #evaluateAssertion(
+    stepName: string,
+    args: Record<string, unknown>,
+  ): Promise<{ passed: boolean; message: string; expected?: unknown; actual?: unknown }> {
     if (!this.#bridgeClient) {
       throw Object.assign(new Error('Bridge client mevcut değil.'), { code: 'BRIDGE_UNAVAILABLE' });
     }
@@ -784,7 +806,9 @@ export class ScenarioEngine {
 
   // ─── Assertion Implementations ───────────────────────────────────────────
 
-  async #assertBlock(args: Record<string, unknown>): Promise<{ passed: boolean; message: string }> {
+  async #assertBlock(
+    args: Record<string, unknown>,
+  ): Promise<{ passed: boolean; message: string; expected?: unknown; actual?: unknown }> {
     if (!this.#bridgeClient) {
       throw Object.assign(new Error('Bridge client mevcut değil.'), { code: 'BRIDGE_UNAVAILABLE' });
     }
@@ -805,13 +829,17 @@ export class ScenarioEngine {
       return {
         passed: false,
         message: `Beklenen malzeme: ${expectedMaterial}, bulunan: ${actualMaterial}`,
+        expected: expectedMaterial,
+        actual: actualMaterial,
       };
     }
 
-    return { passed: true, message: 'Block assertion başarılı.' };
+    return { passed: true, message: 'Block assertion başarılı.', expected: expectedMaterial, actual: actualMaterial };
   }
 
-  async #assertPlayerState(args: Record<string, unknown>): Promise<{ passed: boolean; message: string }> {
+  async #assertPlayerState(
+    args: Record<string, unknown>,
+  ): Promise<{ passed: boolean; message: string; expected?: unknown; actual?: unknown }> {
     if (!this.#bridgeClient) {
       throw Object.assign(new Error('Bridge client mevcut değil.'), { code: 'BRIDGE_UNAVAILABLE' });
     }
@@ -835,6 +863,8 @@ export class ScenarioEngine {
       return {
         passed: false,
         message: `Beklenen gamemode: ${expectedGamemode}, bulunan: ${player['gamemode']}`,
+        expected: expectedGamemode,
+        actual: player['gamemode'],
       };
     }
 
@@ -842,13 +872,21 @@ export class ScenarioEngine {
       return {
         passed: false,
         message: `Beklenen min health: ${expectedHealth}, bulunan: ${player['health']}`,
+        expected: expectedHealth,
+        actual: player['health'],
       };
     }
 
-    return { passed: true, message: 'Player state assertion başarılı.' };
+    return {
+      passed: true,
+      message: 'Player state assertion başarılı.',
+      ...(expectedGamemode !== undefined ? { expected: expectedGamemode, actual: player['gamemode'] } : {}),
+    };
   }
 
-  async #assertPlayerMessage(_args: Record<string, unknown>): Promise<{ passed: boolean; message: string }> {
+  async #assertPlayerMessage(
+    _args: Record<string, unknown>,
+  ): Promise<{ passed: boolean; message: string; expected?: unknown; actual?: unknown }> {
     if (!this.#actorClient) {
       throw Object.assign(new Error('Actor client mevcut değil (M2B milestone gerekli).'), {
         code: 'ACTOR_UNAVAILABLE',
@@ -861,7 +899,9 @@ export class ScenarioEngine {
     return { passed: true, message: 'Player message assertion (M2B) — pasif.' };
   }
 
-  async #assertEvent(args: Record<string, unknown>): Promise<{ passed: boolean; message: string }> {
+  async #assertEvent(
+    args: Record<string, unknown>,
+  ): Promise<{ passed: boolean; message: string; expected?: unknown; actual?: unknown }> {
     if (!this.#bridgeClient || !this.#runtime) {
       throw Object.assign(new Error('Bridge client/Runtime mevcut değil.'), { code: 'BRIDGE_UNAVAILABLE' });
     }
@@ -887,13 +927,21 @@ export class ScenarioEngine {
       return {
         passed: false,
         message: `Event bulunamadı: type=${eventType}` + (expectedActor ? `, actor=${expectedActor}` : ''),
+        expected: {
+          type: eventType,
+          ...(expectedActor !== undefined ? { actor: expectedActor } : {}),
+          ...(expectedCancelled !== undefined ? { cancelled: expectedCancelled } : {}),
+        },
+        actual: null,
       };
     }
 
-    return { passed: true, message: `Event bulundu: ${matchingEvent['type']}` };
+    return { passed: true, message: `Event bulundu: ${matchingEvent['type']}`, expected: eventType, actual: matchingEvent };
   }
 
-  async #assertNoLog(args: Record<string, unknown>): Promise<{ passed: boolean; message: string }> {
+  async #assertNoLog(
+    args: Record<string, unknown>,
+  ): Promise<{ passed: boolean; message: string; expected?: unknown; actual?: unknown }> {
     if (!this.#bridgeClient || !this.#runtime) {
       throw Object.assign(new Error('Bridge client/Runtime mevcut değil.'), { code: 'BRIDGE_UNAVAILABLE' });
     }
@@ -908,16 +956,20 @@ export class ScenarioEngine {
         return {
           passed: false,
           message: `${logEntries.length} log girişi bulundu (seviye >= ${levelAtLeast ?? 'INFO'})`,
+          expected: 0,
+          actual: logEntries.length,
         };
       }
     } catch {
       // Log okunamazsa, sorun olmadığını varsay
     }
 
-    return { passed: true, message: 'No log assertion başarılı.' };
+    return { passed: true, message: 'No log assertion başarılı.', expected: 0, actual: 0 };
   }
 
-  async #assertPluginEnabled(args: Record<string, unknown>): Promise<{ passed: boolean; message: string }> {
+  async #assertPluginEnabled(
+    args: Record<string, unknown>,
+  ): Promise<{ passed: boolean; message: string; expected?: unknown; actual?: unknown }> {
     if (!this.#bridgeClient) {
       throw Object.assign(new Error('Bridge client mevcut değil.'), { code: 'BRIDGE_UNAVAILABLE' });
     }
@@ -930,22 +982,35 @@ export class ScenarioEngine {
     if (pluginName) {
       const plugin = plugins.find((p) => p['name'] === pluginName || p['fullName'] === pluginName);
       if (!plugin) {
-        return { passed: false, message: `Plugin bulunamadı: ${pluginName}` };
+        return { passed: false, message: `Plugin bulunamadı: ${pluginName}`, expected: pluginName, actual: null };
       }
       if (plugin['enabled'] !== true) {
-        return { passed: false, message: `Plugin etkin değil: ${pluginName}` };
+        return {
+          passed: false,
+          message: `Plugin etkin değil: ${pluginName}`,
+          expected: true,
+          actual: plugin['enabled'],
+        };
       }
-    } else {
-      // Herhangi bir plugin etkin mi?
-      if (plugins.length === 0) {
-        return { passed: false, message: 'Hiç plugin bulunamadı.' };
-      }
+      return {
+        passed: true,
+        message: 'Plugin enabled assertion başarılı.',
+        expected: pluginName,
+        actual: plugin['fullName'] ?? plugin['name'],
+      };
     }
 
-    return { passed: true, message: 'Plugin enabled assertion başarılı.' };
+    // Herhangi bir plugin etkin mi?
+    if (plugins.length === 0) {
+      return { passed: false, message: 'Hiç plugin bulunamadı.', expected: 1, actual: 0 };
+    }
+
+    return { passed: true, message: 'Plugin enabled assertion başarılı.', expected: 1, actual: plugins.length };
   }
 
-  async #assertServerState(args: Record<string, unknown>): Promise<{ passed: boolean; message: string }> {
+  async #assertServerState(
+    args: Record<string, unknown>,
+  ): Promise<{ passed: boolean; message: string; expected?: unknown; actual?: unknown }> {
     if (!this.#bridgeClient) {
       throw Object.assign(new Error('Bridge client mevcut değil.'), { code: 'BRIDGE_UNAVAILABLE' });
     }
@@ -959,6 +1024,8 @@ export class ScenarioEngine {
       return {
         passed: false,
         message: `Beklenen MOTD: ${expectedMotd}, bulunan: ${result['motd']}`,
+        expected: expectedMotd,
+        actual: result['motd'],
       };
     }
 
@@ -966,10 +1033,19 @@ export class ScenarioEngine {
       return {
         passed: false,
         message: `Beklenen max_players: ${expectedMaxPlayers}, bulunan: ${result['max_players']}`,
+        expected: expectedMaxPlayers,
+        actual: result['max_players'],
       };
     }
 
-    return { passed: true, message: 'Server state assertion başarılı.' };
+    return {
+      passed: true,
+      message: 'Server state assertion başarılı.',
+      ...(expectedMotd !== undefined ? { expected: expectedMotd, actual: result['motd'] } : {}),
+      ...(expectedMaxPlayers !== undefined
+        ? { expected: expectedMaxPlayers, actual: result['max_players'] }
+        : {}),
+    };
   }
 
   // ─── Helpers ─────────────────────────────────────────────────────────────
@@ -1052,6 +1128,7 @@ export class ScenarioEngine {
       skipped,
       durationMs,
       evidenceIds,
+      assertions: this.#assertions,
     };
   }
 

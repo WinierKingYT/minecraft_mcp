@@ -107,6 +107,10 @@ cleanup:
 
 `expected` / `observed` / `evidence_ids` üçlüsü zorunludur (KPI-08). Kanıt kimliği taşımayan assertion sonucu şema doğrulamasından geçmez.
 
+### MCP araç yüzeyinde görünürlük
+
+`scenario_run` dönüşü her then adımı için `assertions[]` taşır: `step_name`, `passed`, `message`, `duration_ms`, `attempts` (poll deneme sayısı), `expected`, `actual`. Config error scenario'larında `then` boş olduğundan liste boştur. `assert.event` için `actual` eşleşen tam event nesnesidir (sequence, event_id, server_tick, data...).
+
 ## Beklenen hata scenario'ları (DSL-12)
 
 Config error scenario'ları, run'ın belirli bir terminal durumda bitmesini bekleyen `expect` bloğu taşır. Beklenti karşılanırsa scenario **completed** sayılır; karşılanmazsa **failed**:
