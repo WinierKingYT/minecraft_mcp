@@ -23,6 +23,7 @@ import java.util.logging.Level;
 import org.bukkit.Bukkit;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.server.ServerLoadEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -121,6 +122,44 @@ public final class PaperBridgePlugin extends JavaPlugin implements Listener {
         recordEvent("server.ready", Map.of("type", event.getType().name()));
     }
 
+    /**
+     * Message capture (M2B): her oyuncu chat'i ring buffer'a yazılır.
+     *
+     * <p>EV-04 uyumu: chat yalnızca test runtime'larında dinlenir ve test
+     * actor kimlikleri kaydedilir; gerçek hesap kimliği taşınmaz. İptal
+     * semantiği korunur: event iptal edilmişse {@code cancelled=true} ile
+     * kaydedilir.
+     */
+    @EventHandler
+    @SuppressWarnings("deprecation") // AsyncPlayerChatEvent test-only kullanımı
+    public void onPlayerChat(AsyncPlayerChatEvent event) {
+        EventRingBuffer buffer = events;
+        if (buffer == null) {
+            return;
+        }
+        String actorId = event.getPlayer().getName();
+        long tick = getServer().getCurrentTick();
+        final boolean cancelled = event.isCancelled();
+        final String message = event.getMessage();
+        buffer.append((sequence, bootId) -> new BridgeEvent(
+                sequence,
+                "evt_" + bootId + "_" + sequence,
+                "player.message",
+                bootId,
+                context == null ? null : context.serverInstanceId(),
+                null,
+                null,
+                tick,
+                Instant.now().toString(),
+                "test_actor",
+                actorId,
+                Map.of(
+                        "message", message,
+                        "cancelled", cancelled,
+                        "sender", actorId),
+                "paper"));
+    }
+
     private void shutdownHttp() {
         if (httpServer != null) {
             httpServer.close();
@@ -202,7 +241,7 @@ public final class PaperBridgePlugin extends JavaPlugin implements Listener {
         body.put("operations", operations);
         body.put("events", List.of("server.ready", "plugin.enabled", "plugin.disabled",
                 "test_actor.created", "test_actor.disconnected_all",
-                "player.move", "player.look", "player.chat", "player.command",
+                "player.move", "player.look", "player.chat", "player.command", "player.message",
                 "block.break"));
         body.put("event_buffer_capacity", events == null ? 0 : events.capacity());
         body.put("known_limitations", List.of(

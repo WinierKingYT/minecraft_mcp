@@ -343,6 +343,10 @@ export class ScenarioEngine {
       });
       // Provenance zinciri: runtime_image_id -> scenario_run_id -> evidence
       this.#evidenceCollector?.setRuntimeInfo(runtime.runtimeImageId, runtime.bridgeBootId);
+      // Actor client'ı kur (M2B): bridge /v1/action ucu üzerinden actor komutları
+      this.#actorClient = this.#options.getActorClient
+        ? this.#options.getActorClient(runtime.runtimeImageId)
+        : null;
       return;
     }
 
@@ -458,11 +462,13 @@ export class ScenarioEngine {
     const deadline = startTime + withinMs;
 
     let attempts = 0;
+    let lastResult: { passed: boolean; message: string; expected?: unknown; actual?: unknown } | null = null;
 
     while (Date.now() < deadline) {
       attempts += 1;
       try {
         const result = await this.#evaluateAssertion(stepName, args);
+        lastResult = result;
         if (result.passed) {
           const durationMs = Date.now() - startTime;
           this.#log('DEBUG', 'scenario.assertion_passed', {
@@ -500,18 +506,30 @@ export class ScenarioEngine {
       }
     }
 
-    // Timeout doldu
+    // Timeout doldu — son değerlendirmenin expected/actual/message bilgisi
+    // korunur (assertion görünürlüğü; DSL-12 failure'da yanlışlık kaybolmaz).
     const durationMs = Date.now() - startTime;
-    const error = `Assertion ${stepName} süre aşımı (${withinMs}ms)`;
+    const error = lastResult?.message ?? `Assertion ${stepName} süre aşımı (${withinMs}ms)`;
 
     this.#log('WARN', 'scenario.assertion_timeout', {
       step_name: stepName,
       index,
       duration_ms: durationMs,
       attempts,
+      error,
     });
 
-    return { stepName, phase: 'then', index, status: 'failed', durationMs, error, attempts };
+    return {
+      stepName,
+      phase: 'then',
+      index,
+      status: 'failed',
+      durationMs,
+      error,
+      attempts,
+      ...(lastResult?.expected !== undefined ? { expected: lastResult.expected } : {}),
+      ...(lastResult?.actual !== undefined ? { actual: lastResult.actual } : {}),
+    };
   }
 
   /**
@@ -542,6 +560,9 @@ export class ScenarioEngine {
         break;
       case 'player.chat':
         await this.#stepPlayerChat(args);
+        break;
+      case 'player.get_state':
+        await this.#stepPlayerGetState(args);
         break;
       case 'plugin.command':
         await this.#stepPluginCommand(args);
@@ -627,6 +648,8 @@ export class ScenarioEngine {
     this.#log('INFO', 'scenario.test_actor_created', {
       actor_id: actorId,
       position,
+      ...(result.joined !== undefined ? { joined: result.joined } : {}),
+      ...(result.joinError !== undefined ? { join_error: result.joinError } : {}),
     });
   }
 
@@ -706,7 +729,11 @@ export class ScenarioEngine {
       });
     }
 
-    this.#log('INFO', 'scenario.player_break_block_completed', { actor, position });
+    this.#log('INFO', 'scenario.player_break_block_completed', {
+      actor,
+      position,
+      ...(result.cancelled !== undefined ? { cancelled: result.cancelled } : {}),
+    });
   }
 
   async #stepPlayerMove(args: Record<string, unknown>): Promise<void> {
@@ -778,6 +805,31 @@ export class ScenarioEngine {
     this.#log('INFO', 'scenario.player_chat_completed', { actor, message });
   }
 
+  async #stepPlayerGetState(args: Record<string, unknown>): Promise<void> {
+    if (!this.#actorClient) {
+      throw Object.assign(new Error('Actor client mevcut değil (M2B milestone gerekli).'), {
+        code: 'ACTOR_UNAVAILABLE',
+        suggestedAction: 'actor_capabilities ile desteklenen eylemleri kontrol edin; M2B koşullu bir milestone\'dur.',
+      });
+    }
+
+    const actor = args['actor'] as string;
+    const state = await this.#actorClient.getState(actor);
+
+    if (state === null) {
+      throw Object.assign(new Error(`Actor bulunamadı: ${actor}`), {
+        code: 'ACTOR_CRASHED',
+        suggestedAction: 'test_actor.create ile actor oluşturun; actor lifecycle scenario\'sunu inceleyin.',
+      });
+    }
+
+    this.#log('INFO', 'scenario.player_get_state_completed', {
+      actor,
+      connected: state.connected,
+      position: state.position,
+    });
+  }
+
   async #stepPluginCommand(args: Record<string, unknown>): Promise<void> {
     if (!this.#actorClient) {
       throw Object.assign(new Error('Actor client mevcut değil (M2B milestone gerekli).'), {
@@ -803,7 +855,11 @@ export class ScenarioEngine {
       });
     }
 
-    this.#log('INFO', 'scenario.plugin_command_completed', { actor, command_id: commandId });
+    this.#log('INFO', 'scenario.plugin_command_completed', {
+      actor,
+      command_id: commandId,
+      ...(result.dispatchOk !== undefined ? { dispatch_ok: result.dispatchOk } : {}),
+    });
   }
 
   async #stepWait(args: Record<string, unknown>): Promise<void> {
@@ -854,45 +910,85 @@ export class ScenarioEngine {
     const actorId = args['actor'] as string | undefined;
     const expectedGamemode = args['gamemode'] as string | undefined;
     const expectedHealth = args['health'] as number | undefined;
+    const expectedConnected = args['connected'] as boolean | undefined;
 
-    const result = await this.#bridgeClient.query('get_players', {});
-    const players = result['players'] as Array<Record<string, unknown>>;
-
-    const player = actorId
-      ? players.find((p) => p['name'] === actorId || p['uuid'] === actorId)
-      : players[0];
-
-    if (!player) {
-      return { passed: false, message: `Oyuncu bulunamadı: ${actorId ?? '(herhangi biri)'}` };
+    if (!actorId) {
+      return { passed: false, message: 'assert.player_state için actor parametresi zorunludur.' };
     }
 
-    if (expectedGamemode && player['gamemode'] !== expectedGamemode) {
+    // player.state.read: query ucu PLAYER_GET_STATE; oyuncu bağlı değilse
+    // PLAYER_NOT_FOUND döner — bu, connected=false için kanıttır.
+    let player: Record<string, unknown> | null = null;
+    try {
+      const result = await this.#bridgeClient.query('player.get_state', { player_id: actorId });
+      player = result;
+    } catch (err) {
+      if ((err as { code?: string })?.code === 'PLAYER_NOT_FOUND') {
+        player = null;
+      } else {
+        throw err;
+      }
+    }
+
+    if (player === null) {
+      if (expectedConnected === false) {
+        return {
+          passed: true,
+          message: `Oyuncu bağlı değil (beklenen): ${actorId}`,
+          expected: { connected: false },
+          actual: { connected: false },
+        };
+      }
       return {
         passed: false,
-        message: `Beklenen gamemode: ${expectedGamemode}, bulunan: ${player['gamemode']}`,
-        expected: expectedGamemode,
-        actual: player['gamemode'],
+        message: `Oyuncu bağlı değil: ${actorId}`,
+        expected: { connected: true },
+        actual: { connected: false },
       };
     }
 
-    if (expectedHealth !== undefined && (player['health'] as number) < expectedHealth) {
+    const gamemode = String(player['gamemode'] ?? '').toLowerCase();
+    const health = player['health'] as number | undefined;
+
+    if (expectedConnected === false) {
       return {
         passed: false,
-        message: `Beklenen min health: ${expectedHealth}, bulunan: ${player['health']}`,
+        message: `Oyuncu beklenmedik şekilde bağlı: ${actorId}`,
+        expected: { connected: false },
+        actual: { connected: true },
+      };
+    }
+
+    if (expectedGamemode && gamemode !== expectedGamemode) {
+      return {
+        passed: false,
+        message: `Beklenen gamemode: ${expectedGamemode}, bulunan: ${gamemode}`,
+        expected: expectedGamemode,
+        actual: gamemode,
+      };
+    }
+
+    if (expectedHealth !== undefined && health !== undefined && health < expectedHealth) {
+      return {
+        passed: false,
+        message: `Beklenen min health: ${expectedHealth}, bulunan: ${health}`,
         expected: expectedHealth,
-        actual: player['health'],
+        actual: health,
       };
     }
 
     return {
       passed: true,
-      message: 'Player state assertion başarılı.',
-      ...(expectedGamemode !== undefined ? { expected: expectedGamemode, actual: player['gamemode'] } : {}),
+      message: `Player state assertion başarılı: ${actorId}`,
+      ...(expectedGamemode !== undefined ? { expected: expectedGamemode, actual: gamemode } : {}),
+      ...(expectedHealth !== undefined && health !== undefined
+        ? { expected: { health: expectedHealth }, actual: { health } }
+        : {}),
     };
   }
 
   async #assertPlayerMessage(
-    _args: Record<string, unknown>,
+    args: Record<string, unknown>,
   ): Promise<{ passed: boolean; message: string; expected?: unknown; actual?: unknown }> {
     if (!this.#actorClient) {
       throw Object.assign(new Error('Actor client mevcut değil (M2B milestone gerekli).'), {
@@ -900,10 +996,54 @@ export class ScenarioEngine {
         suggestedAction: 'actor_capabilities ile desteklenen eylemleri kontrol edin; M2B koşullu bir milestone\'dur.',
       });
     }
+    if (!this.#bridgeClient || !this.#runtime) {
+      throw Object.assign(new Error('Bridge client/Runtime mevcut değil.'), { code: 'BRIDGE_UNAVAILABLE' });
+    }
 
-    // M2B milestone'unda actor message capture implemente edilecek
-    // Şimdilik pasif döndür
-    return { passed: true, message: 'Player message assertion (M2B) — pasif.' };
+    // Gerçek message capture: bridge ring buffer'daki player.message event'leri
+    // (AsyncPlayerChatEvent -> PaperBridgePlugin.onPlayerChat) eşleştirilir.
+    const expectedActor = args['actor'] as string | undefined;
+    const contains = args['contains'] as string | undefined;
+
+    const events = await this.#bridgeClient.events(this.#runtime.bridgeBootId, 0, 100);
+    const matchingMessage = events.find((e) => {
+      if (e['type'] !== 'player.message') return false;
+      const actorField = e['actor'] as { kind?: string; id?: string } | null;
+      if (expectedActor && actorField?.id !== expectedActor) return false;
+      if (contains) {
+        const data = e['data'] as { message?: string } | null;
+        const captured = data?.message ?? '';
+        if (!captured.includes(contains)) return false;
+      }
+      return true;
+    });
+
+    if (!matchingMessage) {
+      return {
+        passed: false,
+        message: `Mesaj bulunamadı: actor=${expectedActor ?? '(herhangi biri)'}`
+          + (contains ? `, contains="${contains}"` : ''),
+        expected: {
+          type: 'player.message',
+          ...(expectedActor !== undefined ? { actor: expectedActor } : {}),
+          ...(contains !== undefined ? { contains } : {}),
+        },
+        actual: null,
+      };
+    }
+
+    const captured = (matchingMessage['data'] as { message?: string } | null)?.message ?? '';
+    const cancelled = (matchingMessage['data'] as { cancelled?: boolean } | null)?.cancelled ?? false;
+    return {
+      passed: true,
+      message: `Mesaj yakalandı: "${captured}"` + (cancelled ? ' (iptal edildi)' : ''),
+      expected: {
+        type: 'player.message',
+        ...(expectedActor !== undefined ? { actor: expectedActor } : {}),
+        ...(contains !== undefined ? { contains } : {}),
+      },
+      actual: { message: captured, cancelled },
+    };
   }
 
   async #assertEvent(
@@ -925,7 +1065,10 @@ export class ScenarioEngine {
 
     const matchingEvent = events.find((e) => {
       if (e['type'] !== eventType) return false;
-      if (expectedActor && e['actor'] !== expectedActor) return false;
+      if (expectedActor) {
+        const actorField = e['actor'] as { kind?: string; id?: string } | null;
+        if (actorField?.id !== expectedActor) return false;
+      }
       if (expectedCancelled !== undefined && e['cancelled'] !== expectedCancelled) return false;
       return true;
     });

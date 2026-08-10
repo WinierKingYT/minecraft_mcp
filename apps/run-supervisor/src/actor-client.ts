@@ -56,6 +56,14 @@ export interface ActorActionResult {
   readonly actor_id: string;
   readonly message?: string;
   readonly state?: ActorState;
+  /** Blok kırma: event iptal edildi mi (plugin listener semantiği). */
+  readonly cancelled?: boolean;
+  /** Komut: oyuncu permission'ı ile dispatch edildi mi (native permission). */
+  readonly dispatchOk?: boolean;
+  /** Actor oluşturma: oyuncu dünyaya gerçekten join oldu mu. */
+  readonly joined?: boolean;
+  /** Actor oluşturma: join başarısız olduysa NMS hata mesajı (teşhis). */
+  readonly joinError?: string;
 }
 
 // ─── Inventory Types ─────────────────────────────────────────────────────────
@@ -134,12 +142,16 @@ export class ActorClient {
 
     const message = result['message'] as string | undefined;
     const state = result['state'] as ActorState | undefined;
+    const joined = result['joined'] as boolean | undefined;
+    const joinError = result['join_error'] as string | undefined;
 
     return {
       success: result['success'] as boolean ?? true,
       actor_id: params.id,
       ...(message !== undefined && { message }),
       ...(state !== undefined && { state }),
+      ...(joined !== undefined && { joined }),
+      ...(joinError !== undefined && joinError !== '' && { joinError }),
     };
   }
 
@@ -160,11 +172,13 @@ export class ActorClient {
     });
 
     const message = result['message'] as string | undefined;
+    const cancelled = result['cancelled'] as boolean | undefined;
 
     return {
       success: result['success'] as boolean ?? true,
       actor_id: params.actor,
       ...(message !== undefined && { message }),
+      ...(cancelled !== undefined && { cancelled }),
     };
   }
 
@@ -233,11 +247,13 @@ export class ActorClient {
     });
 
     const message = result['message'] as string | undefined;
+    const dispatchOk = result['dispatch_ok'] as boolean | undefined;
 
     return {
       success: result['success'] as boolean ?? true,
       actor_id: params.actor,
       ...(message !== undefined && { message }),
+      ...(dispatchOk !== undefined && { dispatchOk }),
     };
   }
 

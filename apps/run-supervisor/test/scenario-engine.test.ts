@@ -12,6 +12,7 @@ import { mkdtemp, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { ScenarioEngine, type BridgeClientLike, type ProvisionedRuntime } from '../src/scenario-engine.js';
+import { ActorClient } from '../src/actor-client.js';
 import { BridgeClientError } from '../src/bridge-client.js';
 import type { ScenarioDefinition } from '../src/scenario-parser.js';
 
@@ -543,6 +544,282 @@ cleanup: []
 
     const result = await engine.run();
     assert.equal(result.status, 'completed');
+    await engine.disposeRuntime();
+  } finally {
+    await cleanup();
+  }
+});
+
+// ------------------------------------------------------------ M2B: actor adımları
+
+/** player.message event'leri döndüren bridge. */
+function createMessageBridge(messages: Array<{ actor: string; message: string; cancelled?: boolean }>): FakeBridge {
+  const actions: FakeBridge['actions'] = [];
+  const queries: FakeBridge['queries'] = [];
+  return {
+    actions,
+    queries,
+    setBlock() {},
+    async query() {
+      return {};
+    },
+    async action(operation, args, idempotencyKey) {
+      actions.push({ operation, args, idempotencyKey });
+      return {};
+    },
+    async events() {
+      return messages.map((m, i) => ({
+        sequence: i + 1,
+        event_id: `evt_test_${i + 1}`,
+        type: 'player.message',
+        bridge_boot_id: 'boot_test',
+        server_instance_id: 'rimg_test',
+        correlation_id: null,
+        causation_id: null,
+        server_tick: i + 1,
+        occurred_at: '2026-08-09T00:00:00Z',
+        actor: { kind: 'test_actor', id: m.actor },
+        data: { message: m.message, cancelled: m.cancelled ?? false, sender: m.actor },
+        source: 'paper',
+      }));
+    },
+  };
+}
+
+/** player.get_state query'si PLAYER_NOT_FOUND fırlatan bridge (oyuncu bağlı değil). */
+function createPlayerMissingBridge(): FakeBridge {
+  const actions: FakeBridge['actions'] = [];
+  const queries: FakeBridge['queries'] = [];
+  return {
+    actions,
+    queries,
+    setBlock() {},
+    async query(operation) {
+      queries.push({ operation, args: {} });
+      if (operation === 'player.get_state') {
+        throw new BridgeClientError('PLAYER_NOT_FOUND', 'Oyuncu bağlı değil');
+      }
+      return {};
+    },
+    async action(operation, args, idempotencyKey) {
+      actions.push({ operation, args, idempotencyKey });
+      return {};
+    },
+    async events() {
+      return [];
+    },
+  };
+}
+
+function createActorClientBridge(actionsLog: FakeBridge['actions']) {
+  const bridge: FakeBridge = {
+    actions: actionsLog,
+    queries: [],
+    setBlock() {},
+    async query() {
+      return {};
+    },
+    async action(operation, args, idempotencyKey) {
+      actionsLog.push({ operation, args, idempotencyKey });
+      if (operation === 'player.get_state') {
+        return { found: true, id: 'owner', uuid: '0000-0000', connected: true, gamemode: 'survival', health: 20, position: { world_key: 'minecraft:overworld', x: 0, y: 64, z: 0 } };
+      }
+      return { success: true };
+    },
+    async events() {
+      return [{
+        sequence: 1,
+        event_id: 'evt_test_1',
+        type: 'test_actor.created',
+        bridge_boot_id: 'boot_test',
+        server_instance_id: 'rimg_test',
+        correlation_id: null,
+        causation_id: null,
+        server_tick: 1,
+        occurred_at: '2026-08-09T00:00:00Z',
+        actor: { kind: 'test_actor', id: 'owner' },
+        data: { actor_id: 'owner' },
+        source: 'paper',
+      }];
+    },
+  };
+  return bridge;
+}
+
+test('engine: assert.player_message gerçek capture — ring buffer player.message eşleşir', async () => {
+  const bridge = createMessageBridge([
+    { actor: 'owner', message: 'merhaba dünya' },
+    { actor: 'intruder', message: 'selam' },
+  ]);
+  const { provider } = createRecordingProvider(bridge);
+  const { path, cleanup } = await writeScenario(`
+version: 1
+id: message-capture
+title: Mesaj yakalama
+profile: isolated-test
+timeout: 30s
+requires:
+  capabilities:
+    - actor.message.read
+given: []
+when: []
+then:
+  - assert.player_message:
+      actor: owner
+      contains: dünya
+      within: 2s
+cleanup: []
+`);
+
+  try {
+    const engine = new ScenarioEngine({
+      repoRoot: '.',
+      scenarioPath: path,
+      projectId: 'proj_test',
+      runtimeProvider: provider,
+      getActorClient: () => new ActorClient(async (operation, args) => {
+        return bridge.action(operation, args, undefined);
+      }),
+    });
+
+    const result = await engine.run();
+    assert.equal(result.status, 'completed');
+    const assertion = result.assertions[0]!;
+    assert.equal(assertion.passed, true);
+    assert.deepEqual(assertion.actual, { message: 'merhaba dünya', cancelled: false });
+    await engine.disposeRuntime();
+  } finally {
+    await cleanup();
+  }
+});
+
+test('engine: assert.player_message eşleşme yoksa failed ve expected/actual taşır', async () => {
+  const bridge = createMessageBridge([
+    { actor: 'owner', message: 'merhaba' },
+  ]);
+  const { provider } = createRecordingProvider(bridge);
+  const { path, cleanup } = await writeScenario(`
+version: 1
+id: message-capture-fail
+title: Mesaj yakalanamadı
+profile: isolated-test
+timeout: 30s
+requires:
+  capabilities:
+    - actor.message.read
+given: []
+when: []
+then:
+  - assert.player_message:
+      actor: owner
+      contains: bulunamayan mesaj
+      within: 2s
+cleanup: []
+`);
+
+  try {
+    const engine = new ScenarioEngine({
+      repoRoot: '.',
+      scenarioPath: path,
+      projectId: 'proj_test',
+      runtimeProvider: provider,
+      getActorClient: () => new ActorClient(async (operation, args) => {
+        return bridge.action(operation, args, undefined);
+      }),
+    });
+
+    const result = await engine.run();
+    assert.equal(result.status, 'failed');
+    const assertion = result.assertions[0]!;
+    assert.equal(assertion.passed, false);
+    assert.ok((assertion.expected as { contains?: string })?.contains?.includes('bulunamayan mesaj'));
+    assert.equal(assertion.actual, null);
+    await engine.disposeRuntime();
+  } finally {
+    await cleanup();
+  }
+});
+
+test('engine: assert.player_state connected:false — oyuncu yoksa PASSED (doğru state)', async () => {
+  const bridge = createPlayerMissingBridge();
+  const { provider } = createRecordingProvider(bridge);
+  const { path, cleanup } = await writeScenario(`
+version: 1
+id: player-state-disconnected
+title: Oyuncu bağlı değil
+profile: isolated-test
+timeout: 30s
+requires:
+  capabilities:
+    - player.state.read
+given: []
+when: []
+then:
+  - assert.player_state:
+      actor: ghost
+      connected: false
+      within: 2s
+cleanup: []
+`);
+
+  try {
+    const engine = new ScenarioEngine({
+      repoRoot: '.',
+      scenarioPath: path,
+      projectId: 'proj_test',
+      runtimeProvider: provider,
+    });
+
+    const result = await engine.run();
+    assert.equal(result.status, 'completed');
+    assert.equal(result.assertions[0]!.passed, true);
+    await engine.disposeRuntime();
+  } finally {
+    await cleanup();
+  }
+});
+
+test('engine: player.get_state adımı actor client üzerinden çağrılır', async () => {
+  const actions: FakeBridge['actions'] = [];
+  const bridge = createActorClientBridge(actions);
+  const { provider } = createRecordingProvider(bridge);
+  const { path, cleanup } = await writeScenario(`
+version: 1
+id: player-get-state-step
+title: Actor durumu okunur
+profile: isolated-test
+timeout: 30s
+requires:
+  capabilities:
+    - player.state.read
+given:
+  - player.get_state:
+      actor: owner
+when: []
+then:
+  - assert.event:
+      type: test_actor.created
+      actor: owner
+      within: 2s
+cleanup: []
+`);
+
+  try {
+    const engine = new ScenarioEngine({
+      repoRoot: '.',
+      scenarioPath: path,
+      projectId: 'proj_test',
+      runtimeProvider: provider,
+      getActorClient: () => new ActorClient(async (operation, args) => {
+        return bridge.action(operation, args, undefined);
+      }),
+    });
+
+    const result = await engine.run();
+    assert.equal(result.status, 'completed');
+    const getStateCall = actions.find((a) => a.operation === 'player.get_state');
+    assert.ok(getStateCall, 'player.get_state çağrılmalı');
+    assert.equal(getStateCall!.args['actor_id'], 'owner');
     await engine.disposeRuntime();
   } finally {
     await cleanup();

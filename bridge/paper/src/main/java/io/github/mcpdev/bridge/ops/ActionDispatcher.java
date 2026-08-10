@@ -12,6 +12,7 @@ package io.github.mcpdev.bridge.ops;
 import io.github.mcpdev.bridge.generated.BridgeOperation;
 import io.github.mcpdev.bridge.scheduler.MainThreadExecutor;
 
+import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
@@ -38,6 +39,14 @@ public final class ActionDispatcher {
 
     /** Paper API çağrılarını ana thread'de çalıştırır. */
     private final MainThreadExecutor executor;
+
+    /**
+     * Action işlemi için üst sınır.
+     *
+     * <p>NMS actor join/komutları ana thread'de çalışır ve reflection içerir;
+     * 2 saniye dar kalabilir, bu yüzden 5 saniyedir.
+     */
+    private static final Duration ACTION_TIMEOUT = Duration.ofSeconds(5);
 
     public ActionDispatcher(
             ActorHandler actorHandler, WorldMutations worldMutations, MainThreadExecutor executor) {
@@ -76,7 +85,10 @@ public final class ActionDispatcher {
             return idempotencyCache.get(idempotencyKey);
         }
 
-        Map<String, Object> result = switch (op) {
+        // Paper API çağrıları ana thread'de çalışır (TH-02). Handler'lar
+        // BlockBreakEvent/AsyncPlayerChatEvent fırlatır; bu event'ler sync
+        // semantiği gerektirir ve HTTP thread'inden fırlatılamaz.
+        Map<String, Object> result = executor.call(() -> switch (op) {
             case TEST_ACTOR_CREATE -> actorHandler.createActor(arguments);
             case TEST_ACTOR_DISCONNECT_ALL -> actorHandler.disconnectAll();
             case PLAYER_BREAK_BLOCK -> actorHandler.breakBlock(arguments);
@@ -104,7 +116,7 @@ public final class ActionDispatcher {
             default -> throw new BridgeOperationException(
                     "UNSUPPORTED_OPERATION", 400,
                     "Bu operation action endpoint'i tarafından desteklenmiyor: " + operation);
-        };
+        }, ACTION_TIMEOUT);
 
         // Idempotency cache'e kaydet
         if (idempotencyKey != null) {

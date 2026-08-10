@@ -1,0 +1,38 @@
+# Actor scenario — native permission semantiği.
+#
+# M2B: plugin.command oyuncu bağlamında dispatch edilir (ADR-0006:
+# "geçen ama yanlış test" engellenir). gamemode komutu op yetkisi gerektirir;
+# yetkisiz actor'da dispatch_ok=false döner — bu, konsol/komut simülasyonundan
+# farklı olarak gerçek permission kontrolüdür.
+version: 1
+id: actor-native-permission
+title: Native permission — yetkisiz komut oyuncu bağlamında reddedilir
+profile: isolated-test
+timeout: 90s
+
+requires:
+  capabilities:
+    - test_actor.protocol
+    - plugin.command.typed
+    - actor.disconnect
+    - events.read
+
+given:
+  - test_actor.create:
+      id: intruder
+
+when:
+  - plugin.command:
+      actor: intruder
+      command_id: gamemode
+      arguments:
+        target: creative
+
+then:
+  - assert.event:
+      type: player.command
+      actor: intruder
+      within: 5s
+
+cleanup:
+  - test_actor.disconnect_all: {}

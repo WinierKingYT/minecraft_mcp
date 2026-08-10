@@ -1,0 +1,58 @@
+# Actor scenario — tam yaşam döngüsü.
+#
+# M2B: gerçek player semantics (ADR-0006). Actor, NMS ile dünyaya join olur;
+# her adım bridge ring buffer'a actor kimliğiyle yazılır. Disconnect sonrası
+# player.state.read, oyuncunun bağlı olmadığını kanıtlar (connected: false).
+version: 1
+id: actor-lifecycle
+title: Actor yaşam döngüsü — create, chat, move, disconnect
+profile: isolated-test
+timeout: 90s
+
+requires:
+  capabilities:
+    - test_actor.protocol
+    - player.state.read
+    - player.chat
+    - player.move
+    - actor.message.read
+    - actor.disconnect
+    - events.read
+
+given:
+  - test_actor.create:
+      id: owner
+
+when:
+  - player.get_state:
+      actor: owner
+  - player.look:
+      actor: owner
+      direction: north
+  - player.move:
+      actor: owner
+      position:
+        world_key: minecraft:overworld
+        x: 0
+        y: 64
+        z: 0
+  - player.chat:
+      actor: owner
+      message: merhaba m2b
+  - test_actor.disconnect_all: {}
+
+then:
+  - assert.player_state:
+      actor: owner
+      connected: false
+      within: 5s
+  - assert.player_message:
+      actor: owner
+      contains: merhaba
+      within: 5s
+  - assert.event:
+      type: player.chat
+      actor: owner
+      within: 5s
+
+cleanup: []

@@ -55,9 +55,9 @@ test('parseDuration: geçersiz format varsayılan değer döner', () => {
 });
 
 // ------------------------------------------------------------ DSL_STEP_ALLOWLIST
+test('DSL_STEP_ALLOWLIST: 18 step içerir', () => {
 
-test('DSL_STEP_ALLOWLIST: 17 step içerir', () => {
-  assert.equal(DSL_STEP_ALLOWLIST.length, 17);
+  assert.equal(DSL_STEP_ALLOWLIST.length, 18);
 });
 
 test('DSL_STEP_ALLOWLIST: gerekli adımları içerir', () => {

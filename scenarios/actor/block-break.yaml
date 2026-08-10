@@ -1,0 +1,64 @@
+# Actor scenario — gerçek blok kırma.
+#
+# M2B: player.break_block, gerçek BlockBreakEvent fırlatır (plugin
+# listener'ları tetiklenir) ve blok havaya döner. assert.block ile
+# kırılan bloğun air olduğu kanıtlanır; block.break event'i actor
+# kimliğiyle yakalanır.
+version: 1
+id: actor-block-break
+title: Actor gerçek BlockBreakEvent ile blok kırar
+profile: isolated-test
+timeout: 90s
+
+requires:
+  capabilities:
+    - test_actor.protocol
+    - world.chunk.ticket
+    - world.block.write
+    - world.block.read
+    - player.break_block
+    - actor.disconnect
+    - events.read
+
+given:
+  - world.set_chunk_ticket:
+      position:
+        world_key: minecraft:overworld
+        x: 0
+        z: 0
+      radius: 1
+  - world.set_block:
+      position:
+        world_key: minecraft:overworld
+        x: 0
+        y: 64
+        z: 0
+      material: minecraft:stone
+  - test_actor.create:
+      id: builder
+
+when:
+  - player.break_block:
+      actor: builder
+      position:
+        world_key: minecraft:overworld
+        x: 0
+        y: 64
+        z: 0
+
+then:
+  - assert.block:
+      position:
+        world_key: minecraft:overworld
+        x: 0
+        y: 64
+        z: 0
+      material: minecraft:air
+      within: 5s
+  - assert.event:
+      type: block.break
+      actor: builder
+      within: 5s
+
+cleanup:
+  - test_actor.disconnect_all: {}

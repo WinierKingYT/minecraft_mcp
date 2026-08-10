@@ -11,6 +11,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { rm } from 'node:fs/promises';
 import { parse as parseYaml } from 'yaml';
+import { ActorClient } from './actor-client.js';
 import { ScenarioEngine, type ScenarioEngineOptions } from './scenario-engine.js';
 import type {
   BridgeEventsParams,
@@ -1078,6 +1079,19 @@ export class SupervisorService {
             }).catch(() => undefined);
           },
         };
+      },
+      getActorClient: (runtimeImageId: string) => {
+        const entry = this.#registry.get(runtimeImageId);
+        if (!entry.running) {
+          return null;
+        }
+        // Actor komutları bridge /v1/action ucu üzerinden çalışır; idempotency
+        // anahtarı action gövdesi mutation ledger'a bırakılır (idempotency key
+        // adım başına üretilir, replay koruması için).
+        return new ActorClient(async (operation, args) => {
+          const result = await entry.running!.client.action(operation, args, randomBytes(16).toString('hex'));
+          return result as Record<string, unknown>;
+        });
       },
       version: this.#options.version,
       log: this.#log.bind(this),

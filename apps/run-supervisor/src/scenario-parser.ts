@@ -15,6 +15,7 @@ export type StepName =
   | 'player.move'
   | 'player.look'
   | 'player.chat'
+  | 'player.get_state'
   | 'plugin.command'
   | 'world.set_block'
   | 'world.set_chunk_ticket'
@@ -34,6 +35,7 @@ export const DSL_STEP_ALLOWLIST: readonly StepName[] = [
   'player.move',
   'player.look',
   'player.chat',
+  'player.get_state',
   'plugin.command',
   'world.set_block',
   'world.set_chunk_ticket',
@@ -55,6 +57,7 @@ export const STEP_CAPABILITY_MAP: Readonly<Record<StepName, string>> = {
   'player.move': 'player.move',
   'player.look': 'player.look',
   'player.chat': 'player.chat',
+  'player.get_state': 'player.state.read',
   'plugin.command': 'plugin.command.typed',
   'world.set_block': 'world.block.write',
   'world.set_chunk_ticket': 'world.chunk.ticket',
