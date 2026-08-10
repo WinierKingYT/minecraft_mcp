@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 /**
  * Run-supervisor standalone giriş noktası (MCP araç yüzeyi için).
  *

@@ -89,20 +89,19 @@ export async function runInstall(options: InstallOptions): Promise<void> {
   }
 
   // Step 5: Install dependencies
+  // Frozen-lockfile'ın başarısız olması repository bütünlük problemidir;
+  // fallback yoktur (contributor, lockfile'ı güncelleyip commit etmelidir).
   try {
     await execCommand('pnpm', ['install', '--frozen-lockfile'], root);
     steps.push({ name: 'dependencies', status: 'done', message: 'Dependencies installed' });
-  } catch {
-    try {
-      await execCommand('pnpm', ['install'], root);
-      steps.push({ name: 'dependencies', status: 'done', message: 'Dependencies installed (no lockfile)' });
-    } catch (err) {
-      steps.push({
-        name: 'dependencies',
-        status: 'fail',
-        message: `pnpm install failed: ${err instanceof Error ? err.message : String(err)}`,
-      });
-    }
+  } catch (err) {
+    steps.push({
+      name: 'dependencies',
+      status: 'fail',
+      message: 'LOCKFILE_OUT_OF_DATE: package.json ile pnpm-lock.yaml uyuşmuyor. '
+        + 'Contributor olarak `pnpm install` çalıştırın ve lockfile değişikliğini commit edin. '
+        + `Detay: ${err instanceof Error ? err.message : String(err)}`,
+    });
   }
 
   // Step 6: Build project

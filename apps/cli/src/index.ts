@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 /**
  * mcpdev CLI — unified entry point for install and doctor commands.
  *
