@@ -5,14 +5,20 @@
  * SIRA ÖNEMLİDİR: stdout guard, BAŞKA HİÇBİR ŞEY yüklenmeden önce kurulur.
  * Aksi hâlde import zamanında çalışan bir kütüphane logu stdout'a düşer ve
  * protokolü daha ilk mesajdan önce bozar.
+ *
+ * Protokol yüzeyi official SDK üzerindedir (ADR-0008):
+ * serveStdio, bağlantı açılışını era negotiation ile yönetir — 2026-07-28
+ * claim'leri modern (stateless) bağlantı açar, initialize ile gelen 2025-11-25
+ * client'lar legacy shim ile servis edilir (SPIKE-MCP-SDK-2026-001).
  */
 
 import { installStdoutGuard } from './transport/stdout-guard.js';
 import { join } from 'node:path';
 
-const guard = installStdoutGuard();
+installStdoutGuard();
 
-const { StdioTransport } = await import('./transport/stdio-transport.js');
+const { serveStdio } = await import('@modelcontextprotocol/server/stdio');
+const { buildSdkServer } = await import('./sdk/adapter.js');
 const { ToolFacade } = await import('./tools/facade.js');
 const { createSystemTools, defaultProfilePath } = await import('./tools/system.js');
 const { createProjectTools } = await import('./tools/project.js');
@@ -25,17 +31,13 @@ const { createProfileTools } = await import('./tools/profile.js');
 const { createPermissionTools } = await import('./tools/permission.js');
 const { createScenarioTools } = await import('./tools/scenario.js');
 const { createEvidenceTools } = await import('./tools/evidence.js');
-const { McpServer } = await import('./server.js');
 const { log, setLogLevel } = await import('./logging.js');
 const { DEFAULT_TOOL_PROFILE, TOOL_PROFILES } = await import('@mcpdev/generated-types');
 
 const SERVER_NAME = 'minecraft-plugin-dev-mcp';
 const SERVER_VERSION = '0.1.0-prototype.0';
 const COMPATIBILITY_PROFILE_ID = 'paper-26.2-build-84-v1';
-
-// Protokol sürümü uyumluluk profilinden gelir; kod içine gömülü sürüm sabiti
-// bulunmaz (compatibility/README.md kural 1).
-const PROTOCOL_VERSION = process.env['MCP_PROTOCOL_VERSION'] ?? '2026-07-28';
+const TOOL_LIST_TTL_MS = 300_000;
 
 const repoRoot = process.env['MCPDEV_ROOT'] ?? process.cwd();
 
@@ -121,22 +123,22 @@ for (const [definition, handler] of createEvidenceTools({ supervisor: connectSup
   facade.register(definition, handler);
 }
 
-const transport = new StdioTransport(guard);
-const server = new McpServer({
-  name: SERVER_NAME,
-  version: SERVER_VERSION,
-  protocolVersion: PROTOCOL_VERSION,
-  facade,
-  transport,
-});
+// Bağlantı başına bir SDK server örneği (stateless, ADR-0008). Factory,
+// serveStdio tarafından her bağlantı için bir kez çağrılır.
+const handle = serveStdio(() =>
+  buildSdkServer({
+    name: SERVER_NAME,
+    version: SERVER_VERSION,
+    facade,
+    toolListTtlMs: TOOL_LIST_TTL_MS,
+  }),
+);
 
 const shutdown = (signal: string): void => {
-  log('INFO', 'server.shutdown', { signal, stdout_violations: guard.violationCount() });
+  log('INFO', 'server.shutdown', { signal });
   supervisorClient?.close();
-  void transport.close().then(() => process.exit(0));
+  void handle.close().then(() => process.exit(0));
 };
 
 process.on('SIGINT', () => shutdown('SIGINT'));
 process.on('SIGTERM', () => shutdown('SIGTERM'));
-
-server.start();

@@ -112,17 +112,22 @@ mcp:
     multi_round_trip_requests: true   # resultType: "input_required"
     legacy_http_sse_deprecated: true
 
-  # DOĞRULANDI: stable 2.0.0 yayınlandı (2026-07-27). Profil artık alpha
-  # sürümüne pinli DEĞİLDİR; ADR-0002'nin release blocker'ı kalkmıştır.
+  # DOĞRULANDI: stable 2.0.0 yayınlandı (2026-07-27). Protokol kabuğu
+  # official server SDK'ya taşındı (ADR-0010); conformance official client
+  # ile koşulur.
   sdk:
     server: "@modelcontextprotocol/server@2.0.0"
     node: "@modelcontextprotocol/node@2.0.0"
+    client: "@modelcontextprotocol/client@2.0.0"
     channel: stable
-    # Henüz bağlanmadı: ADR-0002 revizyonu ve conformance test koşusu gerekli.
-    linked: false
+    # ADR-0010: protokol yüzeyi SDK üzerine implement edildi; custom transport
+    # silindi. Conformance: 56/57 pass (skip: canlı supervisor E2E, P0-7 sonrası).
+    linked: true
+    linked_at: 2026-08-11
   release_policy: >
-    Stable 2.x SDK yayınlanmıştır. V1 release'i artık SDK'nın varlığına değil,
-    ADR-0002 revizyonuna ve tam conformance test koşusuna bağlıdır.
+    Stable 2.x SDK, protokol yüzeyinin taşıyıcısıdır (ADR-0010). V1 release
+    gate'i artık conformance'ın canlı supervisor E2E ayağına (mcpdev serve,
+    P0-7) bağlıdır.
 
 # DOĞRULANDI: tüm pinler pnpm install ile çözüldü ve lockfile üretildi.
 npm_toolchain:
@@ -162,4 +167,5 @@ rules:
   - "No runtime is started on a Java major other than java.runtime_major."
   - "No release build is produced on a Node version other than node.version."
   - "Prototype MAY run on another Gradle wrapper version; the release profile MUST NOT."
-  - "Moving to the stable SDK requires an ADR revision and a full conformance test run."
+  - "The MCP protocol surface MUST be served by the pinned server SDK (ADR-0010); custom transports are not allowed on the release profile."
+  - "Moving to a newer SDK requires an ADR revision and a full conformance test run."

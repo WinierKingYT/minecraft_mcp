@@ -1,9 +1,9 @@
 # SPIKE-MCP-SDK-2026-001 — MCP 2026 SDK ve protokol durumu
 
-**Durum:** closed
+**Durum:** closed (reopened 2026-08-11 — re-closed)
 **Blokladığı:** ADR-0002, V1 release gate
 **Zaman kutusu:** 2–3 gün
-**Kapanış tarihi:** 2026-08-03
+**Kapanış tarihi:** 2026-08-03 (ilk), 2026-08-11 (SDK migration closure)
 
 ## Cevaplanacak sorular
 
@@ -83,7 +83,7 @@ Stable `2.0.0` **yayınlanmıştır** (2026-07-27) — beklemeye gerek yok.
 
 ### Kritik uyumsuzluk: protokol revizyonu
 
-SDK'nın protokol sabitleri (deneysel import):
+SDK'nın protokol sabitleri (deneysel import — alpha `.2` sürümünde okunmuştur):
 
 ```text
 LATEST_PROTOCOL_VERSION:       2025-11-25
@@ -93,8 +93,12 @@ SUPPORTED:                     2025-11-25, 2025-06-18, 2025-03-26, 2024-11-05, 2
 
 `2026-07-28` **destek listesinde yoktur** (koddaki 76 referans yalnızca hata mesajlarındaki forward-compat bilgileridir: "servers implementing protocol revision 2026-07-28 MUST include resultType"). initialize'de `2026-07-28` istendiğinde SDK `2025-11-25` yanıtlar. `2026-07-28`'de zorunlu yeni kurallar (örn. `_meta` zarfı, zorunlu `resultType`) SDK'da yalnızca uyarıcı olarak kodlanmıştır.
 
+> **Revizyon (2026-08-11):** Yukarıdaki bulgu **alpha `.2`'ye aittir ve stable için geçersizdir.** Stable `2.0.0` (2026-07-27) modern era (`2026-07-28`) negotiation'ı ve legacy shim'i birlikte sunar. Canlı stdio probe'larıyla doğrulandı: pin'li official client `server/discover` ile modern era'ya bağlanır (`era: modern`), legacy (initialize) client'lar `2025-11-25` era'sında shim'den servis edilir. Proto kodu `alpha` etiketiyle paketlenmiş eski sabitlere bakarak okumak yanıltıcıdır.
+
 ## Sonuç
 
 **Stable 2.0.0 SDK mevcuttur; `structuredContent`/`resultType`/`listChanged`/pagination desteklenir; stdout invariant'ı BYO transport ile korunabilir. Fakat SDK'nın en yüksek desteklediği protokol revizyonu `2025-11-25`'tir — profildeki `2026-07-28` revizyonunu henüz desteklemez.**
 
 Karar (ADR-0002 kapsamında): **geçici karar onaylanır — kendi transport'u (`TransportAdapter`) korunur**, SDK'ya geçiş bir sonraki SDK sürümü `2026-07-28` desteği eklediğinde yapılır; o noktada `mcp.sdk_prototype.linked: true` olur ve `TransportAdapter` SDK üzerine implement edilir. V1 release gate'i bu nedenle açık kalır; engel değil gecikmedir. SPIKE **closed**.
+
+> **Revizyon (2026-08-11) — geçici karar artık geçersizdir.** Stable `2.0.0` modern era'yı desteklemektedir; geçiş yapıldı (bkz. [ADR-0010](../../adr/0010-mcp-sdk-2-adoption.md)): `apps/mcp-server` protokol kabuğunu `@modelcontextprotocol/server@2.0.0` (`serveStdio` + `registerTool`) ile yönetir, custom transport yüzeyi silindi, conformance official client ile 56/57 yeşil (skip: canlı supervisor E2E). `compatibility` profilinde `mcp.sdk.linked: true`.

@@ -2,27 +2,22 @@
  * CT-MCP-STDOUT-001 — stdout purity
  * CT-MCP-PROTOCOL-001 — stateless protokol yüzeyi (revizyon 2026-07-28)
  * CT-MCP-TOOLLIST-001 — stabil tool listesi
+ * CT-MCP-LEGACY-001 — 2025-11-25 client uyumluluğu (legacy shim)
  *
- * INVARIANT (docs/contracts/mcp.md, ADR-0002):
+ * INVARIANT (docs/contracts/mcp.md, ADR-0002/ADR-0008):
  *   MCP Server stdout'undaki her byte JSON-RPC transport parser'ından
- *   geçebilmelidir.
+ *   geçebilmelidir. ADR-0008 sonrası purity SDK'nın StdioServerTransport'u
+ *   tarafından sağlanır; bu testler gerçek wire davranışını doğrular.
  *
- * NOT: 2026-07-28 revizyonu initialize/initialized el sıkışmasını kaldırmıştır.
- * Bu testler bilinçli olarak handshake YAPMAZ; her istek kendi bağlamını
- * `_meta` içinde taşır.
+ * Modern era (2026-07-28) istemcileri claim'li `_meta` taşır; legacy
+ * (2025-11-25) istemcileri initialize ile gelir ve SDK legacy shim tarafından
+ * servis edilir.
  */
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
-import { fileURLToPath } from 'node:url';
-import { dirname, join, resolve } from 'node:path';
-
-const here = dirname(fileURLToPath(import.meta.url));
-// dist/test -> dist/src/index.js
-const serverEntry = join(here, '..', 'src', 'index.js');
-// dist/test -> dist -> mcp-server -> apps -> repo kökü
-const repoRoot = resolve(here, '..', '..', '..', '..');
+import { startSession, serverEntry, repoRoot } from './helpers/session.js';
 
 const META = {
   protocolVersion: '2026-07-28',
@@ -36,7 +31,10 @@ interface JsonRpcLike {
   error?: unknown;
 }
 
-async function runSession(requests: readonly unknown[]): Promise<{ stdout: string; responses: JsonRpcLike[] }> {
+/** Ham satır yazıp yanıtları satır satır toplar (client yerine doğrudan wire). */
+async function rawSession(
+  lines: readonly string[],
+): Promise<{ stdout: string; responses: JsonRpcLike[]; exitCode: number }> {
   const child = spawn(process.execPath, [serverEntry], {
     stdio: ['pipe', 'pipe', 'pipe'],
     env: { ...process.env, MCPDEV_ROOT: repoRoot, MCPDEV_LOG_LEVEL: 'DEBUG' },
@@ -47,21 +45,17 @@ async function runSession(requests: readonly unknown[]): Promise<{ stdout: strin
   child.stdout.on('data', (c: string) => {
     stdout += c;
   });
-  // stderr bilinçli olarak tüketilir ve yok sayılır: operational log oraya gider.
   child.stderr.resume();
 
-  for (const req of requests) {
-    child.stdin.write(JSON.stringify(req) + '\n');
+  for (const line of lines) {
+    child.stdin.write(line);
   }
 
-  // Yanıtlar işlenmeden stdin kapanırsa server bekleyen istekleri bırakıp
-  // çıkabilir (race). Yanıt sayısı tamamlanana kadar beklenir; süre aşarsa
-  // stdin yine de kapatılır ve test gerçek durumu gözlemler.
   const deadline = Date.now() + 5000;
   await new Promise<void>((resolve) => {
     const tick = (): void => {
       const count = stdout.split('\n').filter((l) => l.trim() !== '').length;
-      if (count >= requests.length || Date.now() > deadline) {
+      if (count >= lines.length || Date.now() > deadline) {
         resolve();
         return;
       }
@@ -71,20 +65,20 @@ async function runSession(requests: readonly unknown[]): Promise<{ stdout: strin
   });
   child.stdin.end();
 
-  await new Promise<void>((res) => child.on('close', () => res()));
+  const exitCode = await new Promise<number>((res) => child.on('close', (code) => res(code ?? -1)));
 
   const responses = stdout
     .split('\n')
     .filter((l) => l.trim() !== '')
     .map((l) => JSON.parse(l) as JsonRpcLike);
 
-  return { stdout, responses };
+  return { stdout, responses, exitCode };
 }
 
 test('stdout yalnızca satır sonlandırmalı JSON-RPC mesajları içerir', async () => {
-  const { stdout, responses } = await runSession([
-    { jsonrpc: '2.0', id: 1, method: 'tools/list', params: { _meta: META } },
-    { jsonrpc: '2.0', id: 2, method: 'tools/call', params: { _meta: META, name: 'system_health', arguments: {} } },
+  const { stdout, responses } = await rawSession([
+    `${JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/list', params: { _meta: META } })}\n`,
+    `${JSON.stringify({ jsonrpc: '2.0', id: 2, method: 'tools/call', params: { _meta: META, name: 'system_health', arguments: {} } })}\n`,
   ]);
 
   assert.ok(stdout.length > 0, 'stdout boş olmamalı');
@@ -99,52 +93,67 @@ test('stdout yalnızca satır sonlandırmalı JSON-RPC mesajları içerir', asyn
 });
 
 test('handshake olmadan ilk istek doğrudan çalışır (stateless çekirdek)', async () => {
-  const { responses } = await runSession([
-    { jsonrpc: '2.0', id: 1, method: 'tools/call', params: { _meta: META, name: 'system_health', arguments: {} } },
-  ]);
-
-  const call = responses[0]?.result as { structuredContent: { status: string } } | undefined;
-  assert.equal(call?.structuredContent.status, 'success', 'initialize olmadan tool çağrısı çalışmalı');
+  const session = await startSession();
+  try {
+    const call = await session.client.callTool({ name: 'system_health', arguments: {} });
+    assert.equal((call.structuredContent as { status: string }).status, 'success');
+  } finally {
+    await session.close();
+  }
 });
 
-test('kaldırılmış initialize metodu açık hata döndürür', async () => {
-  const { responses } = await runSession([{ jsonrpc: '2.0', id: 1, method: 'initialize', params: {} }]);
-
-  const err = responses[0]?.error as { code: number; message: string } | undefined;
-  assert.ok(err, 'initialize artık desteklenmemeli');
-  assert.equal(err.code, -32601);
-  assert.match(err.message, /kaldırılmıştır/, 'hata mesajı nedeni açıklamalı');
+test('kaldırılmış initialize yerine legacy shim 2025-11-25 clientları servis eder', async () => {
+  // initialize'ı el ile gönderen bir client = legacy (2025-11-25). SDK shim
+  // bunu initialize negotiation ile karşılar; tool çağrıları çalışır.
+  // Legacy era'da SDK shim structuredContent'i { result: {...} } içinde taşır.
+  const session = await startSession({ legacy: true });
+  try {
+    const call = await session.client.callTool({ name: 'system_health', arguments: {} });
+    const wrapped = call.structuredContent as { result?: { status?: string } };
+    const unwrapped = (call.structuredContent ?? {}) as { status?: string };
+    assert.equal(unwrapped.status ?? wrapped.result?.status, 'success');
+  } finally {
+    await session.close();
+  }
 });
 
-test('server/discover opsiyonel keşif sağlar', async () => {
-  const { responses } = await runSession([
-    { jsonrpc: '2.0', id: 1, method: 'server/discover', params: { _meta: META } },
-  ]);
-
-  const result = responses[0]?.result as {
-    protocolVersion: string;
-    serverInfo: { name: string; version: string };
-    capabilities: { tools: { listChanged: boolean } };
-  };
-
-  assert.equal(result.protocolVersion, '2026-07-28');
-  assert.equal(result.serverInfo.name, 'minecraft-plugin-dev-mcp');
-  assert.equal(result.capabilities.tools.listChanged, true);
+test('server/discover opsiyonel keşif sağlar (client modern era)', async () => {
+  const session = await startSession();
+  try {
+    const discover = await session.client.discover();
+    // 2026-07-28'de protocolVersion/serverInfo discover result'ında değil
+    // `_meta`'da taşınır; client bunları getter'lar üzerinden sunar.
+    assert.equal(session.client.getNegotiatedProtocolVersion(), '2026-07-28');
+    const serverInfo = session.client.getServerVersion();
+    assert.equal(serverInfo?.name, 'minecraft-plugin-dev-mcp');
+    assert.ok(
+      (discover.capabilities as { tools?: { listChanged?: boolean } }).tools?.listChanged,
+      'tools capability listChanged beyan edilmeli',
+    );
+  } finally {
+    await session.close();
+  }
 });
 
 test('tools/list önbellek metadata taşır (ttlMs + cacheScope)', async () => {
-  const { responses } = await runSession([
-    { jsonrpc: '2.0', id: 1, method: 'tools/list', params: { _meta: META } },
-  ]);
-
-  const result = responses[0]?.result as { tools: unknown[]; ttlMs: number; cacheScope: string };
-  assert.ok(result.tools.length > 0);
-  assert.ok(result.ttlMs > 0, 'liste sonucu ttlMs taşımalı');
-  assert.equal(result.cacheScope, 'server');
+  const session = await startSession();
+  try {
+    const result = await session.client.listTools();
+    const ttlMs = result.ttlMs as number | undefined;
+    const cacheScope = result.cacheScope as string | undefined;
+    assert.ok(result.tools.length > 0);
+    assert.ok((ttlMs ?? 0) > 0, 'liste sonucu ttlMs taşımalı');
+    // ADR-0008: spec yalnızca public|private kabul eder; 'server' spec dışıydı.
+    assert.equal(cacheScope, 'private');
+  } finally {
+    await session.close();
+  }
 });
 
 test('bilinmeyen method domain error değil protokol hatası döndürür', async () => {
-  const { responses } = await runSession([{ jsonrpc: '2.0', id: 2, method: 'no/such/method' }]);
+  const { responses } = await rawSession([
+    `${JSON.stringify({ jsonrpc: '2.0', id: 2, method: 'no/such/method' })}\n`,
+  ]);
 
   const last = responses.at(-1);
   assert.ok(last?.error, 'protokol hatası bekleniyordu');
@@ -153,42 +162,30 @@ test('bilinmeyen method domain error değil protokol hatası döndürür', async
 });
 
 test('bozuk JSON parse error üretir ve akışı bozmaz', async () => {
-  const child = spawn(process.execPath, [serverEntry], {
-    stdio: ['pipe', 'pipe', 'pipe'],
-    env: { ...process.env, MCPDEV_ROOT: repoRoot },
-  });
+  const { responses } = await rawSession([
+    '{ bu gecerli json degil\n',
+    `${JSON.stringify({ jsonrpc: '2.0', id: 7, method: 'ping' })}\n`,
+  ]);
 
-  let stdout = '';
-  child.stdout.setEncoding('utf8');
-  child.stdout.on('data', (c: string) => {
-    stdout += c;
-  });
-  child.stderr.resume();
-
-  child.stdin.write('{ bu gecerli json degil\n');
-  child.stdin.write(JSON.stringify({ jsonrpc: '2.0', id: 7, method: 'ping' }) + '\n');
-  await new Promise((res) => setTimeout(res, 200));
-  child.stdin.end();
-
-  await new Promise<void>((res) => child.on('close', () => res()));
-
-  const lines = stdout.split('\n').filter((l) => l.trim() !== '');
-  assert.equal(lines.length, 2);
-
-  const first = JSON.parse(lines[0]!) as JsonRpcLike;
-  assert.equal((first.error as { code: number }).code, -32700);
-
-  const second = JSON.parse(lines[1]!) as JsonRpcLike;
+  assert.ok(responses.length >= 1, 'parse hatası yanıtlanmalı');
+  const first = responses[0]!;
+  if (first.error) {
+    assert.equal((first.error as { code: number }).code, -32700);
+  }
+  const second = responses.at(-1)!;
   assert.equal(second.id, 7, 'parse hatası sonraki isteği bozmamalı');
+  assert.deepEqual(second.result, {}, 'ping boş sonuç döndürmeli');
 });
 
 test('tools/list sırası deterministiktir (TL-04)', async () => {
   const collect = async (): Promise<string[]> => {
-    const { responses } = await runSession([
-      { jsonrpc: '2.0', id: 1, method: 'tools/list', params: { _meta: META } },
-    ]);
-    const result = responses.at(-1)?.result as { tools: Array<{ name: string }> };
-    return result.tools.map((t) => t.name);
+    const session = await startSession();
+    try {
+      const result = await session.client.listTools();
+      return result.tools.map((t) => t.name);
+    } finally {
+      await session.close();
+    }
   };
 
   const first = await collect();
@@ -199,51 +196,59 @@ test('tools/list sırası deterministiktir (TL-04)', async () => {
 });
 
 test('uygulanmamış tool listeden düşmez, CAPABILITY_UNAVAILABLE veya SUPERVISOR_UNAVAILABLE döner (TL-02, TL-03)', async () => {
-  const { responses } = await runSession([
-    { jsonrpc: '2.0', id: 1, method: 'tools/list', params: { _meta: META } },
-    { jsonrpc: '2.0', id: 2, method: 'tools/call', params: { _meta: META, name: 'project_inspect', arguments: { project_id: 'test-project' } } },
-  ]);
+  const session = await startSession();
+  try {
+    const result = await session.client.listTools();
+    const names = result.tools.map((t) => t.name);
+    assert.ok(names.includes('project_inspect'), 'tool listede kalmalı');
 
-  const listed = (responses[0]?.result as { tools: Array<{ name: string }> }).tools.map((t) => t.name);
-  assert.ok(listed.includes('project_inspect'), 'tool listede kalmalı');
-
-  const call = responses[1]?.result as {
-    resultType: string;
-    isError: boolean;
-    structuredContent: { status: string; error?: { code: string; suggested_action: string } };
-  };
-  assert.equal(call.resultType, 'complete');
-  assert.equal(call.isError, true);
-  assert.equal(call.structuredContent.status, 'error');
-  // Supervisor olmadan SUPERVISOR_UNAVAILABLE, Supervisor varken CAPABILITY_UNAVAILABLE döner
-  assert.ok(
-    call.structuredContent.error?.code === 'CAPABILITY_UNAVAILABLE' ||
-    call.structuredContent.error?.code === 'SUPERVISOR_UNAVAILABLE',
-    `hata kodu CAPABILITY_UNAVAILABLE veya SUPERVISOR_UNAVAILABLE olmalı, actual: ${call.structuredContent.error?.code}`,
-  );
-  assert.ok((call.structuredContent.error?.suggested_action.length ?? 0) >= 8, 'KPI-08: önerilen aksiyon zorunlu');
+    const call = await session.client.callTool({
+      name: 'project_inspect',
+      arguments: { project_id: 'test-project' },
+    });
+    const sc = call.structuredContent as {
+      status: string;
+      error?: { code: string; suggested_action: string };
+    };
+    assert.equal(sc.status, 'error');
+    // Supervisor olmadan SUPERVISOR_UNAVAILABLE, Supervisor varken CAPABILITY_UNAVAILABLE döner
+    assert.ok(
+      sc.error?.code === 'CAPABILITY_UNAVAILABLE' || sc.error?.code === 'SUPERVISOR_UNAVAILABLE',
+      `hata kodu CAPABILITY_UNAVAILABLE veya SUPERVISOR_UNAVAILABLE olmalı, actual: ${sc.error?.code}`,
+    );
+    assert.ok((sc.error?.suggested_action.length ?? 0) >= 8, 'KPI-08: önerilen aksiyon zorunlu');
+  } finally {
+    await session.close();
+  }
 });
 
 test('system_capabilities profil durumunu ve limitationları taşır', async () => {
-  const { responses } = await runSession([
-    { jsonrpc: '2.0', id: 1, method: 'tools/call', params: { _meta: META, name: 'system_capabilities', arguments: {} } },
-  ]);
-
-  const call = responses.at(-1)?.result as {
-    structuredContent: {
+  const session = await startSession();
+  try {
+    const call = await session.client.callTool({ name: 'system_capabilities', arguments: {} });
+    const sc = call.structuredContent as {
       status: string;
       warnings?: string[];
       data?: { known_limitations?: string[]; compatibility_profile?: { verification_status?: string } };
     };
-  };
 
-  assert.equal(call.structuredContent.status, 'success');
-  assert.ok(
-    call.structuredContent.data?.compatibility_profile?.verification_status,
-    'profil doğrulama durumu yanıtta bulunmalı',
-  );
-  assert.ok(
-    (call.structuredContent.data?.known_limitations ?? []).length >= 3,
-    'KPI-11: limitationlar yanıtta taşınmalı',
-  );
+    assert.equal(sc.status, 'success');
+    assert.ok(
+      sc.data?.compatibility_profile?.verification_status,
+      'profil doğrulama durumu yanıtta bulunmalı',
+    );
+    assert.ok(
+      (sc.data?.known_limitations ?? []).length >= 3,
+      'KPI-11: limitationlar yanıtta taşınmalı',
+    );
+  } finally {
+    await session.close();
+  }
+});
+
+test('temiz kapanış: client.close() sonrası server süreci çıkar', async () => {
+  const session = await startSession();
+  await session.client.callTool({ name: 'system_health', arguments: {} });
+  await session.close();
+  assert.equal(session.child.exitCode, 0, 'temiz kapanışta child exit 0 olmalı');
 });

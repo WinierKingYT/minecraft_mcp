@@ -1,6 +1,6 @@
 # MCP sözleşmesi
 
-Karar kayıtları: [ADR-0002](../adr/0002-mcp-stdio-transport.md) (taşıma) · [ADR-0008](../adr/0008-stateless-protocol-and-stable-sdk.md) (stateless yüzey)
+Karar kayıtları: [ADR-0002](../adr/0002-mcp-stdio-transport.md) (taşıma) · [ADR-0008](../adr/0008-stateless-protocol-and-stable-sdk.md) (stateless yüzey) · [ADR-0010](../adr/0010-mcp-sdk-2-adoption.md) (SDK 2.0.0 geçişi)
 Profil: `mcp.protocol_version` — [`../../compatibility/paper-26.2-build-84-v1.yaml`](../../compatibility/paper-26.2-build-84-v1.yaml)
 
 ## Stateless çekirdek
@@ -9,18 +9,22 @@ Protokol revizyonu `2026-07-28` **stateless**tır. Bu, ürünü doğrudan etkile
 
 | Öğe | Durum |
 |---|---|
-| `initialize` / `notifications/initialized` | **Kaldırıldı** |
+| `initialize` / `notifications/initialized` | **Kaldırıldı** (legacy 2025-11-25 client'lar SDK shim'inden servis edilir) |
 | `Mcp-Session-Id` | **Kaldırıldı** |
 | Oturum durumu | Sunucuda tutulmaz |
 | İstemci bağlamı | Her istekte `params._meta` |
 | Capability keşfi | **Opsiyonel** `server/discover` |
-| Liste sonuçları | `ttlMs` + `cacheScope` ile önbelleklenebilir |
+| Liste sonuçları | `ttlMs` + `cacheScope` ile önbelleklenebilir (`cacheScope: "private"`, TTL 300 s) |
 | Uzun etkileşim | Multi Round-Trip Requests (`resultType: "input_required"`) |
 | Legacy HTTP+SSE | Deprecated (V1 zaten yalnızca `stdio`) |
 
 Kaldırılmış metotlar **sessizce yok sayılmaz**: `-32601` ve nedenini açıklayan bir mesaj döner. Sessiz kabul, eski bir istemcinin el sıkışmanın başarılı olduğunu sanmasına yol açardı.
 
 `_meta` içindeki protokol sürümü sunucununkinden farklıysa istek **reddedilmez**, uyarı loglanır — spec toleranslı sunucu bekler.
+
+Protokol kabuğu (era negotiation, `server/discover`, legacy shim, wire format)
+`@modelcontextprotocol/server@2.0.0` tarafından yönetilir (ADR-0010). Bilinmeyen
+tool `-32602 "Tool X not found"` protokol hatası döner; domain error'a çevrilmez.
 
 ## `stdio` bütünlüğü
 
@@ -34,7 +38,10 @@ file sink -> structured JSON log
 
 > MCP Server stdout'undaki **her byte** JSON-RPC transport parser'ından geçebilmelidir.
 
-Uygulama: `apps/mcp-server/src/transport/stdout-guard.ts` süreç başlangıcında `process.stdout.write` dışındaki tüm konsol yollarını `stderr`'e yönlendirir. Test: `CT-MCP-STDOUT-001`.
+Uygulama: stdout purity'yi SDK'nın `StdioServerTransport`'u sağlar (ADR-0010);
+`apps/mcp-server/src/transport/stdout-guard.ts` yalnızca `console.*` çıktılarını
+`stderr`'e yönlendirir (eski `process.stdout.write` interception'ı SDK yazımını
+bozduğu için kaldırıldı). Test: `CT-MCP-STDOUT-001`.
 
 ## Tool sonucu
 
@@ -83,6 +90,11 @@ Domain hatası:
 
 - [`../../packages/contracts/schemas/common/tool-result.schema.json`](../../packages/contracts/schemas/common/tool-result.schema.json)
 - [`../../packages/contracts/schemas/common/tool-error.schema.json`](../../packages/contracts/schemas/common/tool-error.schema.json)
+
+Wire'da tool `outputSchema` alanları **self-contained** yayınlanır: `tool-result` /
+`tool-error` şemaları `$defs`-gömülü kopya olarak taşınır (SDK client'ları remote
+`$ref` çözemediği için; ADR-0010). `$defs` kopyası `src/sdk/adapter.ts` içinde
+şema dosyalarıyla senkron tutulur.
 
 ## Stabil tool listesi
 
