@@ -10,7 +10,8 @@
  *   mcpdev-supervisor start \
  *     --repo-root <path> --profile-id <id> --bridge-jar <path> \
  *     --paper-cache <path> --runtime-root <path> \
- *     [--project-id <id> --project-root <path> --version <v>]
+ *     [--project-id <id> --project-root <path> --version <v>] \
+ *     [--registry-file <path> --evidence-dir <path>]
  */
 
 import { parseArgs } from 'node:util';
@@ -22,6 +23,7 @@ import { SupervisorService } from './service.js';
 import { SupervisorIpcServer } from './ipc-server.js';
 import { makeEndpointPath, newToken, writeControlFile, removeControlFile } from './endpoint.js';
 import { ProjectRegistry } from './project-registry.js';
+import { PersistentProjectRegistry } from './persistent-project-registry.js';
 
 interface StartOptions {
   readonly repoRoot: string;
@@ -33,6 +35,7 @@ interface StartOptions {
   readonly projectRoot?: string;
   readonly version?: string;
   readonly evidenceDir?: string;
+  readonly projectRegistryFilePath?: string;
 }
 
 function log(level: string, event: string, fields?: Record<string, unknown>): void {
@@ -45,7 +48,13 @@ async function start(options: StartOptions): Promise<never> {
     options.runtimeRootDir ??
     (await mkdtemp(join(tmpdir(), 'mcpdev-supervisor-')));
 
-  const projectRegistry = new ProjectRegistry();
+  const projectRegistry =
+    options.projectRegistryFilePath !== undefined
+      ? new PersistentProjectRegistry({
+          filePath: options.projectRegistryFilePath,
+          log,
+        })
+      : new ProjectRegistry();
   if (options.projectId && options.projectRoot) {
     await projectRegistry.register(options.projectId, {
       canonicalRoot: resolve(options.projectRoot),
@@ -54,6 +63,12 @@ async function start(options: StartOptions): Promise<never> {
       defaultBackend: 'trusted-local',
     });
     log('INFO', 'project.registered', { project_id: options.projectId });
+  }
+  if (projectRegistry instanceof PersistentProjectRegistry) {
+    await projectRegistry.load();
+    // Launcher kaydı (--project-id/--project-root) kalıcılık dosyasına da
+    // yazılmalı; aksi hâlde restart'ta kayıt kaybolur.
+    await projectRegistry.flush();
   }
 
   const service = new SupervisorService({
@@ -119,6 +134,7 @@ function main(): void {
       'runtime-root': { type: 'string' },
       'project-id': { type: 'string' },
       'project-root': { type: 'string' },
+      'registry-file': { type: 'string' },
       'evidence-dir': { type: 'string' },
       version: { type: 'string' },
       help: { type: 'boolean', short: 'h', default: false },
@@ -143,6 +159,9 @@ function main(): void {
       ...(values['runtime-root'] !== undefined ? { runtimeRootDir: values['runtime-root'] as string } : {}),
       ...(values['project-id'] !== undefined ? { projectId: values['project-id'] as string } : {}),
       ...(values['project-root'] !== undefined ? { projectRoot: values['project-root'] as string } : {}),
+      ...(values['registry-file'] !== undefined
+        ? { projectRegistryFilePath: values['registry-file'] as string }
+        : {}),
       ...(values['evidence-dir'] !== undefined ? { evidenceDir: values['evidence-dir'] as string } : {}),
       ...(values.version !== undefined ? { version: values.version as string } : {}),
     }).catch((err) => {

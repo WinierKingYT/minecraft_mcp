@@ -65,6 +65,8 @@ import type {
   PermissionCheckResult,
   PermissionSetOpParams,
   PermissionSetOpResult,
+  ProjectListParams,
+  ProjectListResult,
 } from '@mcpdev/contracts';
 import { loadCompatibilityProfile, listCompatibilityProfiles, assertProfileUsable, type CompatibilityProfile } from './compatibility.js';
 import { resolveJavaForProfile, type JavaInstallation } from './java-toolchain.js';
@@ -76,6 +78,7 @@ import { PersistentRuntimeRegistry } from './persistent-registry.js';
 import { RuntimeGarbageCollector } from './runtime-gc.js';
 import { RuntimePool, type PooledRuntime } from './runtime-pool.js';
 import { ProjectRegistry } from './project-registry.js';
+import { PersistentProjectRegistry } from './persistent-project-registry.js';
 import { validateGradleProject } from './gradle-validation.js';
 import { suggestAction } from './diagnostics.js';
 import { EvidenceStore } from '@mcpdev/evidence-model';
@@ -95,6 +98,11 @@ export interface ServiceOptions {
   readonly version: string;
   readonly log?: (level: string, event: string, fields: Record<string, unknown>) => void;
   readonly projectRegistry?: ProjectRegistry;
+  /**
+   * Proje registry kalıcılık dosyası. Verilirse kayıtlar disk'e yazılır ve
+   * startup'ta geri yüklenir (P0-4k); verilmezse registry bellek içi kalır.
+   */
+  readonly projectRegistryFilePath?: string;
   readonly evidenceStore?: EvidenceStore;
   /**
    * Runtime registry kalıcılık dosyası. Verilirse registry disk'e yazılır ve
@@ -141,6 +149,7 @@ export class SupervisorService {
   readonly #builds = new BuildRegistry();
   #java: JavaInstallation | null = null;
   #registryLoaded: Promise<void> | null = null;
+  #projectsLoaded: Promise<void> | null = null;
   #containerExecution: ContainerExecutionBackend | null = null;
   readonly #fixtureManifest: Readonly<Record<string, unknown>> | null;
 
@@ -177,7 +186,14 @@ export class SupervisorService {
       void this.stopRuntime({ runtimeImageId: event.runtimeImageId }).catch(() => {});
       void this.releaseRuntime({ runtimeImageId: event.runtimeImageId }).catch(() => {});
     });
-    this.#projects = options.projectRegistry ?? new ProjectRegistry();
+    this.#projects =
+      options.projectRegistry ??
+      (options.projectRegistryFilePath
+        ? new PersistentProjectRegistry({
+            filePath: options.projectRegistryFilePath,
+            ...(options.log ? { log: options.log } : {}),
+          })
+        : new ProjectRegistry());
     this.#evidence = options.evidenceStore ?? null;
     this.#profile = loadCompatibilityProfile(options.repoRoot, options.profileId);
     assertProfileUsable(this.#profile, 'prototype');
@@ -232,6 +248,15 @@ export class SupervisorService {
     }
   }
 
+  /** Proje registry'yi ilk kullanımda disk'ten yükler (yalnızca persistent modda). */
+  #ensureProjectsLoaded(): Promise<void> {
+    this.#projectsLoaded ??=
+      this.#projects instanceof PersistentProjectRegistry
+        ? this.#projects.load()
+        : Promise.resolve();
+    return this.#projectsLoaded;
+  }
+
   /** Container build backend'ini tembel oluşturur (Docker erişimi gerektirmez). */
   #containerExecutionBackend(): ContainerExecutionBackend {
     this.#containerExecution ??=
@@ -258,6 +283,7 @@ export class SupervisorService {
       'events.list': (params) => this.eventList(params as EventListParams),
       'project.inspect': (params) => this.projectInspect(params as ProjectInspectParams),
       'project.validate': (params) => this.projectValidate(params as ProjectValidateParams),
+      'project.list': (params) => this.projectList(params as ProjectListParams),
       'build.run': (params) => this.buildRun(params as BuildRunParams),
       'plugin.diagnose': (params) => this.pluginDiagnose(params as PluginDiagnoseParams),
       'scenario.run': (params) => this.scenarioRun(params as ScenarioRunParams),
@@ -683,6 +709,7 @@ export class SupervisorService {
   // ─── Yeni IPC handler'ları ──────────────────────────────────────────
 
   async projectInspect(params: ProjectInspectParams): Promise<ProjectInspectResult> {
+    await this.#ensureProjectsLoaded();
     const project = this.#projects.get(params.projectId);
 
     // Gradle wrapper kontrolü
@@ -738,6 +765,7 @@ export class SupervisorService {
   }
 
   async projectValidate(params: ProjectValidateParams): Promise<ProjectValidateResult> {
+    await this.#ensureProjectsLoaded();
     const project = this.#projects.get(params.projectId);
 
     const validation = await validateGradleProject(project.canonicalRoot, {
@@ -764,8 +792,35 @@ export class SupervisorService {
     };
   }
 
+  /**
+   * Proje kaydı launcher config/CLI yüzeyindendir (main.ts --project-id/
+   * --project-root; P0-7 serve). IPC'de kayıt metodu yoktur: mutation +
+   * project scope R3'tür ve ADR-0007 gereği hiçbir profilde agent
+   * yüzeyine çıkmaz. Kalıcılık (--registry-file) launcher kaydını diskte
+   * tutar.
+   */
+  async projectList(params: ProjectListParams): Promise<ProjectListResult> {
+    await this.#ensureProjectsLoaded();
+
+    const projects =
+      params.projectId !== undefined
+        ? [this.#projects.get(params.projectId)]
+        : this.#projects.list();
+
+    return {
+      projects: projects.map((project) => ({
+        projectId: project.id,
+        rootPath: project.canonicalRoot,
+        trustLevel: project.trustLevel,
+        allowedBackends: project.allowedBackends,
+        defaultBackend: project.defaultBackend,
+      })),
+    };
+  }
+
   async buildRun(params: BuildRunParams): Promise<BuildRunResult> {
     await this.#ensureRegistryLoaded();
+    await this.#ensureProjectsLoaded();
     this.#projects.assertBuildAllowed(params.projectId);
 
     const requestedBackend = params.backend ?? 'trusted-local';

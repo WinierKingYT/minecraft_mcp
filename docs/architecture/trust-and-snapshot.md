@@ -18,6 +18,14 @@ project:
 
 **Karar:** Trust kaydı proje klasörünün **içinde** tutulmaz. Aksi hâlde bir projeye yazma yetkisi olan kod kendi trust seviyesini yükseltebilirdi.
 
+## Kayıt yüzeyleri ve kalıcılık (P0-4k)
+
+Tek kayıt yüzeyi **launcher config/CLI**'dir: Supervisor `--project-id/--project-root` ile başlatılır (P0-7 `serve`). `project_register` capability'si R3'tür (mutation + project scope) ve ADR-0007 gereği hiçbir profilde agent yüzeyine çıkmaz — agent kendi trust kaydını yazamaz; yüksek trust seviyeleri (`approved-fixture`, config uzantısıyla `pinned-source`) yalnızca insan tarafından girilir.
+
+**Kalıcılık:** Supervisor `--registry-file <path>` ile başlatıldığında kayıtlar JSON dosyasına yazılır (versiyonlu, atomic write: temp + rename) ve restart'ta geri yüklenir. Geri yüklenemeyen kayıtlar (kök silinmiş, symlink'e dönmüş, bozuk backend config) tek tek atlanır ve loglanır; tek bozuk kayıt registry'yi çökertmez. Flag verilmezse registry bellek içidir (mevcut davranış). Önerilen konum: `<repoRoot>/.mcpdev-data/project-registry.json` (gitignore'lu).
+
+**Silme:** `project.unregister` IPC yüzeyi **yoktur** (delete araçlarının agent yüzeyine çıkmaması kuralı). Kayıt kaldırma launcher/config tarafındadır.
+
 ## Trust seviyeleri
 
 | Seviye | Açıklama | Build | Container zorunlu |

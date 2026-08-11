@@ -1,0 +1,41 @@
+id: project.list
+version: 1
+milestone: M3
+summary: Trust store'daki kayıtlı projeleri listeler (isteğe bağlı project_id filtresiyle).
+status: planned
+
+exposure:
+  developer_tool: project_list
+  debug_tool: null
+  bridge_operation: project.list
+  dsl_step: null
+
+risk:
+  effect: read
+  scope: project
+  reversibility: reversible
+  approval: profile
+  exposure: agent_visible
+  cost: low
+  level: R1
+
+contracts:
+  input: schemas/project-list.input.json
+  output: schemas/project-list.output.json
+
+limits:
+  timeout_ms: 10000
+  max_bytes: 1048576
+
+errors:
+  - SUPERVISOR_UNAVAILABLE
+  - PROJECT_NOT_REGISTERED
+
+tests:
+  unit: [UT-PROJECT-LIST-001]
+  contract: [CT-PROJECT-LIST-001]
+
+notes: >
+  Read-only kayıt keşfi: agent kayıtlı proje kimliklerini ve trust
+  seviyelerini görür; kayıt mutasyonu yalnızca project.register (debug)
+  veya launcher config/CLI yüzeyinden yapılır.

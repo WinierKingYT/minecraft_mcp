@@ -62,7 +62,11 @@ export class ProjectRegistry {
    * Sonraki her erişimde yeniden doğrulanır: kayıt sonrası kökün symlink'e
    * çevrilmesi sessizce kabul edilmemelidir.
    */
-  async register(id: string, definition: ProjectDefinition): Promise<RegisteredProject> {
+  async register(
+    id: string,
+    definition: ProjectDefinition,
+    registeredAt: string = new Date().toISOString(),
+  ): Promise<RegisteredProject> {
     if (!/^[a-z][a-z0-9-]*$/.test(id)) {
       throw new ProjectError('CONFIG_INVALID', `Geçersiz project_id: "${id}" (küçük harf, rakam ve tire)`);
     }
@@ -81,7 +85,7 @@ export class ProjectRegistry {
       trustLevel: definition.trustLevel,
       allowedBackends: [...definition.allowedBackends],
       defaultBackend: definition.defaultBackend,
-      registeredAt: new Date().toISOString(),
+      registeredAt,
     };
     this.#projects.set(id, project);
     return project;

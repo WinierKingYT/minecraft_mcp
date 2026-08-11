@@ -14,6 +14,8 @@
  * tüketmesine izin verirdi.
  */
 
+import type { TrustLevel, ExecutionBackendKind } from './index.js';
+
 /** Tek bir IPC isteği. */
 export interface IpcRequest<TParams = unknown> {
   readonly v: 1;
@@ -55,6 +57,7 @@ export type IpcMethod =
   | 'events.list'
   | 'project.inspect'
   | 'project.validate'
+  | 'project.list'
   | 'build.run'
   | 'plugin.diagnose'
   | 'scenario.run'
@@ -174,6 +177,23 @@ export const IPC_LAUNCH_TIMEOUT_MS = 300_000;
 
 export interface ProjectInspectParams {
   readonly projectId: string;
+}
+
+export interface ProjectListParams {
+  readonly projectId?: string;
+}
+
+export interface ProjectListResult {
+  readonly projects: readonly ProjectListEntry[];
+}
+
+/** `project.list` ve registry durumunu taşıyan kayıt biçimi. */
+export interface ProjectListEntry {
+  readonly projectId: string;
+  readonly rootPath: string;
+  readonly trustLevel: TrustLevel;
+  readonly allowedBackends: readonly ExecutionBackendKind[];
+  readonly defaultBackend: ExecutionBackendKind;
 }
 
 export interface ProjectInspectResult {

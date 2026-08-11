@@ -38,6 +38,7 @@ const KNOWN_METHODS: readonly IpcMethod[] = [
   'bridge.events',
   'project.inspect',
   'project.validate',
+  'project.list',
   'build.run',
   'plugin.diagnose',
   'scenario.run',

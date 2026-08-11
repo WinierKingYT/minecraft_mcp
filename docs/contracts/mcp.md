@@ -133,6 +133,19 @@ V1.1 (runtime pool, multi-profile, permissions) `tools/list` yüzeyini genişlet
 
 Supervisor bağlı değilken tüm V1.1 araçları `SUPERVISOR_UNAVAILABLE` döndürür (ADR-0003: MCP Server Supervisor'ı doğurmaz). Testler: `CT-MCP-V11-E2E-001`, `CT-MCP-V11-001`.
 
+## P0-4k: Proje registry hatları
+
+P0-4k (persistent project registry) `tools/list` yüzeyine bir araç ekler:
+
+| Tool | Profile | Capability | Effect |
+|---|---|---|---|
+| `project_list` | developer | `project.list` | read |
+
+- Proje **kaydı** agent yüzeyinde değildir: `project.register` capability'si R3'tür (mutation + project scope) ve ADR-0007 gereği hiçbir profilde agent yüzeyine çıkmaz. Kayıt yalnızca launcher config/CLI'dendir (`--project-id/--project-root`; P0-7 `serve`).
+- Kayıtlar Supervisor'da `--registry-file` verildiğinde disk'e yazılır (atomic write, versiyonlu) ve restart'ta geri yüklenir; geri yüklenemeyen kayıtlar tek tek atlanır, registry çökmez. Verilmezse registry bellek içidir (mevcut davranış).
+- IPC yüzeyi: `project.list` (`contracts/ipc.ts`). `project.unregister` yoktur — silme yüzeyi launcher/config tarafındadır.
+- Testler: `CT-PROJECT-LIST-001`, `UT-PROJECT-REGISTER-001` (kalıcılık).
+
 ## Error catalog
 
 Kayıt biçimi:

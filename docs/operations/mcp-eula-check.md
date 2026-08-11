@@ -9,17 +9,22 @@ uçtan uca doğrulanmasını anlatır. MCP Inspector yerine gerçek JSON-RPC std
 ## Zincir
 
 ```text
-mcpdev-supervisor start          ── SupervisorService + SupervisorIpcServer
-   └─ control dosyası yazar        (MCPDEV_CONTROL_DIR/supervisor-endpoint.json)
-        └─ mcp-server (stdio)      ── readControlFile ile named pipe'a bağlanır
-             └─ tools/call scenario_run
-                  └─ IPC scenario.run
-                       └─ ScenarioEngine → disposable Paper runtime
+mcpdev serve (P0-7)              ── launcher: supervisor + mcp-server tek komutta
+   └─ supervisor (start)          ── SupervisorService + SupervisorIpcServer
+        └─ control dosyası yazar    (MCPDEV_CONTROL_DIR/supervisor-endpoint.json)
+             └─ mcp-server (stdio)  ── readControlFile ile named pipe'a bağlanır
+                  └─ tools/call scenario_run
+                       └─ IPC scenario.run
+                            └─ ScenarioEngine → disposable Paper runtime
 ```
+
+Standalone koşumda supervisor aşağıdaki gibi başlatılır; `mcpdev serve` aynı
+bayrakları (`--project-id/--project-root/--registry-file` dahil) içerir ve
+zinciri kendi kapatır (mcp-server çıkınca supervisor'ı da SIGTERM'ler).
 
 ## Supervisor'ı process olarak başlatma
 
-`apps/run-supervisor/src/main.ts` (yeni): supervisor'ı standalone başlatır, named pipe endpoint'ini
+`apps/run-supervisor/src/main.ts`: supervisor'ı standalone başlatır, named pipe endpoint'ini
 kontrol dosyasına yazar, SIGINT/SIGTERM'de `server.close()` + kontrol dosyası temizliği yapar.
 
 ```text

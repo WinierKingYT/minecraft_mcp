@@ -62,12 +62,18 @@ const { SupervisorClient } = await import('./supervisor-client.js');
  * bu durum system_health yanıtında açıkça bildirilir.
  */
 let supervisorClient: InstanceType<typeof SupervisorClient> | null = null;
-const connectSupervisor = async (): Promise<InstanceType<typeof SupervisorClient> | null> => {
-  if (supervisorClient) return supervisorClient;
-  const endpoint = await readControlFile();
-  if (!endpoint) return null;
-  supervisorClient = new SupervisorClient({ endpointPath: endpoint.path, token: endpoint.token });
-  return supervisorClient;
+let supervisorConnect: Promise<InstanceType<typeof SupervisorClient> | null> | null = null;
+const connectSupervisor = (): Promise<InstanceType<typeof SupervisorClient> | null> => {
+  if (supervisorClient) return Promise.resolve(supervisorClient);
+  // Eşzamanlı ilk çağrılar tek bağlantıya çözülür: await noktasında ikinci
+  // çağrı da girerse aksi halde iki client kurulur, biri kapatılamadan kalır.
+  supervisorConnect ??= (async () => {
+    const endpoint = await readControlFile();
+    if (!endpoint) return null;
+    supervisorClient = new SupervisorClient({ endpointPath: endpoint.path, token: endpoint.token });
+    return supervisorClient;
+  })();
+  return supervisorConnect;
 };
 
 const facade = new ToolFacade(profile);
@@ -142,3 +148,28 @@ const shutdown = (signal: string): void => {
 
 process.on('SIGINT', () => shutdown('SIGINT'));
 process.on('SIGTERM', () => shutdown('SIGTERM'));
+
+// stdin EOF = istemci bağlantıyı kapattı (serve launcher veya test). SDK'nın
+// transport'ı EOF'ta kendiliğinden kapanmaz; üstelik mesajlar asenkron kuyrukla
+// işlendiğinden EOF, devam eden tools/call'ların süpervizöre bağlanmasından
+// ÖNCE gelebilir. Bu yüzden önce connectSupervisor'ın kurulum promise'i
+// beklenir (aynı in-flight isteğin kuracağı bağlantı), sonra devam eden IPC
+// çağrıları boşaltılır, sonra socket kapatılır. Böylece yanıtlar kesilmez ve
+// named pipe handle'ı event loop'u tutmaz — süreç doğal olarak 0 ile çıkar.
+const STDIN_END_GRACE_MS = 5_000;
+
+process.stdin.on('end', () => {
+  void (async () => {
+    log('INFO', 'server.stdin_end', {});
+    // SDK mesajları asenkron kuyrukla işler; EOF geldiğinde kuyrukta bekleyen
+    // istekler olabilir. Kuyruk kanala teslim edilene kadar kısa bir süre
+    // beklenir; ardından devam eden IPC çağrıları boşaltılıp socket kapatılır.
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    const deadline = Date.now() + STDIN_END_GRACE_MS;
+    const client = await connectSupervisor();
+    while (client && client.pendingCount > 0 && Date.now() < deadline) {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    }
+    client?.close();
+  })();
+});

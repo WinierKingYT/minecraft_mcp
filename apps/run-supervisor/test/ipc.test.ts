@@ -44,6 +44,7 @@ function stubHandlers(overrides: Partial<Record<IpcMethod, MethodHandler>> = {})
     'bridge.events': async () => ({ events: [] }),
     'project.inspect': async () => ({ projectId: 'test', rootPath: '/test', trustLevel: 'developer-workspace', gradleWrapper: { found: true, jarExists: true, propertiesExists: true }, pluginMetadata: null, testContract: { found: false } }),
     'project.validate': async () => ({ projectId: 'test', findings: [], gradleVersion: null, javaMajor: null, distributionSha256Valid: null, lockFilePresent: false, verificationMetadataPresent: false }),
+    'project.list': async () => ({ projects: [{ projectId: 'test', rootPath: '/test', trustLevel: 'developer-workspace', allowedBackends: ['trusted-local'], defaultBackend: 'trusted-local' }] }),
     'build.run': async () => ({ buildId: 'build_test', projectId: 'test', mode: 'build', status: 'completed', durationMs: 0, evidenceIds: [] }),
     'plugin.diagnose': async () => ({ type: 'build', summary: 'test', errors: [], failedTasks: [], warnings: [] }),
     'scenario.run': async () => ({ scenarioRunId: 'sr_test', status: 'completed', passed: 0, failed: 0, skipped: 0, durationMs: 0, evidenceIds: [] }),
@@ -226,6 +227,34 @@ test('kodsuz hata güvenli varsayılana düşer', () => {
   assert.equal(error.code, 'SUPERVISOR_INTERNAL_ERROR');
   assert.equal(error.retryable, false);
   assert.ok(error.suggested_action.length >= 8);
+});
+
+test('project.list route proje listesini döndürür (CT-PROJECT-LIST-001)', async () => {
+  const handlers = stubHandlers({
+    'project.list': async (params) => {
+      assert.deepEqual(params, {});
+      return {
+        projects: [
+          {
+            projectId: 'demo',
+            rootPath: 'C:\\proje',
+            trustLevel: 'developer-workspace',
+            allowedBackends: ['trusted-local'],
+            defaultBackend: 'trusted-local',
+          },
+        ],
+      };
+    },
+  });
+
+  await withServer(handlers, async (path) => {
+    const res = await roundTrip(path, { v: 1, id: '12', method: 'project.list', params: {}, token: TOKEN });
+
+    assert.equal(res.ok, true);
+    const listed = res.ok === true ? (res.result as { projects: Array<{ projectId: string }> }) : null;
+    assert.equal(listed?.projects.length, 1);
+    assert.equal(listed?.projects[0]?.projectId, 'demo');
+  });
 });
 
 test('NDJSON çözücü sınırı aşan çerçeveyi reddeder', () => {

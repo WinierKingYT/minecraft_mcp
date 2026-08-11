@@ -193,4 +193,9 @@ export class SupervisorClient {
     this.#socket?.destroy();
     this.#socket = null;
   }
+
+  /** Devam eden (yanıtı bekleyen) IPC çağrısı sayısı. */
+  get pendingCount(): number {
+    return this.#pending.size;
+  }
 }

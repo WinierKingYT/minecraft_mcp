@@ -24,6 +24,7 @@ public enum BridgeOperation {
     POOL_STATUS("pool.status"),
     PROFILE_GET("profile.get"),
     PROFILE_LIST("profile.list"),
+    PROJECT_LIST("project.list"),
     SERVER_GET_STATE("server.get_state"),
     TEST_ACTOR_CREATE("test_actor.create"),
     TEST_ACTOR_DISCONNECT_ALL("test_actor.disconnect_all"),

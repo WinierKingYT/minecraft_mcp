@@ -6,6 +6,7 @@ export const TOOL_PROFILES = {
   'developer': [
     'system_health',
     'system_capabilities',
+    'project_list',
     'project_inspect',
     'project_validate',
     'plugin_build',

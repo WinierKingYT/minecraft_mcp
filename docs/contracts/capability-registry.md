@@ -181,6 +181,7 @@ Aşağıdaki tablo `pnpm run gen` tarafından yenilenir; elle düzenlenmez.
 | `profile.get` | V1.1 | read | disposable_runtime | reversible | none | **R0** | `profile_get` | — |
 | `profile.list` | V1.1 | read | disposable_runtime | reversible | none | **R0** | `profile_list` | — |
 | `project.inspect` | M1 | read | project | reversible | profile | **R1** | `project_inspect` | — |
+| `project.list` | M3 | read | project | reversible | profile | **R1** | `project_list` | — |
 | `project.validate` | M1 | read | project | reversible | profile | **R1** | `project_validate` | — |
 | `runtime.create` | M1 | build | disposable_runtime | runtime_discard | profile | **R1** | — | `runtime_create` |
 | `runtime.delete` | M1 | delete | host | destructive | per_call | **R4** | — | — |

@@ -1,13 +1,21 @@
 /**
- * M1 tool'ları: project_inspect ve project_validate.
+ * M1 + P0-4k tool'ları: project_list, project_inspect, project_validate.
  *
- * Supervisor IPC üzerinden proje metadata ve Gradle supply-chain
+ * Proje kaydı launcher config/CLI yüzeyindendir (main.ts --project-id/
+ * --project-root; P0-7 serve); agent yüzeyinde register tool'u yoktur
+ * (R3 — ADR-0007: R3/R4 hiçbir profilde agent yüzeyine çıkmaz).
+ *
+ * Supervisor IPC üzerinden proje listesi, metadata ve Gradle supply-chain
  * doğrulamasını sağlar.
  */
 
 import { toolSuccess, toolError, type ToolDefinition, type ToolHandler } from './facade.js';
 import type { SupervisorClient } from '../supervisor-client.js';
-import type { ProjectInspectResult, ProjectValidateResult } from '@mcpdev/contracts';
+import type {
+  ProjectInspectResult,
+  ProjectValidateResult,
+  ProjectListResult,
+} from '@mcpdev/contracts';
 
 const TOOL_RESULT_SCHEMA_REF = {
   $ref: 'https://minecraft-plugin-dev-mcp/schemas/common/tool-result.schema.json',
@@ -18,6 +26,55 @@ export interface ProjectToolsInfo {
 }
 
 export function createProjectTools(info: ProjectToolsInfo): Array<[ToolDefinition, ToolHandler]> {
+  const projectList: [ToolDefinition, ToolHandler] = [
+    {
+      name: 'project_list',
+      title: 'Project list',
+      description: 'Trust store\'daki kayıtlı projeleri listeler; project_id verilirse yalnızca o projeyi döndürür.',
+      inputSchema: {
+        type: 'object',
+        additionalProperties: false,
+        properties: {
+          project_id: { type: 'string', description: 'İsteğe bağlı proje kimliği filtresi' },
+        },
+      },
+      outputSchema: TOOL_RESULT_SCHEMA_REF,
+    },
+    async (args, ctx) => {
+      const projectId = args['project_id'];
+      if (projectId !== undefined && typeof projectId !== 'string') {
+        return toolError(ctx.correlationId, 'TOOL_INPUT_INVALID', { field: 'project_id' });
+      }
+
+      const client = await info.supervisor();
+      if (!client) {
+        return toolError(ctx.correlationId, 'SUPERVISOR_UNAVAILABLE');
+      }
+
+      try {
+        const result = await client.call<ProjectListResult>('project.list', {
+          ...(projectId !== undefined ? { projectId } : {}),
+        });
+
+        return toolSuccess(ctx.correlationId, {
+          projects: result.projects.map((project) => ({
+            project_id: project.projectId,
+            root_path: project.rootPath,
+            trust_level: project.trustLevel,
+            allowed_backends: project.allowedBackends,
+            default_backend: project.defaultBackend,
+          })),
+        });
+      } catch (err) {
+        const error = err as { code?: string; message?: string };
+        return toolError(ctx.correlationId, (error.code ?? 'PROJECT_NOT_REGISTERED') as never, {
+          ...(projectId !== undefined ? { project_id: projectId } : {}),
+          message: error.message ?? String(err),
+        });
+      }
+    },
+  ];
+
   const projectInspect: [ToolDefinition, ToolHandler] = [
     {
       name: 'project_inspect',
@@ -113,5 +170,5 @@ export function createProjectTools(info: ProjectToolsInfo): Array<[ToolDefinitio
     },
   ];
 
-  return [projectInspect, projectValidate];
+  return [projectList, projectInspect, projectValidate];
 }

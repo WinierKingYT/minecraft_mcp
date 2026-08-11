@@ -60,7 +60,16 @@ kimlikleri `$defs` anahtarlarında korunur. `$defs` kopyası
 `test/conformance-official-client.test.ts` — 14 testlik kullanıcı onaylı matris,
 `@modelcontextprotocol/client@2.0.0` (devDependency, test) ile gerçek stdio
 sürecine karşı koşulur. #10 (canlı supervisor E2E) `mcpdev serve` launcher
-(P0-7) sonrası ayrı koşulur. 2026-08-11 itibarıyla: **56/57 pass, 1 skip, 0 fail.**
+(P0-7) ile ham JSON-RPC stdio üzerinden koşulur: supervisor launcher kaydını
+(`--project-id`), registry kalıcılığını ve `system_health`/`project_list`
+üzerinden canlı IPC'yi doğrular. 2026-08-11 itibarıyla: **57/57 pass, 0 fail.**
+
+P0-7'de kapatılan yaşam döngüsü açığı: SDK'nın stdio transport'ı stdin EOF'ta
+kendiliğinden kapanmaz; üstelik mesajlar asenkron kuyrukla işlendiğinden EOF,
+devam eden `tools/call`'ların süpervizöre bağlanmasından önce gelebilir. mcp-server
+EOF'ta önce kuyruğu teslim eder, devam eden IPC çağrılarını boşaltır, sonra
+named pipe socket'ini kapatır — süreç doğal olarak exit 0 ile kapanır ve launcher
+zinciri (mcp-server → supervisor → serve) temiz çözülür.
 
 ## Alternatifler
 
@@ -89,7 +98,7 @@ sürecine karşı koşulur. #10 (canlı supervisor E2E) `mcpdev serve` launcher
 
 **Kanıt:** `test/conformance-official-client.test.ts`, `test/stdout-purity.test.ts`,
 `test/v11-e2e.test.ts` — `corepack pnpm --dir apps/mcp-server run test`
-(56/57, skip: canlı supervisor E2E).
+(57/57 pass, canlı supervisor E2E dahil).
 
 ## İlgili
 

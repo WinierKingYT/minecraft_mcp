@@ -16,7 +16,8 @@ import { StdioClientTransport } from '@modelcontextprotocol/client/stdio';
 const here = dirname(fileURLToPath(import.meta.url));
 // dist/test/helpers -> dist/src/index.js
 export const serverEntry = join(here, '..', '..', 'src', 'index.js');
-export const repoRoot = resolve(here, '..', '..', '..', '..');
+// dist/test/helpers -> repo kökü (apps/mcp-server/dist/test/helpers: 5 seviye)
+export const repoRoot = resolve(here, '..', '..', '..', '..', '..');
 
 export interface SessionOptions {
   readonly profile?: string;

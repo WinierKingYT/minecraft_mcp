@@ -13,7 +13,7 @@
  *   07 unknown tool
  *   08 malformed tool args
  *   09 supervisor unavailable
- *   10 supervisor available        (skip: supervisor runtime — mcpdev serve E2E)
+ *   10 supervisor available        (mcpdev serve launcher — P0-7)
  *   11 tools/call success
  *   12 tools/call domain error
  *   13 stdout purity
@@ -23,6 +23,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
+import { mkdtemp, mkdir, writeFile, readFile } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
+import { tmpdir } from 'node:os';
 import { startSession, serverEntry, repoRoot } from './helpers/session.js';
 
 test('01 server discovery — client.discover() keşif yanıtını döndürür', async () => {
@@ -149,10 +153,117 @@ test('09 supervisor unavailable — pool_status SUPERVISOR_UNAVAILABLE döner', 
   }
 });
 
-test('10 supervisor available — canlı supervisor E2E (mcpdev serve sonrası ayrı test)', {
-  skip: 'Supervisor runtime oturumu mcpdev serve launcher (P0-7) sonrası gerçek Paper E2E olarak koşulur.',
-}, async () => {
-  assert.ok(true);
+test('10 supervisor available — mcpdev serve launcher ile canlı supervisor E2E', async () => {
+  // P0-7 serve launcher: supervisor (launcher kaydı + registry kalıcılığı) ve
+  // mcp-server tek komutta; system_health ve project_list supervisor'ı görür.
+  const tmp = await mkdtemp(join(tmpdir(), 'mcpdev-serve-e2e-'));
+  const paperCache = join(tmp, 'cache');
+  const projRoot = join(tmp, 'proj');
+  await mkdir(paperCache, { recursive: true });
+  await mkdir(projRoot, { recursive: true });
+  const bridgeJar = join(tmp, 'bridge.jar');
+  await writeFile(bridgeJar, '', 'utf8');
+  const registryFile = join(tmp, 'registry.json');
+
+  const cliEntry = join(repoRoot, 'apps', 'cli', 'dist', 'src', 'index.js');
+  assert.ok(existsSync(cliEntry), `cli build eksik: ${cliEntry}`);
+
+  const child = spawn(
+    process.execPath,
+    [
+      cliEntry,
+      'serve',
+      '--repo-root', repoRoot,
+      '--profile-id', 'paper-26.2-build-84-v1',
+      '--bridge-jar', bridgeJar,
+      '--paper-cache', paperCache,
+      '--project-id', 'demo',
+      '--project-root', projRoot,
+      '--registry-file', registryFile,
+    ],
+    { stdio: ['pipe', 'pipe', 'pipe'], env: { ...process.env } },
+  );
+
+  let stdout = '';
+  child.stdout.setEncoding('utf8');
+  child.stdout.on('data', (c: string) => { stdout += c; });
+  child.stderr.resume();
+
+  const send = (id: number, method: string, params: Record<string, unknown>): void => {
+    child.stdin.write(`${JSON.stringify({ jsonrpc: '2.0', id, method, params })}\n`);
+  };
+  const meta = { protocolVersion: '2026-07-28', client: { name: 'ct10', version: '0' } };
+
+  send(1, 'initialize', { protocolVersion: '2026-07-28', capabilities: {}, clientInfo: { name: 'ct10', version: '0' } });
+  send(2, 'tools/list', { _meta: meta });
+  send(3, 'tools/call', { name: 'system_health', arguments: {}, _meta: meta });
+  send(4, 'tools/call', { name: 'project_list', arguments: {}, _meta: meta });
+
+  const deadline = Date.now() + 45_000;
+  const responses = new Map<number, Record<string, unknown>>();
+  while (responses.size < 4 && Date.now() < deadline) {
+    for (const line of stdout.split('\n')) {
+      const trimmed = line.trim();
+      if (trimmed === '') continue;
+      try {
+        const msg = JSON.parse(trimmed) as { id?: number; result?: Record<string, unknown>; error?: unknown };
+        if (msg.id !== undefined && (msg.result !== undefined || msg.error !== undefined)) {
+          responses.set(msg.id, msg);
+        }
+      } catch {
+        // Protokol dışı satır yok sayılır (supervisor logları stderr'e gider).
+      }
+    }
+    if (responses.size < 4) {
+      await new Promise((res) => setTimeout(res, 200));
+    }
+  }
+
+  child.stdin.end();
+  await new Promise<void>((res) => child.on('close', () => res()));
+  assert.equal(child.exitCode, 0, 'mcpdev serve temiz kapanmalı (exit 0)');
+
+  assert.ok(responses.has(1), 'initialize yanıtı alınmalı');
+  const list = responses.get(2)?.result as { tools?: Array<{ name: string }> };
+  assert.ok(list?.tools?.some((t) => t.name === 'system_health'), 'tools/list system_health içermeli');
+  assert.ok(list?.tools?.some((t) => t.name === 'project_list'), 'tools/list project_list içermeli');
+
+  const health = responses.get(3)?.result as {
+    structuredContent?: {
+      result?: {
+        status?: string;
+        data?: {
+          mcp_server?: { status?: string };
+          supervisor?: { status?: string; pid?: number };
+        };
+      };
+    };
+  };
+  const healthSc = health?.structuredContent?.result;
+  assert.equal(healthSc?.status, 'success');
+  assert.equal(healthSc?.data?.mcp_server?.status, 'ok', 'mcp-server health ok olmalı');
+  assert.equal(healthSc?.data?.supervisor?.status, 'ok', 'supervisor health ok olmalı');
+  assert.ok(Number.isInteger(healthSc?.data?.supervisor?.pid), 'supervisor pid raporlanmalı');
+
+  const projects = responses.get(4)?.result as {
+    structuredContent?: {
+      result?: {
+        status?: string;
+        data?: { projects?: Array<{ project_id: string; trust_level: string }> };
+      };
+    };
+  };
+  const projectsSc = projects?.structuredContent?.result;
+  assert.equal(projectsSc?.status, 'success');
+  const demo = projectsSc?.data?.projects?.find((p) => p.project_id === 'demo');
+  assert.ok(demo, 'launcher kaydı (--project-id) project_list te görünmeli');
+  assert.equal(demo?.trust_level, 'approved-fixture');
+
+  // Launcher kaydı kalıcılık dosyasına da yazılmış olmalı (P0-4k flush).
+  const persisted = JSON.parse(await readFile(registryFile, 'utf8')) as {
+    projects?: Array<{ id: string }>;
+  };
+  assert.ok(persisted.projects?.some((p) => p.id === 'demo'), 'registry dosyası demo kaydını taşımalı');
 });
 
 test('11 tools/call success — system_health tam yanıt döndürür', async () => {
