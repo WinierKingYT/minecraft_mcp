@@ -32,10 +32,6 @@ export function createRuntimeTools(info: RuntimeToolsInfo): Array<[ToolDefinitio
             type: 'string',
             description: 'plugin_build sonucundaki build kimliği; bu buildin artifacti hedef plugin olarak kurulur',
           },
-          accept_eula: {
-            type: 'boolean',
-            description: 'Minecraft EULA kabulü (varsayılan: false)',
-          },
         },
         required: ['project_id'],
       },
@@ -44,7 +40,6 @@ export function createRuntimeTools(info: RuntimeToolsInfo): Array<[ToolDefinitio
     async (args, ctx) => {
       const projectId = args['project_id'];
       const buildId = args['build_id'];
-      const acceptEula = (args['accept_eula'] as boolean) ?? false;
 
       if (typeof projectId !== 'string') {
         return toolError(ctx.correlationId, 'TOOL_INPUT_INVALID', { field: 'project_id' });
@@ -65,7 +60,6 @@ export function createRuntimeTools(info: RuntimeToolsInfo): Array<[ToolDefinitio
           serverInstanceId: string;
           state: string;
         }>('runtime.create', {
-          acceptMinecraftEula: acceptEula,
           ...(buildId ? { buildId } : {}),
         });
 

@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp, writeFile, mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { checkSecondProfile, checkCapabilityRegistry } from '../src/doctor.js';
+import { checkSecondProfile, checkCapabilityRegistry, checkNodeVersion, checkJava, checkPnpm } from '../src/doctor.js';
 
 // Import the check functions directly for testing
 // We test the internal logic by creating temporary environments
@@ -25,6 +25,61 @@ describe('mcpdev doctor: node version check', () => {
     assert.equal(parse('24.18.1'), 24);
     assert.equal(parse('22.0.0'), 22);
     assert.equal(parse('20.0.0'), 20);
+  });
+});
+
+describe('mcpdev doctor: pinned checks', () => {
+  test('engines.node pin varsa major+minor uyumu aranır (ADR-0009)', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'doctor-pin-'));
+    await writeFile(
+      join(dir, 'package.json'),
+      JSON.stringify({ engines: { node: '24.18.1' }, packageManager: 'pnpm@10.15.0' }),
+    );
+
+    const version = process.versions.node;
+    const major = Number.parseInt(version.split('.')[0]!, 10);
+    const pinMajor = 24;
+    const ok = major === pinMajor;
+    const result = await checkNodeVersion(dir);
+    assert.equal(result.status, ok ? 'pass' : 'fail');
+    assert.equal(result.name, 'node_version');
+    if (ok) assert.ok(result.message.includes('pin'));
+  });
+
+  test('engines.node yoksa gevşek >= 22 kontrolü korunur', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'doctor-pin-'));
+    await writeFile(join(dir, 'package.json'), JSON.stringify({ name: 'no-pin' }));
+    const result = await checkNodeVersion(dir);
+    assert.equal(result.status, 'pass');
+  });
+
+  test('packageManager pin varsa pnpm major+minor uyumu aranır', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'doctor-pin-'));
+    await writeFile(join(dir, 'package.json'), JSON.stringify({ packageManager: 'pnpm@10.15.0' }));
+    const result = await checkPnpm(dir);
+    assert.ok(['pass', 'fail'].includes(result.status));
+    assert.equal(result.name, 'pnpm');
+  });
+
+  test('verified profil java.runtime_major pin varsa java major eşleşmesi istenir', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'doctor-pin-'));
+    await mkdir(join(dir, 'compatibility'), { recursive: true });
+    await writeFile(
+      join(dir, 'compatibility', 'paper-26.2-build-84-v1.yaml'),
+      'verification:\n  status: verified\njava:\n  runtime_major: 25\n',
+    );
+    const result = await checkJava(dir);
+    assert.equal(result.name, 'java');
+    assert.ok(['pass', 'fail', 'warn'].includes(result.status));
+    if (result.status === 'pass' || result.status === 'fail') {
+      assert.ok(result.message.includes('25'), 'profil pin 25 mesajda olmalı');
+    }
+  });
+
+  test('profil java pin yoksa eski >=21 davranışı korunur', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'doctor-pin-'));
+    const result = await checkJava(dir);
+    assert.equal(result.name, 'java');
   });
 });
 

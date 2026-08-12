@@ -331,23 +331,18 @@ export function createScenarioTools(info: ScenarioToolsInfo): Array<[ToolDefinit
         properties: {
           scenario_path: { type: 'string', description: 'Scenario dosya yolu' },
           project_id: { type: 'string', description: 'Proje kimliği' },
-          accept_minecraft_eula: {
-            type: 'boolean',
-            description: 'Minecraft EULA\'sını kabul et (scenario gerçek bir Paper sunucusu başlatır; false verilirse sunucu başlamaz)',
-          },
           build_id: {
             type: 'string',
             description: 'Plugin eklenecekse build kaydı kimliği (opsiyonel; verilmezse pluginsiz runtime)',
           },
         },
-        required: ['scenario_path', 'project_id', 'accept_minecraft_eula'],
+        required: ['scenario_path', 'project_id'],
       },
       outputSchema: TOOL_RESULT_SCHEMA_REF,
     },
     async (args, ctx) => {
       const scenarioPath = args['scenario_path'];
       const projectId = args['project_id'];
-      const acceptMinecraftEula = args['accept_minecraft_eula'];
       const buildId = args['build_id'];
 
       if (typeof scenarioPath !== 'string') {
@@ -355,9 +350,6 @@ export function createScenarioTools(info: ScenarioToolsInfo): Array<[ToolDefinit
       }
       if (typeof projectId !== 'string') {
         return toolError(ctx.correlationId, 'TOOL_INPUT_INVALID', { field: 'project_id' });
-      }
-      if (typeof acceptMinecraftEula !== 'boolean') {
-        return toolError(ctx.correlationId, 'TOOL_INPUT_INVALID', { field: 'accept_minecraft_eula' });
       }
       if (buildId !== undefined && typeof buildId !== 'string') {
         return toolError(ctx.correlationId, 'TOOL_INPUT_INVALID', { field: 'build_id' });
@@ -372,7 +364,6 @@ export function createScenarioTools(info: ScenarioToolsInfo): Array<[ToolDefinit
         const result = await client.call<ScenarioRunResult>('scenario.run', {
           scenarioPath,
           projectId,
-          acceptMinecraftEula,
           ...(buildId !== undefined && { buildId }),
         });
 

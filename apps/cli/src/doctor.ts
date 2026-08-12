@@ -25,12 +25,73 @@ export interface CheckResult {
   readonly details?: string;
 }
 
+interface RootPackageJson {
+  readonly engines?: { node?: unknown };
+  readonly packageManager?: unknown;
+}
+
+function readRootPackageJson(root: string): RootPackageJson {
+  const pkgPath = join(root, 'package.json');
+  if (!existsSync(pkgPath)) return {};
+  try {
+    return JSON.parse(readFileSync(pkgPath, 'utf-8')) as RootPackageJson;
+  } catch {
+    return {};
+  }
+}
+
+/** Verified profilin `java.runtime_major` değeri; yoksa null. */
+function readProfileJavaMajor(root: string): number | null {
+  const profileDir = join(root, 'compatibility');
+  if (!existsSync(profileDir)) return null;
+  for (const file of readdirSync(profileDir).filter((f) => f.endsWith('.yaml'))) {
+    const content = readFileSync(join(profileDir, file), 'utf-8');
+    if (!content.includes('status: verified')) continue;
+    const match = /runtime_major:\s*(\d+)/.exec(content);
+    if (match?.[1]) return Number.parseInt(match[1], 10);
+  }
+  return null;
+}
+
+/**
+ * Pin kontrolü (ADR-0009): pin `X.Y.Z` ise major `X` + minor `>= Y` kabul
+ * edilir — aynı LTS minor hattındaki güvenlik yamaları yeni ADR gerektirmez.
+ * Yalnızca major biliniyorsa tam eşleşme aranır.
+ */
+function matchesPin(actual: string, pin: string): { ok: boolean; message: string } {
+  const toParts = (v: string): Array<number | null> =>
+    v.split('.', 2).map((p) => (p === '' ? null : Number.parseInt(p, 10)));
+  const a = toParts(actual);
+  const p = toParts(pin);
+  if (p[0] !== null && a[0] !== p[0]) {
+    return { ok: false, message: `sürüm majörü pin'den farklı (pin ${pin})` };
+  }
+  if (p[1] !== null && a[1] !== null && (a[1] as number) < (p[1] as number)) {
+    return { ok: false, message: `minor pin'den düşük (pin ${pin})` };
+  }
+  return { ok: true, message: `pin ile uyumlu (pin ${pin})` };
+}
+
 // ─── Individual checks ─────────────────────────────────────────────────
 
-async function checkNodeVersion(): Promise<CheckResult> {
+export async function checkNodeVersion(root: string): Promise<CheckResult> {
   const version = process.versions.node;
-  const major = Number.parseInt(version.split('.')[0]!, 10);
+  const pin = readRootPackageJson(root).engines?.node;
 
+  if (typeof pin === 'string' && pin.trim() !== '') {
+    const match = matchesPin(version, pin.trim());
+    if (match.ok) {
+      return { name: 'node_version', status: 'pass', message: `Node.js ${version} — ${match.message}` };
+    }
+    return {
+      name: 'node_version',
+      status: 'fail',
+      message: `Node.js ${version} — ${match.message}`,
+      details: `Install Node.js ${pin.trim()} (pin: engines.node, ADR-0009)`,
+    };
+  }
+
+  const major = Number.parseInt(version.split('.')[0]!, 10);
   if (major >= 22) {
     return { name: 'node_version', status: 'pass', message: `Node.js ${version}` };
   }
@@ -42,7 +103,7 @@ async function checkNodeVersion(): Promise<CheckResult> {
   };
 }
 
-async function checkJava(): Promise<CheckResult> {
+export async function checkJava(root: string): Promise<CheckResult> {
   try {
     const { stderr } = await execFileAsync('java', ['-version'], { timeout: 10_000 });
     const match = /version "([^"]+)"/.exec(stderr);
@@ -57,6 +118,19 @@ async function checkJava(): Promise<CheckResult> {
     } else {
       const modern = /^(\d+)/.exec(raw);
       major = modern?.[1] ? Number.parseInt(modern[1], 10) : 0;
+    }
+
+    const pinnedMajor = readProfileJavaMajor(root);
+    if (pinnedMajor !== null) {
+      if (major === pinnedMajor) {
+        return { name: 'java', status: 'pass', message: `Java ${raw} (major ${major}) — profil pin'i ${pinnedMajor}` };
+      }
+      return {
+        name: 'java',
+        status: 'fail',
+        message: `Java ${raw} (major ${major}); profil ${pinnedMajor} gerektiriyor`,
+        details: `Install Temurin ${pinnedMajor}+ from https://adoptium.net`,
+      };
     }
 
     if (major >= 21) {
@@ -78,10 +152,24 @@ async function checkJava(): Promise<CheckResult> {
   }
 }
 
-async function checkPnpm(): Promise<CheckResult> {
+export async function checkPnpm(root: string): Promise<CheckResult> {
   try {
     const { stdout } = await execFileAsync('pnpm', ['--version'], { timeout: 5_000 });
     const version = stdout.trim();
+    const pinRaw = readRootPackageJson(root).packageManager;
+    const pin = typeof pinRaw === 'string' ? /^pnpm@(.+)$/.exec(pinRaw)?.[1] : undefined;
+    if (pin) {
+      const match = matchesPin(version, pin);
+      if (match.ok) {
+        return { name: 'pnpm', status: 'pass', message: `pnpm ${version} — ${match.message}` };
+      }
+      return {
+        name: 'pnpm',
+        status: 'fail',
+        message: `pnpm ${version} — ${match.message}`,
+        details: `Install pnpm ${pin} (pin: packageManager)`,
+      };
+    }
     return { name: 'pnpm', status: 'pass', message: `pnpm ${version}` };
   } catch {
     return {
@@ -157,11 +245,10 @@ function checkCompatibilityProfile(root: string): CheckResult {
   };
 }
 
-function checkMcpServerBinary(): CheckResult {
-  // Check if the MCP Server binary exists
+function checkMcpServerBinary(root: string): CheckResult {
   const possiblePaths = [
-    join(process.cwd(), '..', 'mcp-server', 'dist', 'src', 'index.js'),
-    join(process.cwd(), 'node_modules', '.bin', 'minecraft-plugin-dev-mcp'),
+    join(root, 'apps', 'mcp-server', 'dist', 'src', 'index.js'),
+    join(root, 'node_modules', '.bin', 'minecraft-plugin-dev-mcp'),
   ];
 
   for (const p of possiblePaths) {
@@ -178,10 +265,10 @@ function checkMcpServerBinary(): CheckResult {
   };
 }
 
-function checkSupervisorBinary(): CheckResult {
+function checkSupervisorBinary(root: string): CheckResult {
   const possiblePaths = [
-    join(process.cwd(), '..', 'run-supervisor', 'dist', 'src', 'index.js'),
-    join(process.cwd(), 'node_modules', '.bin', 'mcpdev-supervisor'),
+    join(root, 'apps', 'run-supervisor', 'dist', 'src', 'main.js'),
+    join(root, 'node_modules', '.bin', 'mcpdev-supervisor'),
   ];
 
   for (const p of possiblePaths) {
@@ -243,14 +330,11 @@ export function checkCapabilityRegistry(root: string): CheckResult {
 }
 
 function checkBridgeJar(root: string): CheckResult {
-  const possiblePaths = [
-    join(root, 'bridge', 'paper', 'build', 'libs', 'paper-*.jar'),
-    join(root, 'bridge', 'paper', 'build', 'libs'),
-  ];
-
-  for (const p of possiblePaths) {
-    if (existsSync(p)) {
-      return { name: 'bridge_jar', status: 'pass', message: 'Bridge JAR found' };
+  const libsDir = join(root, 'bridge', 'paper', 'build', 'libs');
+  if (existsSync(libsDir)) {
+    const jars = readdirSync(libsDir).filter((f) => f.endsWith('.jar'));
+    if (jars.length > 0) {
+      return { name: 'bridge_jar', status: 'pass', message: `Bridge JAR found (${jars.length})` };
     }
   }
 
@@ -271,12 +355,12 @@ export async function runDoctor(options: DoctorOptions): Promise<void> {
 
   // Run checks sequentially (some depend on environment state)
   checks.push(checkProjectRoot(root));
-  checks.push(await checkNodeVersion());
-  checks.push(await checkJava());
-  checks.push(await checkPnpm());
+  checks.push(await checkNodeVersion(root));
+  checks.push(await checkJava(root));
+  checks.push(await checkPnpm(root));
   checks.push(checkCompatibilityProfile(root));
-  checks.push(checkMcpServerBinary());
-  checks.push(checkSupervisorBinary());
+  checks.push(checkMcpServerBinary(root));
+  checks.push(checkSupervisorBinary(root));
   checks.push(checkBridgeJar(root));
   checks.push(checkSecondProfile(root));
   checks.push(checkCapabilityRegistry(root));

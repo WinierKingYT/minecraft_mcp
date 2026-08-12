@@ -103,3 +103,28 @@ test('tool yüzeyi register toolu içermez (ADR-0007: R3/R4 agent-facing olamaz)
   const names = tuples.map(([d]) => (d as { name?: string }).name);
   assert.deepEqual(names, ['project_list', 'project_inspect', 'project_validate']);
 });
+
+test('agent yüzeyine raw host path sızmaz (contract: Raw host path dışarı verilmez)', async () => {
+  const info = {
+    supervisor: async () =>
+      makeFakeSupervisor({
+        'project.list': () => ({ projects: [REGISTERED_RESULT] }),
+        'project.inspect': () => ({ ...REGISTERED_RESULT, gradleWrapper: {}, pluginMetadata: {}, testContract: null }),
+      }),
+  };
+  const tuples = createProjectTools(info);
+  const [listDef, listFn] = tupleHandler(tuples, 'project_list');
+  const [, inspectFn] = tupleHandler(tuples, 'project_inspect');
+
+  assert.equal(
+    JSON.stringify(listDef).includes('root_path') || JSON.stringify(listDef).includes('rootPath'),
+    false,
+    'project_list şeması host path alanı taşımamalı',
+  );
+
+  const listR = await listFn({}, CTX);
+  assert.equal(JSON.stringify(listR).includes('C:\\proje'), false, 'project_list yanıtı host path içermemeli');
+
+  const inspectR = await inspectFn({ project_id: 'demo' }, CTX);
+  assert.equal(JSON.stringify(inspectR).includes('C:\\proje'), false, 'project_inspect yanıtı host path içermemeli');
+});

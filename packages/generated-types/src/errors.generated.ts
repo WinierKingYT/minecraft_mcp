@@ -618,7 +618,7 @@ export const ERRORS: Readonly<Record<ErrorCode, ErrorMeta>> = {
     category: 'permission',
     message: "Minecraft EULA kabul edilmeden runtime oluşturulamaz.",
     retryable: false,
-    suggestedAction: "scenario_run veya runtime_create çağrısında accept_minecraft_eula değerini açıkça true yapın. Bu, https://aka.ms/MinecraftEULA adresindeki sözleşmeyi kabul ettiğiniz anlamına gelir; ürün bu kararı sizin adınıza vermez.",
+    suggestedAction: "Kullanıcıdan `mcpdev eula accept` çalıştırmasını isteyin. Bu, https://aka.ms/MinecraftEULA adresindeki sözleşmeyi kabul ettiğiniz anlamına gelir; ürün bu kararı sizin adınıza vermez ve ajan kabul edemez.",
     protocolError: false,
     httpStatus: 403,
     redactionProfile: 'none',

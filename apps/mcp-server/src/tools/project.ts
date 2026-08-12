@@ -59,7 +59,6 @@ export function createProjectTools(info: ProjectToolsInfo): Array<[ToolDefinitio
         return toolSuccess(ctx.correlationId, {
           projects: result.projects.map((project) => ({
             project_id: project.projectId,
-            root_path: project.rootPath,
             trust_level: project.trustLevel,
             allowed_backends: project.allowedBackends,
             default_backend: project.defaultBackend,
@@ -106,7 +105,6 @@ export function createProjectTools(info: ProjectToolsInfo): Array<[ToolDefinitio
 
         return toolSuccess(ctx.correlationId, {
           project_id: result.projectId,
-          root_path: result.rootPath,
           trust_level: result.trustLevel,
           gradle_wrapper: result.gradleWrapper,
           plugin_metadata: result.pluginMetadata,

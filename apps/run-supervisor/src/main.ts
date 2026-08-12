@@ -36,6 +36,7 @@ interface StartOptions {
   readonly version?: string;
   readonly evidenceDir?: string;
   readonly projectRegistryFilePath?: string;
+  readonly eulaFile?: string;
 }
 
 function log(level: string, event: string, fields?: Record<string, unknown>): void {
@@ -83,6 +84,7 @@ async function start(options: StartOptions): Promise<never> {
     ...(options.evidenceDir !== undefined
       ? { evidenceStore: new EvidenceStore(resolve(options.evidenceDir)) }
       : {}),
+    ...(options.eulaFile !== undefined ? { eulaFile: options.eulaFile } : {}),
   });
 
   const endpoint = {
@@ -136,6 +138,7 @@ function main(): void {
       'project-root': { type: 'string' },
       'registry-file': { type: 'string' },
       'evidence-dir': { type: 'string' },
+      'eula-file': { type: 'string' },
       version: { type: 'string' },
       help: { type: 'boolean', short: 'h', default: false },
     },
@@ -163,6 +166,7 @@ function main(): void {
         ? { projectRegistryFilePath: values['registry-file'] as string }
         : {}),
       ...(values['evidence-dir'] !== undefined ? { evidenceDir: values['evidence-dir'] as string } : {}),
+      ...(values['eula-file'] !== undefined ? { eulaFile: values['eula-file'] as string } : {}),
       ...(values.version !== undefined ? { version: values.version as string } : {}),
     }).catch((err) => {
       process.stderr.write(`Fatal: ${err instanceof Error ? err.message : String(err)}\n`);

@@ -185,14 +185,13 @@ test('scenario_run failed + errorCode EULA_NOT_ACCEPTED catalog mesajıyla tool 
     {
       scenario_path: 'scenarios/world/read-block.yaml',
       project_id: 'proj_test',
-      accept_minecraft_eula: false,
     },
     CTX,
   );
   assert.equal(r.status, 'error');
   assert.equal(r.error?.code, 'EULA_NOT_ACCEPTED');
   assert.equal(r.error?.retryable, false);
-  assert.ok(r.error?.suggested_action?.includes('accept_minecraft_eula'));
+  assert.ok(r.error?.suggested_action?.includes('mcpdev eula accept'));
 });
 
 test('scenario_run failed, errorCode yoksa ASSERTION_FAILED döner', async () => {
@@ -216,7 +215,6 @@ test('scenario_run failed, errorCode yoksa ASSERTION_FAILED döner', async () =>
     {
       scenario_path: 'scenarios/world/read-block.yaml',
       project_id: 'proj_test',
-      accept_minecraft_eula: true,
     },
     CTX,
   );
@@ -255,7 +253,6 @@ test('scenario_run success yanıtı assertion görünürlüğünü taşır', asy
     {
       scenario_path: 'scenarios/world/read-block.yaml',
       project_id: 'proj_test',
-      accept_minecraft_eula: true,
     },
     CTX,
   );

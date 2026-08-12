@@ -2,9 +2,12 @@
 
 Yapay zekâ kodlama ajanlarının Paper eklentilerini **gerçek Paper üzerinde derleyip çalıştırmasını**, sınırlandırılmış test eylemleriyle doğrulamasını ve **kanıtlanabilir** başarısızlık raporu üretmesini sağlayan yerel geliştirme altyapısı.
 
-> **Durum:** `prototype` — D0 (Product/Architecture Freeze) aşamasında.
-> Public V1 release'i, protokol `2026-07-28` destekleyen **stable** bir MCP 2.x SDK seçilip pinlenene kadar bloklanmıştır.
-> Ayrıntı: [`docs/adr/0002-mcp-stdio-transport.md`](docs/adr/0002-mcp-stdio-transport.md)
+> **Durum:** `prototype` — çekirdek (M0–M2A) tamamlandı; ürünleştirme aşamasında.
+> Gerçek Paper üzerinde build/runtime/scenario/evidence zinciri çalışıyor (M2A kapandı),
+> MCP protokol yüzeyi resmî `@modelcontextprotocol/*` 2.0.0 SDK'sı üzerindedir (ADR-0010,
+> conformance 57/57, protokol `2026-07-28`). Public V1, paketleme/kurulum/release
+> katmanları tamamlanana kadar `prototype` kanalında kalır.
+> Tek durum kaynağı: [`status/project-status.yaml`](status/project-status.yaml).
 
 ## Bu ürün ne değildir
 
@@ -43,7 +46,7 @@ Kaynak sözleşme belgesi (V3, tek dosya): sürüm kontrolü dışında tutulur;
 
 [`compatibility/paper-26.2-build-84-v1.yaml`](compatibility/paper-26.2-build-84-v1.yaml)
 
-> ⚠️ Profil `verification.status: unverified` durumundadır. D0A çıkışı için her sürüm koordinatı canlı kaynaktan doğrulanmalıdır (`scripts/verify-compatibility.mjs`).
+> Üç aktif profil de `verification.status: verified` (build 84/87/90, canlı kaynaktan doğrulanmış — `scripts/verify-compatibility.mjs`).
 
 ## Depo yapısı
 

@@ -1,0 +1,78 @@
+# status/project-status.yaml — TEK durum kaynağı (DOC-GATE-01)
+#
+# Kanal, milestone, doğrulama ve pin durumu yalnızca burada tutulur.
+# `docs/MASTER-PLAN.md`, `README.md`, `docs/delivery/*` bu dosyayla
+# çelişemez; çelişki CI hatasıdır (check:docs).
+#
+# Güncelleme kuralı: durum değiştiğinde ÖNCE bu dosya, sonra bağlantılı
+# dokümanlar (roadmap durum blokları, release-checklist, README).
+
+channel: prototype
+
+milestones:
+  D0:
+    status: completed
+    completed_at: 2026-08-02
+    evidence: "3 verified profil, ADR seti (11), threat model, SPIKE-ACTOR-001 closed"
+  M0:
+    status: completed
+    completed_at: 2026-07-30
+    evidence: "m0-smoke canlı koşum, stdout purity, tool-surface determinizm"
+  M1:
+    status: completed
+    completed_at: 2026-08-04
+    evidence: "m1-demo canlı koşum (trusted-local + container aynı sha256), provenance"
+  M2A:
+    status: completed
+    completed_at: 2026-08-09
+    evidence: "6 scenario canlı, 8/8 assertion, evidence provenance (11 kanıt)"
+    notes: "20x determinism koşusu kapsam dışı (roadmap)"
+  M2B:
+    status: pending
+    condition: "SPIKE-ACTOR-001 başarılı — ✅ closed, kısmen başarılı (E18); kalan capability'ler V1.1'de derinleşiyor"
+  M3:
+    status: in_progress
+    open_items:
+      - "CI matrix"
+      - "Installer ve doctor tamamlama (doctor pin'li kontroller 2026-08-12 eklendi)"
+      - "SBOM"
+  V1.1:
+    status: completed
+    completed_at: 2026-08-11
+    evidence: "7 yatay yetenek + MCP tool hatları + 46 capability, 109 error kodu, 3 profil"
+
+verification:
+  profiles:
+    - id: paper-26.2-build-84-v1
+      status: verified
+      verified_at: 2026-08-02
+    - id: paper-26.2-build-87-v1
+      status: verified
+      verified_at: 2026-08-11
+    - id: paper-26.2-build-90-v1
+      status: verified
+      verified_at: 2026-08-11
+  mcp_sdk: "2.0.0 (ADR-0010)"
+  conformance:
+    sdk_tests: "57/57 pass, 0 fail (ADR-0010)"
+    official_client_e2e: "conformance #10 — gerçek E2E (cf68f99)"
+  protocol_version: "2026-07-28"
+
+pins:
+  node: "24.18.1 (engines.node, ADR-0009 — aynı minor hattındaki güvenlik yaması kabul)"
+  pnpm: "10.15.0 (packageManager)"
+  java_runtime_major: 25
+  java_toolchain_major: 25
+  gradle_wrapper: "9.6.1 (checksum doğrulanmış)"
+
+eula:
+  surface: "operator (mcpdev eula accept) — agent parametresi kaldırıldı (separation of authority)"
+  record: "config/eula.json (default $MCPDEV_DATA_DIR veya ~/.mcpdev)"
+  supervisor_flag: "--eula-file (serve default'u bağlar)"
+
+registry:
+  surface: "launcher config/CLI (project.register araç yüzeyinde yok — ADR-0007)"
+  persistence: "kalıcı proje registry (P0-4k, cf68f99)"
+  host_path_visibility: "agent yüzeyi raw host path almaz (root_path sızıntısı kapatıldı, 2026-08-12)"
+
+updated_at: 2026-08-12

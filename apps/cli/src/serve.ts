@@ -19,6 +19,7 @@ import { mkdtempSync, mkdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { readControlFile, type SupervisorEndpoint } from '@mcpdev/contracts';
+import { defaultEulaDataDir, eulaFilePath } from './eula.js';
 
 export interface ServeOptions {
   readonly repoRoot: string;
@@ -30,6 +31,7 @@ export interface ServeOptions {
   readonly projectRoot?: string;
   readonly registryFile?: string;
   readonly evidenceDir?: string;
+  readonly eulaFile?: string;
   readonly version?: string;
   readonly toolProfile?: string;
   readonly logLevel?: string;
@@ -144,6 +146,7 @@ export async function runServe(options: ServeOptions): Promise<ServeResult> {
     ...(options.projectRoot !== undefined ? ['--project-root', resolve(options.projectRoot)] : []),
     ...(options.registryFile !== undefined ? ['--registry-file', resolve(options.registryFile)] : []),
     ...(options.evidenceDir !== undefined ? ['--evidence-dir', resolve(options.evidenceDir)] : []),
+    '--eula-file', resolve(options.eulaFile ?? eulaFilePath(defaultEulaDataDir())),
     ...(options.version !== undefined ? ['--version', options.version] : []),
   ];
 

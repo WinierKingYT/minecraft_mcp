@@ -4,45 +4,45 @@ Bu kriterler [`roadmap.md`](roadmap.md) ve [`release-checklist.md`](release-chec
 
 ## D0
 
-- [ ] Uyumluluk profile repository'de **ve doğrulanmış**
-- [ ] Sürüm placeholder'ı bulunmuyor
-- [ ] Karar placeholder'ı bulunmuyor
-- [ ] ExecutionBackend kararı (ADR-0004)
-- [ ] Actor go/no-go
-- [ ] MCP SDK risk kararı (ADR-0002)
-- [ ] Threat model
-- [ ] ADR seti
+- [x] Uyumluluk profile repository'de **ve doğrulanmış** (`compatibility/` — 3 verified profil)
+- [x] Sürüm placeholder'ı bulunmuyor (`check:docs` placeholder taraması yeşil)
+- [x] Karar placeholder'ı bulunmuyor (`check:docs` placeholder taraması yeşil)
+- [x] ExecutionBackend kararı (ADR-0004)
+- [x] Actor go/no-go (SPIKE-ACTOR-001 — closed, kısmen başarılı; E18)
+- [x] MCP SDK risk kararı (ADR-0002, ADR-0010)
+- [x] Threat model (`docs/security/threat-model.md`)
+- [x] ADR seti (`docs/adr/` — 11 ADR)
 
 ## M0
 
-- [ ] Bridge dış interface'e bind etmez
-- [ ] Yanlış token reddedilir
-- [ ] Tool list sabit ve deterministik
-- [ ] stdout temiz
-- [ ] Inspector geçer
-- [ ] Real Paper 5 lifecycle
-- [ ] Plugin disable sonrası Bridge thread/port kalmaz
+- [x] Bridge dış interface'e bind etmez (`process-security.test.ts`)
+- [x] Yanlış token reddedilir (`process-security.test.ts`)
+- [x] Tool list sabit ve deterministik (`tool-surface.test.ts` — TL-01..05)
+- [x] stdout temiz (`stdout-purity.test.ts`)
+- [x] Inspector geçer (`docs/operations/mcp-inspector.md`, official client E2E)
+- [x] Real Paper 5 lifecycle (`docs/operations/m0-smoke.md` — canlı koşum)
+- [x] Plugin disable sonrası Bridge thread/port kalmaz (`lifecycle-stress.test.ts` — 0 orphan/100 cycle)
 
 ## M1
 
-- [ ] Source snapshot'tan artifact'e provenance
-- [ ] Wrapper verification
-- [ ] Lock/verification strict
-- [ ] Container no-network testi
-- [ ] Artifact ambiguity güvenli hata
-- [ ] Wrong Java güvenli hata
-- [ ] Paper ready gate
-- [ ] MCP crash sonrası Supervisor recovery
-- [ ] Windows/Linux cleanup
+- [x] Source snapshot'tan artifact'e provenance (`source-snapshot.test.ts`, `build-pipeline.test.ts`)
+- [x] Wrapper verification (`gradle-validation.test.ts` — ST-GRADLE-001)
+- [x] Lock/verification strict (`install.ts` frozen-lockfile hard fail, `gradle-validation.test.ts`)
+- [x] Container no-network testi (`container-security.test.ts` — ST-CONTAINER-NO-NET-001)
+- [x] Artifact ambiguity güvenli hata (`build-pipeline.test.ts` — IT-BUILD-001)
+- [x] Wrong Java güvenli hata (`java-toolchain.test.ts`)
+- [x] Paper ready gate (`docs/operations/m1-demo.md` — canlı koşum)
+- [x] MCP crash sonrası Supervisor recovery (`recovery-security.test.ts`)
+- [x] Windows/Linux cleanup (`process-security.test.ts` — taskkill /T, docs/operations/m1-demo.md)
 
 ## M2A
 
-- [ ] 3 server-side scenario
-- [ ] 20 fresh runtime determinism
-- [ ] Expected/observed
-- [ ] Cleanup ayrı raporlanır
-- [ ] Evidence report
-- [ ] Scenario cross-contamination yok
+- [x] 3 server-side scenario (6 scenario canlı koştu — `docs/operations/m2a-demo.md`)
+- [ ] 20 fresh runtime determinism (roadmap kapsam dışı ilanı; determinism profile koşuluyor)
+- [x] Expected/observed (`scenario-report.ts` — assertion expected/actual görünürlüğü)
+- [x] Cleanup ayrı raporlanır (`scenario-report.ts` cleanup raporlaması, GC kalıntısız koşumlar)
+- [x] Evidence report (`scenario-evidence.test.ts`, content-addressed store)
+- [x] Scenario cross-contamination yok (`malicious-fixtures.test.ts`)
 
 ## M2B
 

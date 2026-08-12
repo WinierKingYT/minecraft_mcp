@@ -215,6 +215,7 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
       - run: pnpm run gen
+      - run: pnpm run build
 
       - name: Run mcpdev doctor
         run: node apps/cli/dist/src/index.js doctor --json

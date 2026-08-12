@@ -10,6 +10,7 @@ import { runDoctor } from './doctor.js';
 import { runInstall } from './install.js';
 import { runUninstall } from './uninstall.js';
 import { runServe } from './serve.js';
+import { runEula } from './eula.js';
 
 const HELP = `Usage: mcpdev <command> [options]
 
@@ -18,6 +19,7 @@ Commands:
   uninstall Remove MCP development artifacts
   doctor    Run health checks and report status
   serve     Start Supervisor + MCP Server (stdio) for an MCP client
+  eula      Manage the Minecraft EULA acceptance (operator action)
 
 Options:
   --help       Show this help message
@@ -25,6 +27,10 @@ Options:
   --json       Output as JSON (doctor/uninstall)
   --verbose    Show detailed output (doctor only)
   --root <path>  Project root directory (default: current directory)
+
+eula subcommands:
+  status       Show whether the Minecraft EULA has been accepted
+  accept       Accept the Minecraft EULA (records a local, per-user decision)
 
 serve options:
   --repo-root <path>       Repo root (MCPDEV_ROOT for mcp-server)
@@ -36,6 +42,7 @@ serve options:
   --registry-file <path>   Persistent project registry file
   --runtime-root <dir>     Runtime root directory
   --evidence-dir <dir>     Evidence store directory
+  --eula-file <path>       EULA acceptance record (default: $MCPDEV_DATA_DIR/config/eula.json)
   --tool-profile <name>    MCP tool profile (default: developer)
   --log-level <level>      MCP server log level (ERROR|WARN|INFO|DEBUG)
 `;
@@ -60,6 +67,8 @@ async function main(): Promise<void> {
       'evidence-dir': { type: 'string' },
       'tool-profile': { type: 'string' },
       'log-level': { type: 'string' },
+      'eula-file': { type: 'string' },
+      'data-dir': { type: 'string' },
     },
     allowPositionals: true,
     strict: true,
@@ -117,8 +126,24 @@ async function main(): Promise<void> {
         ...(values['registry-file'] !== undefined ? { registryFile: values['registry-file'] as string } : {}),
         ...(values['runtime-root'] !== undefined ? { runtimeRootDir: values['runtime-root'] as string } : {}),
         ...(values['evidence-dir'] !== undefined ? { evidenceDir: values['evidence-dir'] as string } : {}),
+        ...(values['eula-file'] !== undefined ? { eulaFile: values['eula-file'] as string } : {}),
         ...(values['tool-profile'] !== undefined ? { toolProfile: values['tool-profile'] as string } : {}),
         ...(values['log-level'] !== undefined ? { logLevel: values['log-level'] as string } : {}),
+      });
+      process.exit(exitCode);
+      break;
+    }
+    case 'eula': {
+      const subcommand = positionals[1] ?? 'status';
+      if (subcommand !== 'status' && subcommand !== 'accept') {
+        process.stderr.write(`eula: bilinmeyen alt komut "${subcommand}" (status|accept)\n`);
+        process.exit(2);
+      }
+      const { runEula } = await import('./eula.js');
+      const exitCode = await runEula({
+        command: subcommand,
+        ...(values['profile-id'] !== undefined ? { profileId: values['profile-id'] as string } : {}),
+        ...(values['data-dir'] !== undefined ? { dataDir: values['data-dir'] as string } : {}),
       });
       process.exit(exitCode);
       break;

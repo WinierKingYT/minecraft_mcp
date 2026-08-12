@@ -123,6 +123,7 @@ export async function runM1Demo(options: M1DemoOptions): Promise<M1DemoEvidence>
     paperCacheDir: options.paperCacheDir,
     runtimeRootDir: runtimeRoot,
     version: '0.1.0-demo',
+    eulaAccepted: options.acceptMinecraftEula,
     projectRegistry,
     dependencyCacheDir,
     ...(containerBackend ? { containerExecutionBackend: containerBackend } : {}),
@@ -149,7 +150,6 @@ export async function runM1Demo(options: M1DemoOptions): Promise<M1DemoEvidence>
     log(`artifact: ${build.artifact.path} sha256=${build.artifact.sha256.slice(0, 16)}...`);
 
     const created = (await h['runtime.create']({
-      acceptMinecraftEula: options.acceptMinecraftEula,
       buildId: build.buildId,
     })) as RuntimeSummary;
     createdRuntimeId = created.runtimeImageId;

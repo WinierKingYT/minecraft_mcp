@@ -127,7 +127,7 @@ export async function createRuntimeImage(request: RuntimeImageRequest): Promise<
     throw new RuntimeImageError(
       'EULA_NOT_ACCEPTED',
       'Minecraft EULA kabul edilmeden runtime oluşturulamaz.\n' +
-        'Önerilen aksiyon: yapılandırmada runtime.accept_minecraft_eula değerini açıkça true yapın. ' +
+        'Önerilen aksiyon: operatörün `mcpdev eula accept` komutuyla EULA\'yı kabul etmesini sağlayın. ' +
         'Bu, https://aka.ms/MinecraftEULA adresindeki sözleşmeyi kabul ettiğiniz anlamına gelir ve ' +
         'ürün bu kararı sizin adınıza vermez.',
     );

@@ -188,7 +188,7 @@ errors:
     tool_result:
       is_error: true
       retryable: false
-      suggested_action: "scenario_run veya runtime_create çağrısında accept_minecraft_eula değerini açıkça true yapın. Bu, https://aka.ms/MinecraftEULA adresindeki sözleşmeyi kabul ettiğiniz anlamına gelir; ürün bu kararı sizin adınıza vermez."
+      suggested_action: "Kullanıcıdan `mcpdev eula accept` çalıştırmasını isteyin. Bu, https://aka.ms/MinecraftEULA adresindeki sözleşmeyi kabul ettiğiniz anlamına gelir; ürün bu kararı sizin adınıza vermez ve ajan kabul edemez."
     bridge_mapping:
       http_status: 403
     json_rpc_mapping:

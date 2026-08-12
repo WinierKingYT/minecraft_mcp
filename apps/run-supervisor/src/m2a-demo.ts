@@ -11,7 +11,7 @@
  * yüzeyiyle aynı kod yolundan geçer:
  *
  *   (opsiyonel) build.run {backend}        → build_id (plugin-enables için)
- *     → scenario.run {scenarioPath, acceptMinecraftEula, buildId?}
+ *     → scenario.run {scenarioPath, buildId?}
  *         → runtime.create (determinism profili + fixture manifest)
  *         → runtime.launch                 → READY
  *         → engine: given/when/then adımları (bridge query/action + events)
@@ -147,6 +147,7 @@ export async function runM2ADemo(options: M2ADemoOptions): Promise<M2ADemoEviden
     paperCacheDir: options.paperCacheDir,
     runtimeRootDir: runtimeRoot,
     version: '0.1.0-demo',
+    eulaAccepted: options.acceptMinecraftEula,
     projectRegistry,
     dependencyCacheDir,
     evidenceStore,
@@ -194,12 +195,11 @@ export async function runM2ADemo(options: M2ADemoOptions): Promise<M2ADemoEviden
     for (const scenarioPath of scenarioPaths) {
       log(`scenario: ${scenarioPath} başlatılıyor...`);
       try {
-        const result = (await service.scenarioRun({
-          scenarioPath,
-          projectId: options.projectId,
-          acceptMinecraftEula: options.acceptMinecraftEula,
-          ...(buildId ? { buildId } : {}),
-        })) as ScenarioRunResult;
+    const result = (await service.scenarioRun({
+      scenarioPath,
+      projectId: options.projectId,
+      ...(buildId ? { buildId } : {}),
+    })) as ScenarioRunResult;
         log(
           `scenario: status=${result.status} passed=${result.passed} failed=${result.failed} ` +
             `duration_ms=${result.durationMs} evidence=${result.evidenceIds.length} ` +

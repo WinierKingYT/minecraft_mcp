@@ -99,7 +99,6 @@ export interface DeterminismProfile {
 }
 
 export interface RuntimeCreateParams {
-  readonly acceptMinecraftEula: boolean;
   /**
    * Başarılı bir build'in kimliği: build'in ürettiği plugin JAR'ı runtime'a
    * hedef plugin olarak kurulur. Mutlak path kabul edilmez (FS-03); artifact
@@ -308,11 +307,6 @@ export interface PluginDiagnoseResult {
 export interface ScenarioRunParams {
   readonly scenarioPath: string;
   readonly projectId: string;
-  /**
-   * Kullanıcının açık Minecraft EULA kabulü; disposable runtime başlatmak için
-   * zorunludur. false verilirse EULA_NOT_ACCEPTED üretilir ve hiçbir dosya oluşmaz.
-   */
-  readonly acceptMinecraftEula: boolean;
   /**
    * Scenario'nun hedef plugin'i. Verilirse runtime yalnızca bu build'in
    * artifact'ıyla oluşturulur; verilmezse plugin'siz runtime hazırlanır

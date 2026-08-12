@@ -133,6 +133,20 @@ export interface ServiceOptions {
    * sınırlarına göre çalışır. Varsayılan: `<repoRoot>/fixtures/manifests/flat-world-v1.yaml`.
    */
   readonly fixtureManifestPath?: string;
+  /**
+   * Minecraft EULA kabul kaydı (JSON). Verilirse runtime oluşturmadan önce
+   * bu dosyadan `{ accepted: true, ... }` okunur; kabul yoksa EULA_NOT_ACCEPTED
+   * döner. Verilmezse EULA kapısı kapalıdır (her runtime EULA_NOT_ACCEPTED).
+   * EULA kabulü yalnızca operator yüzeyinden (mcpdev eula accept) yazılır;
+   * agent parametre ile kabul edemez (separation of authority).
+   */
+  readonly eulaFile?: string;
+  /**
+   * Gömülü/demo kullanımlar için doğrudan EULA kabulü (eulaFile verilmediğinde
+   * kullanılır). Ürün yüzeyi bunu kullanmaz — yalnızca demo scriptleri ve
+   * testler (m1-demo, m2a-demo, m0-smoke) operator onayını simüle eder.
+   */
+  readonly eulaAccepted?: boolean;
 }
 
 export class SupervisorService {
@@ -326,6 +340,31 @@ export class SupervisorService {
     };
   }
 
+  /**
+   * Minecraft EULA kabul kaydını okur.
+   *
+   * Öncelik sırası: `eulaFile` (operator kaydı) → `eulaAccepted` (gömülü/demo).
+   * Kabul yalnızca operator yüzeyinden yazılır; agent parametre ile kabul
+   * edemez. Dosya yoksa veya `accepted: true` değilse false döner ve runtime
+   * EULA_NOT_ACCEPTED ile reddedilir.
+   */
+  #readEulaAccepted(): boolean {
+    const file = this.#options.eulaFile;
+    if (file) {
+      if (!existsSync(file)) {
+        return false;
+      }
+      try {
+        const parsed = JSON.parse(readFileSync(file, 'utf8')) as { accepted?: unknown };
+        return parsed.accepted === true;
+      } catch {
+        this.#log('WARN', 'eula.file_unreadable', { eula_file: file });
+        return false;
+      }
+    }
+    return this.#options.eulaAccepted === true;
+  }
+
   async createRuntime(params: RuntimeCreateParams): Promise<RuntimeSummary> {
     await this.#ensureRegistryLoaded();
     this.#registry.assertQuota();
@@ -350,7 +389,7 @@ export class SupervisorService {
       paperJarPath: jar.path,
       bridgeJarPath: this.#options.bridgeJarPath,
       profile: this.#profile,
-      acceptMinecraftEula: params?.acceptMinecraftEula === true,
+      acceptMinecraftEula: this.#readEulaAccepted(),
       ...(params?.determinism ? { determinism: params.determinism } : {}),
       ...(targetPluginPaths.length > 0 ? { targetPluginPaths } : {}),
       ...(this.#fixtureManifest ? { fixtureManifest: this.#fixtureManifest } : {}),
@@ -562,7 +601,7 @@ export class SupervisorService {
         registryEntry = this.#registry.get(params.runtimeImageId);
       } catch {
         // If not created, create it
-        await this.createRuntime({ acceptMinecraftEula: true });
+        await this.createRuntime({});
         registryEntry = this.#registry.get(params.runtimeImageId);
       }
 
@@ -1084,7 +1123,6 @@ export class SupervisorService {
     this.#log('INFO', 'scenario.run_started', {
       scenario_path: params.scenarioPath,
       project_id: params.projectId,
-      accept_minecraft_eula: params.acceptMinecraftEula,
       ...(params.buildId ? { build_id: params.buildId } : {}),
     });
 
@@ -1099,7 +1137,6 @@ export class SupervisorService {
       projectId: params.projectId,
       runtimeProvider: async () => {
         const summary = await this.createRuntime({
-          acceptMinecraftEula: params.acceptMinecraftEula,
           ...(params.buildId ? { buildId: params.buildId } : {}),
         });
         await this.launchRuntime({ runtimeImageId: summary.runtimeImageId });

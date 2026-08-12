@@ -36,12 +36,12 @@ function makeFakeSupervisor(routes: Record<string, (params: unknown) => unknown>
 }
 
 test('plugin_launch build_id verilirse runtime.create çağrısına taşır', async () => {
-  const createParams: { params: { buildId?: string; acceptMinecraftEula: boolean } | null } = { params: null };
+  const createParams: { params: { buildId?: string } | null } = { params: null };
   const info = {
     supervisor: async () =>
       makeFakeSupervisor({
         'runtime.create': (params) => {
-          createParams.params = params as { buildId?: string; acceptMinecraftEula: boolean };
+          createParams.params = params as { buildId?: string };
           return { runtimeImageId: 'rimg_1', serverInstanceId: 'srv_1', state: 'CREATED' };
         },
         'runtime.launch': () => ({
@@ -56,11 +56,11 @@ test('plugin_launch build_id verilirse runtime.create çağrısına taşır', as
   };
 
   const [, fn] = tupleHandler(createRuntimeTools(info), 'plugin_launch');
-  const r = await fn({ project_id: 'demo', build_id: 'run_abc', accept_eula: true }, CTX);
+  const r = await fn({ project_id: 'demo', build_id: 'run_abc' }, CTX);
 
   assert.equal(r.status, 'success');
   assert.equal(createParams.params?.buildId, 'run_abc');
-  assert.equal(createParams.params?.acceptMinecraftEula, true);
+  assert.equal('acceptMinecraftEula' in (createParams.params ?? {}), false, 'EULA parametresi araç yüzeyinden taşınmaz');
   assert.equal((r as { data?: { bridge_port?: number } }).data?.bridge_port, 44575);
 });
 

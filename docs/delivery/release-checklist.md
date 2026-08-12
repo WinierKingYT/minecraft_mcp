@@ -1,5 +1,8 @@
 # V1 release checklist
 
+> Kanal/milestone durumu: [`status/project-status.yaml`](../../status/project-status.yaml) (tek durum kaynağı).
+> Bu liste V1 release gate'idir; prototype kanalında açık kutular beklenendir.
+
 ## Ürün
 
 - [ ] Hedef kullanıcı ve JTBD onaylı
