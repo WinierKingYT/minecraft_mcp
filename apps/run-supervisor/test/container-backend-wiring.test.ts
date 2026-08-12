@@ -11,7 +11,7 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, realpath } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { execFile } from 'node:child_process';
@@ -23,6 +23,19 @@ import type { ContainerExecutionBackend } from '../src/container-execution-backe
 import type { SelectedArtifact } from '../src/artifact-selection.js';
 
 const execFileAsync = promisify(execFile);
+
+/**
+ * Windows'ta temp yolu 8.3 kısa forma canonicalize olabilir
+ * (runneradmin -> RUNNER~1). Test expected değeri de gerçek uygulamadaki
+ * gibi realpath ile canonicalize edilmelidir (P0-3).
+ */
+async function canonical(p: string): Promise<string> {
+  try {
+    return await realpath(p);
+  } catch {
+    return p;
+  }
+}
 
 const WRAPPER_JAR_SHA = createHash('sha256').update(new TextEncoder().encode('fake wrapper jar')).digest('hex');
 const DIST_SHA = '9c0f7faeeb306cb14e4279a3e084ca6b596894089a0638e68a07c945a32c9e14';
@@ -139,7 +152,7 @@ test('container isteği backende delege edilir; artifact container seçimiyle ra
   assert.equal(outcome.ok, true, JSON.stringify(outcome.failure, null, 2));
   assert.ok(captured.context, 'runBuild çağrılmış olmalı');
   assert.equal(captured.context!.projectId, 'demo');
-  assert.equal(captured.context!.projectRoot, projectRoot);
+  assert.equal(captured.context!.projectRoot, await canonical(projectRoot));
   assert.ok(captured.context!.outputDir.includes('output'));
   assert.equal(outcome.artifact?.buildArtifactId, artifact.buildArtifactId);
   assert.equal(outcome.provenance?.backend, 'container');

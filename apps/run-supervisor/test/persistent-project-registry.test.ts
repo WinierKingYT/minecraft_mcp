@@ -8,10 +8,23 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, writeFile, readFile, rm } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, readFile, rm, realpath } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { PersistentProjectRegistry } from '../src/persistent-project-registry.js';
+
+/**
+ * Windows'ta temp yolu 8.3 kısa forma canonicalize olabilir
+ * (runneradmin -> RUNNER~1). Test expected değeri de gerçek uygulamadaki
+ * gibi realpath ile canonicalize edilmelidir (P0-3).
+ */
+async function canonical(p: string): Promise<string> {
+  try {
+    return await realpath(p);
+  } catch {
+    return p;
+  }
+}
 
 const TRUST = {
   trustLevel: 'developer-workspace' as const,
@@ -165,5 +178,5 @@ test('sync replace (aynı id) yeni kaydı yazar', async () => {
 
   const reloaded = new PersistentProjectRegistry({ filePath: file, log });
   await reloaded.load();
-  assert.equal(reloaded.get('demo').canonicalRoot, other);
+  assert.equal(reloaded.get('demo').canonicalRoot, await canonical(other));
 });

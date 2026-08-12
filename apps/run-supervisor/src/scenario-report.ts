@@ -10,7 +10,18 @@
 
 import { randomBytes } from 'node:crypto';
 import { mkdir, writeFile, rename } from 'node:fs/promises';
-import { isAbsolute, join } from 'node:path';
+import { join, win32, posix } from 'node:path';
+
+/**
+ * Platform-bağımsız mutlak yol denetleyicisi. Çalışma platformundan bağımsız
+ * olarak hem Windows sürücü/UNC yollarını (`C:\`, `C:/`, `\\server\share`)
+ * hem de POSIX mutlak yollarını (`/home/...`) yakalar. Aksi halde Linux CI'ında
+ * Windows formatında sızmış bir host path göreli zannedilip public rapora
+ * girebilir (P0-2: cross-platform güvenlik doğruluğu).
+ */
+function isAnyAbsolutePath(value: string): boolean {
+  return win32.isAbsolute(value) || posix.isAbsolute(value);
+}
 
 export type ScenarioReportStatus = 'completed' | 'failed' | 'timed_out';
 
@@ -72,7 +83,7 @@ function buildCore(options: ScenarioReportOptions): ReportCore {
   // Markdown tablosu tek formatta kalır).
   for (const entry of options.scenarios) {
     const normalized = entry.scenarioPath.replace(/\\/g, '/');
-    if (isAbsolute(normalized)) {
+    if (isAnyAbsolutePath(normalized) || isAnyAbsolutePath(entry.scenarioPath)) {
       throw Object.assign(
         new Error(`scenario_path mutlak olamaz: ${entry.scenarioPath}`),
         { code: 'SCENARIO_REPORT_PATH_ABSOLUTE' },

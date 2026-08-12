@@ -27,6 +27,14 @@ let dockerAvailable = false;
 
 before(async () => {
   const backend = new ContainerBackend();
+  // P0-4: Docker CLI bulunsa da canlı `docker run` güvenilir olmayabilir
+  // (Windows GitHub runner'da Linux container desteği için daemon hazır
+  // değil; exit 125 ile düşer). CI bu env'i set ederek canlı Docker
+  // testlerini zorla skip eder; hermetic (argüman üretim) testler yine koşar.
+  if (process.env.MCPDEV_SKIP_DOCKER === '1') {
+    dockerAvailable = false;
+    return;
+  }
   dockerAvailable = await backend.isAvailable();
 });
 

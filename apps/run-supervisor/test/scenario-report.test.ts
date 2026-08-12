@@ -92,25 +92,55 @@ test('rapor: üç format aynı report_id taşır ve dosyalar üretilir', async (
   });
 });
 
-test('rapor: mutlak scenario_path reddedilir', async () => {
-  await withReportDir(async (dir) => {
-    const options: ScenarioReportOptions = {
-      ...baseOptions,
-      scenarios: [
-        {
-          ...baseOptions.scenarios[0]!,
-          scenarioPath: 'C:\\Users\\faruk\\scenarios\\read-block.yaml',
-        },
-      ],
-    };
+test('rapor: mutlak scenario_path reddedilir (platform-bağımsız)', async () => {
+  // P0-2: Linux CI'ında Windows formatındaki sızmış path göreli zannedilip
+  // public rapora giremez — win32 + POSIX mutlak yolları her OS'de reddedilir.
+  const absoluteCases = [
+    'C:\\Users\\faruk\\scenarios\\read-block.yaml',
+    'C:/Users/faruk/scenarios/read-block.yaml',
+    '\\\\server\\share\\scenarios\\read-block.yaml',
+    '/home/faruk/scenarios/read-block.yaml',
+  ];
+  for (const abs of absoluteCases) {
+    await withReportDir(async (dir) => {
+      const options: ScenarioReportOptions = {
+        ...baseOptions,
+        scenarios: [
+          {
+            ...baseOptions.scenarios[0]!,
+            scenarioPath: abs,
+          },
+        ],
+      };
 
-    await assert.rejects(
-      generateScenarioReports(options, dir),
-      (err: unknown) =>
-        err instanceof Error &&
-        (err as { code?: string }).code === 'SCENARIO_REPORT_PATH_ABSOLUTE',
-    );
-  });
+      await assert.rejects(
+        generateScenarioReports(options, dir),
+        (err: unknown) =>
+          err instanceof Error &&
+          (err as { code?: string }).code === 'SCENARIO_REPORT_PATH_ABSOLUTE',
+        `mutlak yol reddedilmeli: ${abs}`,
+      );
+    });
+  }
+});
+
+test('rapor: göreli scenario_path kabul edilir', async () => {
+  for (const rel of ['scenarios/world/read-block.yaml', './scenarios/world/read-block.yaml']) {
+    await withReportDir(async (dir) => {
+      const options: ScenarioReportOptions = {
+        ...baseOptions,
+        scenarios: [
+          {
+            ...baseOptions.scenarios[0]!,
+            scenarioPath: rel,
+          },
+        ],
+      };
+
+      const outputs = await generateScenarioReports(options, dir);
+      assert.ok(outputs.reportId.startsWith('rep_'), `göreli yol kabul edilmeli: ${rel}`);
+    });
+  }
 });
 
 // ------------------------------------------------------------ JSON

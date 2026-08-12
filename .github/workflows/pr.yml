@@ -68,6 +68,11 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
+    env:
+      # P0-4: Windows GitHub runner'da Docker CLI bulunur ama Linux container
+      # daemon güvenilir değil (exit 125). Canlı Docker testleri zorla skip edilir;
+      # hermetic (argüman üretim) testler yine koşar. Ubuntu'da gerçek daemon.
+      MCPDEV_SKIP_DOCKER: ${{ matrix.os == 'windows-latest' && '1' || '' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -101,12 +106,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Read pinned Java major
+      - name: Read pinned Java and Node versions
         id: profile
         run: |
           java_major="$(grep -A2 '^java:' compatibility/paper-26.2-build-84-v1.yaml | grep 'runtime_major:' | head -1 | sed 's/.*runtime_major: *\([0-9]*\).*/\1/')"
           echo "java=${java_major}" >> "$GITHUB_OUTPUT"
           echo "Pinned Java: ${java_major}"
+          node_version="$(grep -A2 '^node:' compatibility/paper-26.2-build-84-v1.yaml | grep 'version:' | head -1 | sed 's/.*version: *"\?\([^"]*\)"\?.*/\1/')"
+          echo "node=${node_version}" >> "$GITHUB_OUTPUT"
+          echo "Pinned Node: ${node_version}"
 
       - uses: actions/setup-java@v4
         with:
@@ -116,7 +124,7 @@ jobs:
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: ${{ steps.profile.outputs.node }}
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
@@ -242,6 +250,10 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
+    env:
+      # P0-4: Windows GitHub runner'da canlı Docker güvenilir değil — bu env
+      # container-security.test.ts içindeki canlı Docker testlerini skip eder.
+      MCPDEV_SKIP_DOCKER: ${{ matrix.os == 'windows-latest' && '1' || '' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -328,11 +340,12 @@ jobs:
           retention-days: 90
 
   # -------------------------------------------------------------------------
-  # Aşağıdaki işler M0 ve M1'de eklenecek. Şimdi eklenmemelerinin nedeni
-  # DOC-GATE-02'dir: her zaman yeşil geçen boş bir iş, geçmeyen bir kapıdır.
+  # M3 release-hardening açık CI gates (status/project-status.yaml).
+  # Bunlar bilinçli olarak bekletilir (DOC-GATE-02): her zaman yeşil geçen
+  # boş bir iş, geçmeyen bir kapıdır — gerçek içerik eklendiğinde gelirler.
+  # M0/M1 milestone'ları kapandı; bu kapılar M3'ün parçasıdır.
   #
-  #   mcp-inspector     : Inspector smoke (M0)
-  #   paper-smoke       : Gerçek Paper 5 lifecycle (M0)
-  #   e2e-minimal       : project_inspect -> ... -> runtime_release (M1)
-  #   dependency-scan   : bağımlılık zafiyet taraması (M1)
+  #   paper-smoke       : Gerçek Paper 5 lifecycle (yerel m0-smoke var)
+  #   e2e-minimal       : project_inspect -> ... -> runtime_release zinciri
+  #   dependency-scan   : bağımlılık zafiyet taraması
   # -------------------------------------------------------------------------
