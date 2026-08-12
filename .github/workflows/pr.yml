@@ -206,12 +206,21 @@ jobs:
         run: |
           node_version="$(grep -A2 '^node:' compatibility/paper-26.2-build-84-v1.yaml | grep 'version:' | head -1 | sed 's/.*version: *"\?\([^"]*\)"\?.*/\1/')"
           echo "node=${node_version}" >> "$GITHUB_OUTPUT"
+          java_major="$(grep -A2 '^java:' compatibility/paper-26.2-build-84-v1.yaml | grep 'runtime_major:' | head -1 | sed 's/.*runtime_major: *\([0-9]*\).*/\1/')"
+          echo "java=${java_major}" >> "$GITHUB_OUTPUT"
 
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ steps.profile.outputs.node }}
           cache: pnpm
+
+      # Doctor'ın java check'i pinned major'ı doğrular; runner'da Java yoksa
+      # check fail eder ve --json exit 1 döner — setup-java zorunlu.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ steps.profile.outputs.java }}
 
       - run: pnpm install --frozen-lockfile
       - run: pnpm run gen

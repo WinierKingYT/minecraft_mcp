@@ -32,10 +32,15 @@ milestones:
     condition: "SPIKE-ACTOR-001 başarılı — ✅ closed, kısmen başarılı (E18); kalan capability'ler V1.1'de derinleşiyor"
   M3:
     status: in_progress
+    evidence:
+      - "Security regression: CI job (ubuntu + windows matrix) yeşil"
+      - "CI matrix: typescript (ubuntu+windows), security (ubuntu+windows), java, secrets, sbom, checksum, doctor job'ları"
+      - "Doctor: 10 health check, pin'li sürüm kontrolleri (2026-08-12); CI doctor job'ı setup-java ile pinned Java 25'i doğrular"
+      - "SBOM: generate-sbom.mjs + CI job (>=50 component gate)"
     open_items:
-      - "CI matrix"
-      - "Installer ve doctor tamamlama (doctor pin'li kontroller 2026-08-12 eklendi)"
-      - "SBOM"
+      - "paper-smoke CI job (gerçek Paper 5 lifecycle — şu an yalnızca yerel m0-smoke)"
+      - "e2e-minimal CI job (project_inspect -> ... -> runtime_release zinciri)"
+      - "dependency-scan CI job (bağımlılık zafiyet taraması)"
   V1.1:
     status: completed
     completed_at: 2026-08-11

@@ -1,10 +1,22 @@
 # EULA akışı doğrulaması (operator yüzeyi)
 
-> Durum: ✅ yeni akış (separation of authority) — `mcpdev eula accept` ile kabul; araç parametresi kaldırıldı.
+> Durum: ✅ canlı doğrulandı (2026-08-12 — `02d3a21` sonrası, gerçek Paper koşumuyla).
 
 EULA kabulü agent araç yüzeyinden **çıkarılmıştır** (separation of authority): agent kendi
 adına EULA kabul edemez. Kabul yalnızca yerel operatör tarafından `mcpdev eula accept` ile
 yapılır ve `~/.mcpdev/config/eula.json`'a (veya `$MCPDEV_DATA_DIR/config/eula.json`) yazılır.
+
+## Canlı doğrulama kaydı (2026-08-12)
+
+`mcpdev serve` zinciri üzerinden gerçek JSON-RPC stdio istemcisi ile üç aşamalı koşum:
+
+| Aşama | Koşul | Sonuç |
+|---|---|---|
+| 1 | Kabul yok (eulaFile mevcut değil) + `scenario_run` | `EULA_NOT_ACCEPTED`, `suggested_action` → `mcpdev eula accept`, runtime dizini oluşmadı, `duration_ms≈126` |
+| 2 | `mcpdev eula accept` (interaktif `y`) | `accepted=true`, `accepted_at` yazıldı (`config/eula.json`) |
+| 3 | Aynı oturum akışında tekrar `scenario_run` (gerçek Paper) | `completed`, passed=3/3, `evidence_ids` (3), assertion düzeyi görünürlük, `duration_ms≈24s` |
+
+Her aşama sonunda `mcpdev serve` exit 0 ile temiz kapandı (zincir: mcp-server → supervisor SIGTERM).
 
 ## Zincir
 
