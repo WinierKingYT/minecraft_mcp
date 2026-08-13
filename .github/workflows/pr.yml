@@ -276,17 +276,12 @@ jobs:
       - name: Build TypeScript
         run: pnpm run build
 
+      # DİKKAT: tek satır — GitHub Actions Windows runner'ında default shell
+      # PowerShell'dir; `\` satır devamı bash'e özgüdür, pwsh'te `\` node'a
+      # ayrı argüman olarak gidip "Cannot find module 'D:\'" hatası üretir.
       - name: Run security tests
         working-directory: apps/run-supervisor
-        run: |
-          node --test dist/test/process-security.test.js \
-                dist/test/container-security.test.js \
-                dist/test/injection-security.test.js \
-                dist/test/recovery-security.test.js \
-                dist/test/backend-security.test.js \
-                dist/test/lifecycle-stress.test.js \
-                dist/test/three-project-validation.test.js \
-                dist/test/malicious-fixtures.test.js
+        run: node --test dist/test/process-security.test.js dist/test/container-security.test.js dist/test/injection-security.test.js dist/test/recovery-security.test.js dist/test/backend-security.test.js dist/test/lifecycle-stress.test.js dist/test/three-project-validation.test.js dist/test/malicious-fixtures.test.js
 
   # -------------------------------------------------------------------------
   # Checksum — release artifact checksum'ları (V1 gate).
