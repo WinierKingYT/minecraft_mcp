@@ -37,21 +37,23 @@ milestones:
       - "Doctor: 10 health check, pin'li sürüm kontrolleri (2026-08-12); CI doctor job'ı setup-java ile pinned Java 25'i doğrular"
       - "SBOM: generate-sbom.mjs + CI job (>=50 component gate)"
     security_regression:
-      # main workflow son koşumu blocker olduktan sonra "yesil" denemez;
-      # son doğrulanmış yeşil koşum burada tutulur.
-      last_verified_commit: cf68f99   # 2026-08-11 — security matrix yeşil; öncesi 538bc57
-      latest_main_run: blocked        # 582b615 — node pin + path canonicalization + Docker live fix bekliyor
+      last_verified_commit: dcfc35e   # 2026-08-13 — 11/11 job yeşil (e2e-minimal dahil); öncesi f38a487
+      latest_main_run: green          # run 31737283437 — tüm kapılar success
     open_items:
       - "paper-smoke CI job (gerçek Paper 5 lifecycle — şu an yalnızca yerel m0-smoke)"
       - "dependency-scan CI job (bağımlılık zafiyet taraması)"
   M3-e2e-minimal:
-    status: in-progress
+    status: completed
+    completed_at: 2026-08-13
     evidence:
-      - "e2e-minimal CI job eklendi (pr.yml): mcpdev serve üzerinden official MCP Client zinciri — project_inspect -> plugin_build (gerçek Gradle, offline) -> scenario_run (plugin-enables, gerçek Paper) -> evidence_get -> plugin_launch (Paper READY) -> plugin_stop (graceful)"
+      - "e2e-minimal CI job yeşil (run 31737283437): mcpdev serve üzerinden official MCP Client zinciri — project_inspect -> plugin_build (gerçek Gradle, offline) -> scenario_run (plugin-enables, gerçek Paper, 2/2 assertion) -> evidence_get -> plugin_launch (Paper READY) -> plugin_stop (graceful)"
       - "Driver: apps/mcp-server/e2e/minimal.driver.mjs (SDK Client 2.0.0, 2026-07-28 modern era)"
       - "EULA kabulü operator yüzeyinden; build offline — agent network:online provisioning onayı olmadan kullanılamaz"
       - "supervisor + cli serve --dependency-cache-dir eklendi (offline reproducible build için doğrulanmış cache)"
-    local_run: green   # JAVA_HOME 25 ile tam zincir yerel geçti
+    fixes_during_ci:
+      - "scenario_run IPC timeout 30s -> IPC_LAUNCH_TIMEOUT_MS (300s) — runtime boot + assertion aşıyordu (f38a487)"
+      - "runtime quota 1: scenario launch'tan önce koşulmalı (DSL-11 her scenario kendi disposable runtime'ı)"
+      - "fixture gradlew executable bit 100644 -> 100755 (exit 126, dcfc35e)"
   V1.1:
     status: completed
     completed_at: 2026-08-11
