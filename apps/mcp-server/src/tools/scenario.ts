@@ -7,6 +7,7 @@
 import { readFileSync, existsSync } from 'node:fs';
 import { parse as parseYaml } from 'yaml';
 import { toolSuccess, toolError, type ToolDefinition, type ToolHandler } from './facade.js';
+import { IPC_LAUNCH_TIMEOUT_MS } from '@mcpdev/contracts';
 import type { SupervisorClient } from '../supervisor-client.js';
 import type { ScenarioRunResult } from '@mcpdev/contracts';
 
@@ -361,11 +362,15 @@ export function createScenarioTools(info: ScenarioToolsInfo): Array<[ToolDefinit
       }
 
       try {
-        const result = await client.call<ScenarioRunResult>('scenario.run', {
-          scenarioPath,
-          projectId,
-          ...(buildId !== undefined && { buildId }),
-        });
+        const result = await client.call<ScenarioRunResult>(
+          'scenario.run',
+          {
+            scenarioPath,
+            projectId,
+            ...(buildId !== undefined && { buildId }),
+          },
+          IPC_LAUNCH_TIMEOUT_MS,
+        );
 
         if (result.status === 'failed') {
           return toolError(ctx.correlationId, (result.errorCode ?? 'ASSERTION_FAILED') as never, {

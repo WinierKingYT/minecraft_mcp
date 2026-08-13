@@ -43,6 +43,7 @@ serve options:
   --runtime-root <dir>     Runtime root directory
   --evidence-dir <dir>     Evidence store directory
   --eula-file <path>       EULA acceptance record (default: $MCPDEV_DATA_DIR/config/eula.json)
+  --dependency-cache-dir <dir>  Verified dependency cache (offline reproducible builds)
   --tool-profile <name>    MCP tool profile (default: developer)
   --log-level <level>      MCP server log level (ERROR|WARN|INFO|DEBUG)
 `;
@@ -69,6 +70,7 @@ async function main(): Promise<void> {
       'log-level': { type: 'string' },
       'eula-file': { type: 'string' },
       'data-dir': { type: 'string' },
+      'dependency-cache-dir': { type: 'string' },
     },
     allowPositionals: true,
     strict: true,
@@ -127,6 +129,9 @@ async function main(): Promise<void> {
         ...(values['runtime-root'] !== undefined ? { runtimeRootDir: values['runtime-root'] as string } : {}),
         ...(values['evidence-dir'] !== undefined ? { evidenceDir: values['evidence-dir'] as string } : {}),
         ...(values['eula-file'] !== undefined ? { eulaFile: values['eula-file'] as string } : {}),
+        ...(values['dependency-cache-dir'] !== undefined
+          ? { dependencyCacheDir: values['dependency-cache-dir'] as string }
+          : {}),
         ...(values['tool-profile'] !== undefined ? { toolProfile: values['tool-profile'] as string } : {}),
         ...(values['log-level'] !== undefined ? { logLevel: values['log-level'] as string } : {}),
       });

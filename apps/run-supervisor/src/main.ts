@@ -37,6 +37,7 @@ interface StartOptions {
   readonly evidenceDir?: string;
   readonly projectRegistryFilePath?: string;
   readonly eulaFile?: string;
+  readonly dependencyCacheDir?: string;
 }
 
 function log(level: string, event: string, fields?: Record<string, unknown>): void {
@@ -85,6 +86,9 @@ async function start(options: StartOptions): Promise<never> {
       ? { evidenceStore: new EvidenceStore(resolve(options.evidenceDir)) }
       : {}),
     ...(options.eulaFile !== undefined ? { eulaFile: options.eulaFile } : {}),
+    ...(options.dependencyCacheDir !== undefined
+      ? { dependencyCacheDir: resolve(options.dependencyCacheDir) }
+      : {}),
   });
 
   const endpoint = {
@@ -139,6 +143,7 @@ function main(): void {
       'registry-file': { type: 'string' },
       'evidence-dir': { type: 'string' },
       'eula-file': { type: 'string' },
+      'dependency-cache-dir': { type: 'string' },
       version: { type: 'string' },
       help: { type: 'boolean', short: 'h', default: false },
     },
@@ -167,6 +172,9 @@ function main(): void {
         : {}),
       ...(values['evidence-dir'] !== undefined ? { evidenceDir: values['evidence-dir'] as string } : {}),
       ...(values['eula-file'] !== undefined ? { eulaFile: values['eula-file'] as string } : {}),
+      ...(values['dependency-cache-dir'] !== undefined
+        ? { dependencyCacheDir: values['dependency-cache-dir'] as string }
+        : {}),
       ...(values.version !== undefined ? { version: values.version as string } : {}),
     }).catch((err) => {
       process.stderr.write(`Fatal: ${err instanceof Error ? err.message : String(err)}\n`);

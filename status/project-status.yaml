@@ -43,8 +43,15 @@ milestones:
       latest_main_run: blocked        # 582b615 — node pin + path canonicalization + Docker live fix bekliyor
     open_items:
       - "paper-smoke CI job (gerçek Paper 5 lifecycle — şu an yalnızca yerel m0-smoke)"
-      - "e2e-minimal CI job (project_inspect -> ... -> runtime_release zinciri)"
       - "dependency-scan CI job (bağımlılık zafiyet taraması)"
+  M3-e2e-minimal:
+    status: in-progress
+    evidence:
+      - "e2e-minimal CI job eklendi (pr.yml): mcpdev serve üzerinden official MCP Client zinciri — project_inspect -> plugin_build (gerçek Gradle, offline) -> scenario_run (plugin-enables, gerçek Paper) -> evidence_get -> plugin_launch (Paper READY) -> plugin_stop (graceful)"
+      - "Driver: apps/mcp-server/e2e/minimal.driver.mjs (SDK Client 2.0.0, 2026-07-28 modern era)"
+      - "EULA kabulü operator yüzeyinden; build offline — agent network:online provisioning onayı olmadan kullanılamaz"
+      - "supervisor + cli serve --dependency-cache-dir eklendi (offline reproducible build için doğrulanmış cache)"
+    local_run: green   # JAVA_HOME 25 ile tam zincir yerel geçti
   V1.1:
     status: completed
     completed_at: 2026-08-11

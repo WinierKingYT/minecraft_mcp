@@ -32,6 +32,8 @@ export interface ServeOptions {
   readonly registryFile?: string;
   readonly evidenceDir?: string;
   readonly eulaFile?: string;
+  /** Doğrulanmış bağımlılık cache (offline reproducible build'ler için). */
+  readonly dependencyCacheDir?: string;
   readonly version?: string;
   readonly toolProfile?: string;
   readonly logLevel?: string;
@@ -146,6 +148,9 @@ export async function runServe(options: ServeOptions): Promise<ServeResult> {
     ...(options.projectRoot !== undefined ? ['--project-root', resolve(options.projectRoot)] : []),
     ...(options.registryFile !== undefined ? ['--registry-file', resolve(options.registryFile)] : []),
     ...(options.evidenceDir !== undefined ? ['--evidence-dir', resolve(options.evidenceDir)] : []),
+    ...(options.dependencyCacheDir !== undefined
+      ? ['--dependency-cache-dir', resolve(options.dependencyCacheDir)]
+      : []),
     '--eula-file', resolve(options.eulaFile ?? eulaFilePath(defaultEulaDataDir())),
     ...(options.version !== undefined ? ['--version', options.version] : []),
   ];

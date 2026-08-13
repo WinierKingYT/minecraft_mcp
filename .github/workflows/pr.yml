@@ -335,12 +335,73 @@ jobs:
           retention-days: 90
 
   # -------------------------------------------------------------------------
+  # e2e-minimal — M3 release-hardening kapısı (status/project-status.yaml).
+  #
+  # Gerçek uçtan uca dikey dilim: mcpdev serve üzerinden official MCP Client
+  # ile project_inspect → plugin_build (gerçek Gradle, offline) →
+  # scenario_run (plugin-enables, gerçek Paper) → evidence_get →
+  # plugin_launch (Reader Paper READY) → plugin_stop (graceful).
+  #
+  # Köşe taşları:
+  #  * EULA kabulü yalnızca operator yüzeyinden (driver içinde `eula accept`).
+  #  * Agent network:online provisioning onayı ister (separation of authority);
+  #    bu yüzden build offline, doğrulanmış bağımlılık cache üzerinden koşar.
+  #  * Java 25 zorunlu (Paper 26.2 toolchain; yoksa JAVA_VERSION_MISMATCH).
+  # -------------------------------------------------------------------------
+  e2e-minimal:
+    name: E2E minimal chain
+    runs-on: ubuntu-latest
+    needs: [contracts, typescript, java]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read pinned Java and Node versions
+        id: profile
+        run: |
+          java_major="$(grep -A2 '^java:' compatibility/paper-26.2-build-84-v1.yaml | grep 'runtime_major:' | head -1 | sed 's/.*runtime_major: *\([0-9]*\).*/\1/')"
+          echo "java=${java_major}" >> "$GITHUB_OUTPUT"
+          echo "Pinned Java: ${java_major}"
+          node_version="$(grep -A2 '^node:' compatibility/paper-26.2-build-84-v1.yaml | grep 'version:' | head -1 | sed 's/.*version: *"\?\([^"]*\)"\?.*/\1/')"
+          echo "node=${node_version}" >> "$GITHUB_OUTPUT"
+          echo "Pinned Node: ${node_version}"
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ steps.profile.outputs.java }}
+
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ steps.profile.outputs.node }}
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run gen
+      - run: pnpm run build
+
+      # Bridge plugin JAR — e2e için gerekiyor. Trusted-local + offline build
+      # deseni java job ile aynı; gradle cache bilinçli önbelleğe alınmaz.
+      - name: Build bridge (soğuk cache)
+        working-directory: bridge/paper
+        run: ./gradlew --no-daemon build
+
+      # Provisioning: doğrulanmış bağımlılık cache'ini ~/.gradle'a doldurur
+      # (gradle dist + wrapper + modules-2). Driver bu cache'ten seed alır.
+      # Bu adım operator yüzeyinin CI karşılığıdır (agent online değildir).
+      - name: Provision Gradle dependency cache
+        working-directory: fixtures/projects/minimal-paper-plugin
+        run: ./gradlew --no-daemon dependencies
+
+      - name: Run e2e-minimal driver
+        run: node apps/mcp-server/e2e/minimal.driver.mjs
+
+  # -------------------------------------------------------------------------
   # M3 release-hardening açık CI gates (status/project-status.yaml).
   # Bunlar bilinçli olarak bekletilir (DOC-GATE-02): her zaman yeşil geçen
   # boş bir iş, geçmeyen bir kapıdır — gerçek içerik eklendiğinde gelirler.
   # M0/M1 milestone'ları kapandı; bu kapılar M3'ün parçasıdır.
   #
   #   paper-smoke       : Gerçek Paper 5 lifecycle (yerel m0-smoke var)
-  #   e2e-minimal       : project_inspect -> ... -> runtime_release zinciri
   #   dependency-scan   : bağımlılık zafiyet taraması
   # -------------------------------------------------------------------------
