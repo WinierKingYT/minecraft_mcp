@@ -37,8 +37,8 @@ milestones:
       - "Doctor: 10 health check, pin'li sürüm kontrolleri (2026-08-12); CI doctor job'ı setup-java ile pinned Java 25'i doğrular"
       - "SBOM: generate-sbom.mjs + CI job (>=50 component gate)"
     security_regression:
-      last_verified_commit: dcfc35e   # 2026-08-13 — 11/11 job yeşil (e2e-minimal dahil); öncesi f38a487
-      latest_main_run: green          # run 31737283437 — tüm kapılar success
+      last_verified_commit: 00aa30d   # 2026-08-13 — 12/12 job yeşil (paper-smoke dahil); öncesi dcfc35e
+      latest_main_run: green          # run 31741636210 — tüm kapılar success
     open_items:
       - "dependency-scan CI job (bağımlılık zafiyet taraması)"
   M3-paper-smoke:
