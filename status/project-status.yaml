@@ -40,8 +40,17 @@ milestones:
       last_verified_commit: dcfc35e   # 2026-08-13 — 11/11 job yeşil (e2e-minimal dahil); öncesi f38a487
       latest_main_run: green          # run 31737283437 — tüm kapılar success
     open_items:
-      - "paper-smoke CI job (gerçek Paper 5 lifecycle — şu an yalnızca yerel m0-smoke)"
       - "dependency-scan CI job (bağımlılık zafiyet taraması)"
+  M3-paper-smoke:
+    status: completed
+    completed_at: 2026-08-13
+    evidence:
+      - "paper-smoke CI job eklendi (pr.yml): m0-smoke'un deterministik CI karşılığı — gerçek Paper 5 lifecycle (JAR indir → runtime image → boot → READY gate → salt-okuma gözlemleri → negatif kanıtlar → graceful cleanup)"
+      - "Driver: apps/run-supervisor/e2e/paper-smoke.driver.mjs — supervisor dist'ten runM0Smoke import eder; EULA kabulü operator yüzeyinden (mcpdev eula accept)"
+      - "Negatif kanıtlar doğrulanır: yanlış token → 401, world.set_block mutation reddi (M0'ın salt-okuma + mutation-arizi iddiası)"
+      - "local_run: green — ready gate 22.5s, PaperBridge enabled, 3 dünya, 2 event, graceful exit 0, port released, handshake temiz"
+    fixes_during_ci:
+      - "plugin.list field adı: id yerine name/enabled (runtime-launch ready gate ile uyum) — driver'da düzeltildi"
   M3-e2e-minimal:
     status: completed
     completed_at: 2026-08-13
