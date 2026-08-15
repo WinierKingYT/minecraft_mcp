@@ -66,4 +66,3 @@ V1'de bilinen ve kasıtlı olan limitationlar. Bunlar hata değil, tasarım kara
 - MCP SDK bağımlılığı henüz kurulmadı (custom transport devam ediyor)
 - `paper-plugin.yml` deneysel desteği kapalı (feature flag ile açılabilir)
 - Network verification (Paper JAR checksum doğrulaması) tamamlanmadı
-- GC (Garbage Collector) henüz uygulanmadı — runtime dizinleri manuel temizlenmeli

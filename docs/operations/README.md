@@ -9,4 +9,6 @@
 | [`m2a-demo.md`](m2a-demo.md) | M2A scenario → canlı Paper demo: YAML → runtime → assertion | mevcut |
 | [`incident-response.md`](incident-response.md) | Secret sızıntısı, orphan process, disk tükenmesi olay müdahalesi | M3 |
 | [`known-limitations.md`](known-limitations.md) | Kullanıcıya dönük limitation özeti | M3 |
+| [`install.md`](install.md) | Kurulum/kaldırma (`mcpdev install`, `mcpdev uninstall`) kullanım kılavuzu | V1 |
+| [`troubleshooting.md`](troubleshooting.md) | Sık hatalar, olası nedenler ve çözümler | V1 |
 | [`compatibility-manifest.md`](compatibility-manifest.md) | Uyumluluk profili yapısı ve kullanım kılavuzu | V1 |
