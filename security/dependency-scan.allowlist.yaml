@@ -1,0 +1,23 @@
+# dependency-scan allowlist — bilinçli kabul edilen zafiyetler
+#
+# Bu dosya `dependency-scan.mjs` tarafından okunur. HIGH/CRITICAL bir bulgu
+# yalnızca burada kayıtlıysa gate'i geçer. Yeni bir bulgu allowlist'e
+# EKLENMEDEN gate kırmızıdır; allowlist sessizce büyüyemez.
+#
+# Girdi kuralları:
+#   purl    : etkilenen paket (SBOM'daki purl biçimi)
+#   vuln_id : kabul edilen OSV kaydı
+#   reason  : neden kabul edildiği — build-time-only, shipped artifact'te yok,
+#             düzeltme yükü vs. Bu alan review için zorunludur.
+#
+# Allowlist'ten çıkarma (removal), bulgu düzeltildiğinde yapılır: bileşen
+# sürümü yükseltilip OSV artık eşleşmediğinde girdi yanlış pozitif üretir
+# ve `dependency-scan.mjs` "stale allowlist girdisi" uyarısı basar.
+
+entries:
+  - purl: "pkg:npm/fast-uri@3.1.4"
+    vuln_id: "GHSA-7p8r-x3mc-p8w7"
+    reason: "fast-uri, ajv-formats -> ajv devDependency zincirinden transitif gelir; build-time yalnızca, shipped artifact'te yok. Düzeltme pnpm override gerektirir — ayrı iş kalemi."
+  - purl: "pkg:maven/org.codehaus.plexus/plexus-utils@3.5.1"
+    vuln_id: "GHSA-6fmv-xxpf-w3cw"
+    reason: "plexus-utils, paper-api koordinatının transitif compileOnly bağımlılığıdır (maven-resolver zinciri); shipped bridge JAR'ına girmez. Düzeltme paper-api üst sürümüyle gelir — ayrı iş kalemi."

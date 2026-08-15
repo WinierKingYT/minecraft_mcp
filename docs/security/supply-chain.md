@@ -123,6 +123,19 @@ Task mapping ürün config'inde bulunur ve agent tarafından değiştirilemez.
 
 > ⚠️ Bootstrap sırasında npm sürüm pinleri (`typescript`, `ajv`, `yaml`, `pnpm`, `@types/node`) yalnızca aday olarak yazıldı ve `pnpm install` ile teyit edilmedi. Lockfile commit edilene kadar `npm_toolchain.lockfile_committed: false`.
 
+## Bağımlılık zafiyet taraması (dependency-scan)
+
+`scripts/dependency-scan.mjs`, `pnpm-lock.yaml` ve `bridge/paper/gradle.lockfile` üzerindeki
+purl'ları OSV `querybatch` API'sine sorar; bulguları severity eşiğine (varsayılan `high`)
+göre raporlar. CI'da `dependency-scan` job'ı olarak çalışır.
+
+- Severity kaynağı: OSV `database_specific.severity` (GitHub seviyesi); yoksa CVSS v3 base score.
+- **Gate kuralı:** Eşiğin üstündeki bulgu, `security/dependency-scan.allowlist.yaml` içinde
+  kayıtlı değilse iş kırmızıdır. Allowlist'e girdi, gerekçeli ve review ister; sessizce
+  büyüyemez — yeni bulgu girilmemişse gate kırılır. Bileşen düzeltilince girdi "stale"
+  uyarısı üretir ve çıkarılmalıdır.
+- Build gerektirmez; canlı OSV verisi kullandığı için önbelleklenmez.
+
 ## Paper JAR
 
 - İndirme URL'si **sabit metin olarak güvenilmez**; resmî Downloads Service yanıtından çözülür

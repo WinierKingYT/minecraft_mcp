@@ -64,6 +64,7 @@ Bu kriterler [`roadmap.md`](roadmap.md) ve [`release-checklist.md`](release-chec
 - [x] 100 lifecycle orphan `%0` (`lifecycle-stress.test.ts` — ST-LIFECYCLE-001, 0 orphans in 100 cycles)
 - [x] Doctor doğru teşhis (`apps/cli/`, `doctor` CI job, 10 health checks — V1.1'de `compatibility_profiles` ve `capability_registry` eklendi)
 - [x] Üç gerçek proje (`fixtures/projects/`, `three-project-validation.test.ts` — 39 tests)
+- [x] Dependency vulnerability scan (`dependency-scan` CI job — `scripts/dependency-scan.mjs`, OSV; pnpm+gradle lockfile purl'ları; HIGH+ bulgular allowlist'te değilse gate kırmızı)
 
 ## V1.1
 

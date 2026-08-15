@@ -199,6 +199,44 @@ jobs:
           retention-days: 90
 
   # -------------------------------------------------------------------------
+  # dependency-scan — bağımlılık zafiyet taraması (M3, OSV).
+  #
+  # pnpm-lock.yaml + gradle.lockfile purl'larını OSV querybatch'e sorar;
+  # eşiğin (varsayılan high) üstündeki bulgular allowlist'te değilse job
+  # kırmızıdır. Allowlist: security/dependency-scan.allowlist.yaml (gerekçeli,
+  # sessizce büyüyemez — yeni bulgu girilmemişse gate kırılır).
+  #
+  # Köşe taşları:
+  #  * Severity kaynağı OSV `database_specific.severity` (GitHub), yoksa CVSS v3.
+  #  * Ağ erişimi gerekir (api.osv.dev) — canlı veri, önbellek yok.
+  #  * build gerektirmez; yalnızca pnpm install (yaml parser).
+  # -------------------------------------------------------------------------
+  dependency-scan:
+    name: Dependency vulnerability scan
+    runs-on: ubuntu-latest
+    needs: [contracts]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read pinned Node version
+        id: profile
+        shell: bash
+        run: |
+          node_version="$(grep -A2 '^node:' compatibility/paper-26.2-build-84-v1.yaml | grep 'version:' | head -1 | sed 's/.*version: *"\?\([^"]*\)"\?.*/\1/')"
+          echo "node=${node_version}" >> "$GITHUB_OUTPUT"
+
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ steps.profile.outputs.node }}
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Run dependency scan
+        run: node scripts/dependency-scan.mjs --quiet
+
+  # -------------------------------------------------------------------------
   # Doctor — sağlık kontrolü (M3).
   # -------------------------------------------------------------------------
   doctor:
@@ -456,11 +494,8 @@ jobs:
         run: node apps/run-supervisor/e2e/paper-smoke.driver.mjs
 
   # -------------------------------------------------------------------------
-  # M3 release-hardening açık CI gates (status/project-status.yaml).
-  # Bunlar bilinçli olarak bekletilir (DOC-GATE-02): her zaman yeşil geçen
-  # boş bir iş, geçmeyen bir kapıdır — gerçek içerik eklendiğinde gelirler.
-  # M0/M1 milestone'ları kapandı; bu kapılar M3'ün parçasıdır.
+  # M3 release-hardening CI gates (status/project-status.yaml).
   #
   #   paper-smoke       : GERÇEKLEŞTİ (yukarıdaki paper-smoke job'ı, driver: apps/run-supervisor/e2e/paper-smoke.driver.mjs)
-  #   dependency-scan   : bağımlılık zafiyet taraması
+  #   dependency-scan   : GERÇEKLEŞTİ (yukarıdaki dependency-scan job'ı, driver: scripts/dependency-scan.mjs — OSV)
   # -------------------------------------------------------------------------

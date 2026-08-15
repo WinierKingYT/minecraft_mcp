@@ -12,6 +12,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import { createHash } from 'node:crypto';
+import { parsePnpmLockfile, parseGradleLockfile } from './lib/lockfiles.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
@@ -34,99 +35,6 @@ Generates a CycloneDX-like SBOM covering Node.js and Java dependencies.
 Output defaults to ./sbom.json
 `);
   process.exit(0);
-}
-
-// ─── pnpm lockfile parser ──────────────────────────────────────────────
-
-function parsePnpmLockfile(lockfilePath) {
-  if (!existsSync(lockfilePath)) return [];
-
-  const content = readFileSync(lockfilePath, 'utf-8');
-  const components = [];
-  const seen = new Set();
-
-  // Find the "packages:" section
-  const packagesIdx = content.indexOf('\npackages:\n');
-  if (packagesIdx < 0) return [];
-
-  const lines = content.slice(packagesIdx).split('\n');
-
-  for (const line of lines) {
-    // Match lines like: "  '@types/node@24.7.0':" or "  ajv-formats@3.0.1:"
-    const trimmed = line.trimEnd();
-    if (!trimmed.startsWith('  ') || !trimmed.endsWith(':')) continue;
-
-    const entry = trimmed.slice(2, -1).trim(); // Remove leading spaces and trailing colon
-    if (!entry.includes('@')) continue;
-
-    // Remove surrounding quotes if present
-    const unquoted = entry.replace(/^['"]|['"]$/g, '');
-
-    // Split on last @ to get name and version
-    const atIdx = unquoted.lastIndexOf('@');
-    if (atIdx <= 0) continue;
-
-    const name = unquoted.slice(0, atIdx);
-    const version = unquoted.slice(atIdx + 1);
-
-    // Version should start with a digit
-    if (!/^\d/.test(version)) continue;
-
-    const key = `${name}@${version}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-
-    components.push({
-      type: 'library',
-      name,
-      version,
-      purl: `pkg:npm/${encodeURIComponent(name)}@${version}`,
-      scope: 'required',
-      ecosystem: 'npm',
-    });
-  }
-
-  return components;
-}
-
-// ─── Gradle lockfile parser ────────────────────────────────────────────
-
-function parseGradleLockfile(lockfilePath) {
-  if (!existsSync(lockfilePath)) return [];
-
-  const content = readFileSync(lockfilePath, 'utf-8');
-  const components = [];
-  const seen = new Set();
-
-  // Format: group:artifact:version=configuration
-  const lineRegex = /^([^#=]+)=.+$/gm;
-  let match;
-
-  while ((match = lineRegex.exec(content)) !== null) {
-    const dep = match[1]?.trim();
-    if (!dep || dep.startsWith('#')) continue;
-
-    const parts = dep.split(':');
-    if (parts.length < 3) continue;
-
-    const [group, artifact, version] = parts;
-    if (!group || !artifact || !version) continue;
-
-    const key = `${group}:${artifact}:${version}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-
-    components.push({
-      type: 'library',
-      name: `${group}:${artifact}`,
-      version,
-      purl: `pkg:maven/${encodeURIComponent(group)}/${encodeURIComponent(artifact)}@${version}`,
-      scope: 'required',
-      ecosystem: 'maven',
-    });
-  }
-
-  return components;
 }
 
 // ─── Read project metadata ─────────────────────────────────────────────

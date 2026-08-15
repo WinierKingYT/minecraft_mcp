@@ -36,11 +36,11 @@ milestones:
       - "CI matrix: typescript (ubuntu+windows), security (ubuntu+windows), java, secrets, sbom, checksum, doctor job'ları"
       - "Doctor: 10 health check, pin'li sürüm kontrolleri (2026-08-12); CI doctor job'ı setup-java ile pinned Java 25'i doğrular"
       - "SBOM: generate-sbom.mjs + CI job (>=50 component gate)"
+      - "dependency-scan: scripts/dependency-scan.mjs + CI job (OSV) — pnpm+gradle lockfile purl'ları; HIGH+ bulgular allowlist'te değilse gate kırmızı; security/dependency-scan.allowlist.yaml (2 build-time-only HIGH, gerekçeli)"
     security_regression:
       last_verified_commit: 00aa30d   # 2026-08-13 — 12/12 job yeşil (paper-smoke dahil); öncesi dcfc35e
       latest_main_run: green          # run 31741636210 — tüm kapılar success
-    open_items:
-      - "dependency-scan CI job (bağımlılık zafiyet taraması)"
+    open_items: []
   M3-paper-smoke:
     status: completed
     completed_at: 2026-08-13
@@ -102,4 +102,4 @@ registry:
   persistence: "kalıcı proje registry (P0-4k, cf68f99)"
   host_path_visibility: "agent yüzeyi raw host path almaz (root_path sızıntısı kapatıldı, 2026-08-12)"
 
-updated_at: 2026-08-12
+updated_at: 2026-08-14
