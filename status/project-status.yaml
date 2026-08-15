@@ -37,6 +37,7 @@ milestones:
       - "Doctor: 10 health check, pin'li sürüm kontrolleri (2026-08-12); CI doctor job'ı setup-java ile pinned Java 25'i doğrular"
       - "SBOM: generate-sbom.mjs + CI job (>=50 component gate)"
       - "dependency-scan: scripts/dependency-scan.mjs + CI job (OSV) — pnpm+gradle lockfile purl'ları; HIGH+ bulgular allowlist'te değilse gate kırmızı; security/dependency-scan.allowlist.yaml (2 build-time-only HIGH, gerekçeli)"
+      - "Malicious container testi: malicious-container.test.ts (ST-MALICIOUS-CONTAINER-001/002/003) — hostile-probe fixture build edilebilirliği + izolasyon argümanları her platformda; canlı probe (env/socket/network/ro/disk/pid) Docker varsa; security job'da"
     security_regression:
       last_verified_commit: 00aa30d   # 2026-08-13 — 12/12 job yeşil (paper-smoke dahil); öncesi dcfc35e
       latest_main_run: green          # run 31741636210 — tüm kapılar success

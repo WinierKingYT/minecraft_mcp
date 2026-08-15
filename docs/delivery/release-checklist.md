@@ -90,7 +90,7 @@
 - [x] Handle ownership — `ownership.test.ts` (ST-PROC-003); `ipc.test.ts`
 - [x] Idempotency — `mutation-tracker.test.ts`; `scenario-engine.test.ts`
 - [x] Malicious Gradle — `gradle-validation.test.ts`; `build-pipeline.test.ts` (JAVA_TOOL_OPTIONS reddi); ST-PROC-002
-- [ ] Malicious plugin container testi — `hostile-probe` + `spike-container-check.ts` var ama otomatik CI testi yok (açık iş kalemi)
+- [x] Malicious plugin container testi — `malicious-container.test.ts` (ST-MALICIOUS-CONTAINER-001/002 hermetic her platformda; 003 canlı probe Docker varsa); `hostile-probe` + `spike-container-check.ts` canlı deney olarak kalır
 - [x] Same-JVM limitation belgelenmiş — `guarantees.md`; `known-limitations.md`; SPIKE-SAME-JVM-001 (closed)
 
 ## Release
