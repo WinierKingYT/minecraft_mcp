@@ -77,6 +77,13 @@ function stubHandlers(overrides: Partial<Record<IpcMethod, MethodHandler>> = {})
     'permission.detach': async () => ({ success: true }),
     'permission.check': async () => ({ player: 'p', permission: 'p', hasPermission: false, source: 'default' }),
     'permission.set_op': async () => ({ success: true }),
+    'run.list': async () => ({ runs: [] }),
+    'run.get': async () => ({ runId: 'run_test', scenarioId: null, scenarioPath: null, projectId: null, runtimeImageId: null, bridgeBootId: null, status: 'completed', startedAt: null, completedAt: null, durationMs: 0, summary: { totalSteps: 0, passed: 0, failed: 0, skipped: 0, evidenceCount: 0 }, logs: [], events: [], evidenceIds: [] }),
+    'operation.list': async () => ({ operations: [] }),
+    'operation.get': async () => ({ operationId: 'op_test', operation: 'get_block', runtimeId: 'rimg_test', status: 'completed', timestamp: 0, args: {} }),
+    'build.resolve': async () => ({ buildId: 'build_test', projectId: 'test', mode: 'build', backend: 'trusted-local', status: 'completed', artifact: null, createdAt: new Date().toISOString(), durationMs: 0 }),
+    'build.list': async () => ({ builds: [] }),
+    'runtime.list': async () => ({ runtimes: [] }),
   };
   return { ...base, ...overrides };
 }

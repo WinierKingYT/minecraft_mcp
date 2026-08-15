@@ -15,15 +15,20 @@
  * getirilir.
  */
 
-import { McpServer } from '@modelcontextprotocol/server';
-import type { StandardSchemaWithJSON } from '@modelcontextprotocol/server';
+import { McpServer, ResourceTemplate } from '@modelcontextprotocol/server';
+import type {
+  ListResourcesCallback,
+  StandardSchemaWithJSON,
+} from '@modelcontextprotocol/server';
 import { ToolFacade } from '../tools/facade.js';
+import { ResourceFacade } from '../resources/facade.js';
 import { log } from '../logging.js';
 
 export interface SdkServerOptions {
   readonly name: string;
   readonly version: string;
   readonly facade: ToolFacade;
+  readonly resources: ResourceFacade;
   readonly toolListTtlMs: number;
 }
 
@@ -144,7 +149,7 @@ export function buildSdkServer(opts: SdkServerOptions): McpServer {
   const server = new McpServer(
     { name: opts.name, version: opts.version },
     {
-      capabilities: { tools: {} },
+      capabilities: { tools: {}, resources: {} },
       cacheHints: {
         'tools/list': { ttlMs: opts.toolListTtlMs, cacheScope: 'private' },
         'server/discover': { ttlMs: opts.toolListTtlMs, cacheScope: 'private' },
@@ -178,11 +183,30 @@ export function buildSdkServer(opts: SdkServerOptions): McpServer {
     registered += 1;
   }
 
+  // Resources (docs/contracts/mcp.md). Her şablon SDK ResourceTemplate olarak
+  // kaydedilir: list callback'i resources/list'e konkre kaynakları katar,
+  // complete callback'i URI değişkenlerini otomatik tamamlar.
+  let resourceTemplates = 0;
+  for (const spec of opts.resources.listTemplates()) {
+    const { cacheHint, ...metadata } = spec.metadata;
+    const list: ListResourcesCallback | undefined = spec.list
+      ? async () => ({ resources: await spec.list!() })
+      : undefined;
+    server.registerResource(
+      spec.name,
+      new ResourceTemplate(spec.uriTemplate, { list, complete: spec.complete }),
+      { ...metadata, ...(cacheHint ? { cacheHint } : {}) },
+      spec.read,
+    );
+    resourceTemplates += 1;
+  }
+
   log('INFO', 'server.started', {
     name: opts.name,
     version: opts.version,
     tool_profile: opts.facade.profile,
     tools: registered,
+    resource_templates: resourceTemplates,
   });
 
   return server;

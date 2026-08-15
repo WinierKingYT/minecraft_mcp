@@ -73,7 +73,14 @@ export type IpcMethod =
   | 'permission.attach'
   | 'permission.detach'
   | 'permission.check'
-  | 'permission.set_op';
+  | 'permission.set_op'
+  | 'run.list'
+  | 'run.get'
+  | 'operation.list'
+  | 'operation.get'
+  | 'build.resolve'
+  | 'build.list'
+  | 'runtime.list';
 
 export interface SupervisorHealthResult {
   readonly status: 'ok';
@@ -616,4 +623,166 @@ export interface PermissionSetOpParams {
 /** Permission set op result */
 export interface PermissionSetOpResult {
   readonly success: boolean;
+}
+
+// ============================================================================
+// Resources IPC (MCP Resources — docs/contracts/mcp.md)
+// ============================================================================
+
+/**
+ * MCP Resources run/{run_id} okumalarının arka verisi. `scenario.run` sonucu
+ * evidence store'a runId altında yazılır; bu metotlar o kayıtları okur.
+ * Veri evidencetan türetildiği için redaction zaten depoda uygulanmıştır.
+ */
+
+/** Run listesi (resources/list + run/... şablonlarının list callback'i). */
+export interface RunListParams {}
+
+export interface RunResourceEntry {
+  readonly runId: string;
+  readonly status: 'completed' | 'failed' | 'timed_out';
+  readonly scenarioId: string | null;
+  readonly projectId: string | null;
+  readonly startedAt: string | null;
+  readonly completedAt: string | null;
+  readonly evidenceCount: number;
+}
+
+export interface RunListResult {
+  readonly runs: readonly RunResourceEntry[];
+}
+
+export interface RunGetParams {
+  readonly runId: string;
+}
+
+/**
+ * Bir run'ın tam kaydı. `phases`/`assertions` evidence'dan türetilir; `logs`
+ * ayrı adım günlükleri (bridge request/response), `events` adım+assertion akışıdır.
+ */
+export interface RunGetResult {
+  readonly runId: string;
+  readonly scenarioId: string | null;
+  readonly scenarioPath: string | null;
+  readonly projectId: string | null;
+  readonly runtimeImageId: string | null;
+  readonly bridgeBootId: string | null;
+  readonly status: 'completed' | 'failed' | 'timed_out';
+  readonly startedAt: string | null;
+  readonly completedAt: string | null;
+  readonly durationMs: number;
+  readonly summary: {
+    readonly totalSteps: number;
+    readonly passed: number;
+    readonly failed: number;
+    readonly skipped: number;
+    readonly evidenceCount: number;
+  };
+  readonly logs: readonly RunStepLog[];
+  readonly events: readonly RunEvent[];
+  readonly evidenceIds: readonly string[];
+}
+
+export interface RunStepLog {
+  readonly phase: 'given' | 'when' | 'then' | 'cleanup';
+  readonly stepName: string;
+  readonly status: 'passed' | 'failed' | 'skipped' | 'error';
+  readonly durationMs: number;
+  readonly operation: string | null;
+  readonly error: string | null;
+  readonly suggestedAction: string | null;
+}
+
+export interface RunEvent {
+  readonly kind: 'step' | 'assertion';
+  readonly stepName: string;
+  readonly passed: boolean | null;
+  readonly message: string;
+  readonly expected?: unknown;
+  readonly actual?: unknown;
+  readonly durationMs: number;
+}
+
+// ─── Operation ledger ────────────────────────────────────────────────────
+//
+// bridge.query üzerinden geçen her işlem `operation/{operation_id}` kaynağı
+// olarak tutulur. Args redaction'dan geçmiş hâliyle kaydedilir (raw host path
+// depolanmaz, yalnızca redacted kopya).
+
+export interface OperationListParams {}
+
+export interface OperationSummary {
+  readonly operationId: string;
+  readonly operation: string;
+  readonly runtimeId: string;
+  readonly status: 'pending' | 'completed' | 'failed';
+  readonly timestamp: number;
+}
+
+export interface OperationListResult {
+  readonly operations: readonly OperationSummary[];
+}
+
+export interface OperationGetParams {
+  readonly operationId: string;
+}
+
+export interface OperationGetResult {
+  readonly operationId: string;
+  readonly operation: string;
+  readonly runtimeId: string;
+  readonly status: 'pending' | 'completed' | 'failed';
+  readonly timestamp: number;
+  readonly args: Readonly<Record<string, unknown>>;
+  readonly result?: Readonly<Record<string, unknown>>;
+  readonly error?: string;
+}
+
+// ─── Build artifact resolve ──────────────────────────────────────────────
+//
+// Artifact metadata'sı mutlak host path İÇERMEDEN verilir (mcp.md Resources
+// kuralı: raw host path dışarı verilmez). Dosya yerinde mi / sha256 doğrulanmış
+// mı bilgisi `status` alanından gelir.
+
+export interface BuildResolveParams {
+  readonly buildId: string;
+}
+
+export interface BuildResolveResult {
+  readonly buildId: string;
+  readonly projectId: string;
+  readonly mode: string;
+  readonly backend: 'trusted-local' | 'container';
+  readonly status: 'completed' | 'failed';
+  readonly artifact: {
+    readonly id: string;
+    readonly relativePath: string;
+    readonly sha256: string;
+    readonly byteSize: number;
+  } | null;
+  readonly createdAt: string;
+  readonly durationMs: number;
+}
+
+/** Runtime listesi (resources/list + runtime/... şablonlarının list callback'i). */
+export interface RuntimeListParams {}
+
+export interface RuntimeListResult {
+  readonly runtimes: readonly RuntimeSummary[];
+}
+
+/** Build listesi (resources/list + artifact/... şablonlarının list callback'i). */
+export interface BuildListParams {}
+
+export interface BuildListEntry {
+  readonly buildId: string;
+  readonly projectId: string;
+  readonly mode: string;
+  readonly backend: 'trusted-local' | 'container';
+  readonly status: 'completed' | 'failed';
+  readonly createdAt: string;
+}
+
+export interface BuildListResult {
+  readonly builds: readonly BuildListEntry[];
 }

@@ -83,6 +83,7 @@ verification:
   conformance:
     sdk_tests: "57/57 pass, 0 fail (ADR-0010)"
     official_client_e2e: "conformance #10 — gerçek E2E (cf68f99)"
+    resources: "9 URI şablonu canlı (2026-08-15): ResourceFacade + SDK kaydı; facade unit (14) + conformance 15–18; byte limit + redaction + RESOURCE_NOT_FOUND + dayanıklı list"
   protocol_version: "2026-07-28"
 
 pins:
@@ -102,4 +103,4 @@ registry:
   persistence: "kalıcı proje registry (P0-4k, cf68f99)"
   host_path_visibility: "agent yüzeyi raw host path almaz (root_path sızıntısı kapatıldı, 2026-08-12)"
 
-updated_at: 2026-08-14
+updated_at: 2026-08-15

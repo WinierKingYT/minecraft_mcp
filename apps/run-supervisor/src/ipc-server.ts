@@ -58,6 +58,13 @@ const KNOWN_METHODS: readonly IpcMethod[] = [
   'permission.detach',
   'permission.check',
   'permission.set_op',
+  'run.list',
+  'run.get',
+  'operation.list',
+  'operation.get',
+  'build.resolve',
+  'build.list',
+  'runtime.list',
 ];
 
 /** Hata nesnesinden IPC hatası üretir; kod yoksa güvenli varsayılana düşer. */

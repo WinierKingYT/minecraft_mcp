@@ -174,6 +174,10 @@ Kaynak: [`../../packages/error-catalog/errors/`](../../packages/error-catalog/er
 
 ## Resources
 
+MCP Server, read-only kaynak yüzeyini official SDK üzerinden sunar
+(`registerResource` + `ResourceTemplate`; `capabilities.resources`). Her
+kaynak tipli IPC metoduyla beslenir (ADR-0003: serbest "çalıştır" yok).
+
 ```text
 minecraft://run/{run_id}/status
 minecraft://run/{run_id}/logs
@@ -186,13 +190,35 @@ minecraft://runtime/{server_instance_id}/capabilities
 minecraft://artifact/{build_artifact_id}
 ```
 
-Kurallar:
+Uygulama: `apps/mcp-server/src/resources/facade.ts` (`ResourceFacade`) +
+`apps/mcp-server/src/sdk/adapter.ts` (kayıt). Run verisi evidence store'dan
+türetilir; `run_id` = scenario run kimliği. `project.inspect`, `runtime.get`,
+`build.resolve` mutlak host path içermez — manifest/artifact yüzeyleri `rootPath`
+alanını hiç üretmez.
 
-- MIME type zorunlu
-- Byte limit zorunlu
-- Cursor/pagination zorunlu
-- Ownership kontrolü zorunlu
-- Redaction zorunlu
-- TTL/retention açık
-- Silinen resource `RESOURCE_NOT_FOUND` döndürür
-- **Raw host path dışarı verilmez**
+Kurallar (uygulandığı hâliyle):
+
+- **MIME type zorunlu**: tüm içerik `application/json`.
+- **Byte limit zorunlu**: içerik başına sert üst sınır `RESOURCE_MAX_BYTES`
+  (512 KiB). İçerik kapakları (log/event sayısı, evidence id sayısı) JSON'u her
+  zaman geçerli tutar; kapaklar aşılırsa JSON bayt sınırına kesilir ve
+  `(byte_limit exceeded, truncated)` işareti eklenir.
+- **Cursor/pagination**: SDK `resources/list` tüm şablon list callback'lerini
+  tek sonuçta toplar; liste düzeyinde cursor yok, sınırsız büyüme içerik
+  byte limitiyle zorlanır.
+- **Ownership kontrolü**: `project.inspect` / `runtime.get` zaten kayıtlı
+  varlıkları döndürür; bilinmeyen kimlik `RESOURCE_NOT_FOUND`'a eşlenir.
+- **Redaction**: veri depoda (evidence store / operation ledger) redacted;
+  `ResourceFacade` okuma anında ikinci katman maskeleme uygular (token, secret,
+  password, authorization, IP, mutlak host path).
+- **TTL/retention açık**: template cache hint `ttlMs: 5000, cacheScope:
+  "private"`. List callback'leri supervisor kapalıyken dayanıklıdır: `WARN`
+  log + boş liste (SDK herhangi bir list callback fırlatırsa `resources/list`'i
+  düşürür). Retention'da düşen run/evidence kimlikleri listelerde görünmez,
+  okumada `RESOURCE_NOT_FOUND` döner.
+- **Silinen resource `RESOURCE_NOT_FOUND` döndürür**: supervisor tarafındaki
+  `RUN_NOT_FOUND` / `OPERATION_NOT_FOUND` / `BUILD_NOT_FOUND` / `PROJECT_NOT_FOUND`
+  kodları SDK `ResourceNotFoundError`'a eşlenir (protocol `-32602`, `data.uri`).
+- **Raw host path dışarı verilmez**: artifact metadata `relativePath` taşır
+  (mutlak yol değil); manifest `rootPath` içermez; ikinci katman maskeleme
+  her ihtimale karşı mutlak path kalıplarını da maskeler.

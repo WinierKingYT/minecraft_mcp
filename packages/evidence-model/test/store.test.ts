@@ -142,6 +142,37 @@ test('yarım yazılmış nesne asla görünmez', async () => {
   assert.equal(content, 'atomik yazma');
 });
 
+test('runId üzerinden kanıtlar ve run listesi çözülür', async () => {
+  const s = await store();
+
+  await s.put({ runId: 'run_abc', scenarioRunId: 'run_abc', kind: 'assertion-result', producer: PRODUCER, content: 'run özeti' });
+  await s.put({ runId: 'run_abc', scenarioRunId: 'run_abc', kind: 'assertion-result', producer: PRODUCER, content: 'adım 1' });
+  await s.put({ runId: 'run_def', scenarioRunId: 'run_def', kind: 'runtime-log', producer: PRODUCER, content: 'log' });
+
+  const runAbc = await s.getManifestsByRunId('run_abc');
+  assert.equal(runAbc.length, 2);
+  assert.ok(runAbc.every((m) => m.runId === 'run_abc'));
+
+  const runIds = await s.listRunIds();
+  assert.deepEqual(runIds, ['run_abc', 'run_def']);
+});
+
+test('bozuk manifest listeleme yüzeyini düşürmez', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'evidence-'));
+  const s = new EvidenceStore(root);
+
+  await s.put({ runId: 'run_abc', scenarioRunId: null, kind: 'event-log', producer: PRODUCER, content: 'sağlam' });
+  await writeFile(join(root, 'manifests', 'ev_bozuk.json'), '{ yarım json');
+
+  const runIds = await s.listRunIds();
+  assert.deepEqual(runIds, ['run_abc']);
+});
+
+test('boş depo boş run listesi döner', async () => {
+  const s = await store();
+  assert.deepEqual(await s.listRunIds(), []);
+});
+
 test('retention süresi geçmiş manifest temizlenir', async () => {
   const root = await mkdtemp(join(tmpdir(), 'evidence-'));
   const s = new EvidenceStore(root, 0);

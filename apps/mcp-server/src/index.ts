@@ -19,6 +19,7 @@ installStdoutGuard();
 
 const { serveStdio } = await import('@modelcontextprotocol/server/stdio');
 const { buildSdkServer } = await import('./sdk/adapter.js');
+const { ResourceFacade } = await import('./resources/facade.js');
 const { ToolFacade } = await import('./tools/facade.js');
 const { createSystemTools, defaultProfilePath } = await import('./tools/system.js');
 const { createProjectTools } = await import('./tools/project.js');
@@ -77,6 +78,7 @@ const connectSupervisor = (): Promise<InstanceType<typeof SupervisorClient> | nu
 };
 
 const facade = new ToolFacade(profile);
+const resources = new ResourceFacade({ supervisor: connectSupervisor });
 for (const [definition, handler] of createSystemTools({
   serverVersion: SERVER_VERSION,
   compatibilityProfileId: COMPATIBILITY_PROFILE_ID,
@@ -136,6 +138,7 @@ const handle = serveStdio(() =>
     name: SERVER_NAME,
     version: SERVER_VERSION,
     facade,
+    resources,
     toolListTtlMs: TOOL_LIST_TTL_MS,
   }),
 );

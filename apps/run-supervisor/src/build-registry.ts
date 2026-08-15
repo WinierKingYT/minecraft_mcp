@@ -12,7 +12,7 @@
  */
 
 import { createHash } from 'node:crypto';
-import { readFile } from 'node:fs/promises';
+import { readFile, stat } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 
 export class BuildRegistryError extends Error {
@@ -52,6 +52,13 @@ export class BuildRegistry {
 
   get size(): number {
     return this.#records.size;
+  }
+
+  /** Tüm build kayıtlarını oluşturma sırasıyla döndürür. */
+  list(): BuildRecord[] {
+    return [...this.#records.values()].sort(
+      (a, b) => a.createdAt.localeCompare(b.createdAt),
+    );
   }
 
   record(record: BuildRecord): void {
@@ -102,6 +109,67 @@ export class BuildRegistry {
       path: record.artifactPath,
       sha256: actual,
       relativePath: record.artifactRelativePath ?? '',
+    };
+  }
+
+  /**
+   * Build metadata'sını mutlak host path İÇERMEDEN döndürür.
+   *
+   * MCP Resources artifact/{build_artifact_id} kaynağının arka verisidir
+   * (docs/contracts/mcp.md: raw host path dışarı verilmez). Artifact varsa
+   * `byteSize` dosyadan okunur; yoksa null kalır. Tam içerik doğrulaması
+   * (sha256 re-read) bu yüzeyde yapılmaz — resources/read'a kadar ertelenir.
+   */
+  async describe(buildId: string): Promise<{
+    readonly buildId: string;
+    readonly projectId: string;
+    readonly mode: string;
+    readonly backend: BuildRecord['backend'];
+    readonly status: BuildRecord['status'];
+    readonly artifact:
+      | {
+          readonly id: string;
+          readonly relativePath: string;
+          readonly sha256: string;
+          readonly byteSize: number;
+        }
+      | null;
+    readonly createdAt: string;
+    readonly durationMs: number;
+  }> {
+    const record = this.#records.get(buildId);
+    if (!record) {
+      throw new BuildRegistryError(
+        'BUILD_NOT_FOUND',
+        `Build kaydı bulunamadı: ${buildId}. Bu oturumda üretilmemiş veya retention sonrası düşmüş olabilir.`,
+      );
+    }
+
+    let artifact: { id: string; relativePath: string; sha256: string; byteSize: number } | null = null;
+    if (record.status === 'completed' && record.artifactPath && record.artifactSha256) {
+      let byteSize = 0;
+      try {
+        byteSize = (await stat(record.artifactPath)).size;
+      } catch {
+        byteSize = 0;
+      }
+      artifact = {
+        id: buildId,
+        relativePath: record.artifactRelativePath ?? '',
+        sha256: record.artifactSha256,
+        byteSize,
+      };
+    }
+
+    return {
+      buildId: record.buildId,
+      projectId: record.projectId,
+      mode: record.mode,
+      backend: record.backend,
+      status: record.status,
+      artifact,
+      createdAt: record.createdAt,
+      durationMs: record.durationMs,
     };
   }
 }

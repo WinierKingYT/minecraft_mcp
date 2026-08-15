@@ -14,7 +14,7 @@
  */
 
 import { createHash, randomBytes } from 'node:crypto';
-import { mkdir, readFile, rename, writeFile, rm } from 'node:fs/promises';
+import { mkdir, readFile, rename, writeFile, rm, readdir } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import type { EvidenceKind, EvidenceManifest, EvidenceProducer, RedactionProfile } from './index.js';
@@ -200,6 +200,49 @@ export class EvidenceStore {
 
     const text = new TextDecoder().decode(bytes.subarray(0, maxBytes));
     return { manifest, text };
+  }
+
+  /**
+   * Manifest dizinini okur. Bozuk/yarım manifest yok sayılır; aksi hâlde tek
+   * bir bozuk dosya tüm listeleme yüzeyini (run kayıtları dahil) düşürürdü.
+   */
+  async listManifests(): Promise<EvidenceManifest[]> {
+    const dir = join(this.#root, 'manifests');
+    if (!existsSync(dir)) {
+      return [];
+    }
+    const names = await readdir(dir);
+    const manifests: EvidenceManifest[] = [];
+    for (const name of names) {
+      if (!name.endsWith('.json')) continue;
+      try {
+        manifests.push(JSON.parse(await readFile(join(dir, name), 'utf8')) as EvidenceManifest);
+      } catch {
+        // Bozuk manifest okuma listesini düşürmez.
+      }
+    }
+    return manifests;
+  }
+
+  /**
+   * Bir run'a ait tüm kanıt manifestlerini döndürür. `runId` = scenario run
+   * kimliğidir (scenario-evidence her kanıtı runId altında yazar). MCP Resources
+   * run/{run_id} okumaları bu yüzey üzerinden çözülür.
+   */
+  async getManifestsByRunId(runId: string): Promise<EvidenceManifest[]> {
+    const all = await this.listManifests();
+    return all.filter((m) => m.runId === runId);
+  }
+
+  /** Depoda kayıtlı tüm run kimliklerini (deterministik sırayla) döndürür. */
+  async listRunIds(): Promise<string[]> {
+    const runIds = new Set<string>();
+    for (const m of await this.listManifests()) {
+      if (m.runId.length > 0) {
+        runIds.add(m.runId);
+      }
+    }
+    return [...runIds].sort();
   }
 
   /** Retention süresi geçmiş manifestleri siler; nesneler paylaşımlı olduğu için korunur. */

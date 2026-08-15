@@ -198,10 +198,12 @@ test('10 supervisor available — mcpdev serve launcher ile canlı supervisor E2
   send(2, 'tools/list', { _meta: meta });
   send(3, 'tools/call', { name: 'system_health', arguments: {}, _meta: meta });
   send(4, 'tools/call', { name: 'project_list', arguments: {}, _meta: meta });
+  send(5, 'resources/list', { _meta: meta });
+  send(6, 'resources/read', { uri: 'minecraft://project/demo/manifest', _meta: meta });
 
   const deadline = Date.now() + 45_000;
   const responses = new Map<number, Record<string, unknown>>();
-  while (responses.size < 4 && Date.now() < deadline) {
+  while (responses.size < 6 && Date.now() < deadline) {
     for (const line of stdout.split('\n')) {
       const trimmed = line.trim();
       if (trimmed === '') continue;
@@ -214,7 +216,7 @@ test('10 supervisor available — mcpdev serve launcher ile canlı supervisor E2
         // Protokol dışı satır yok sayılır (supervisor logları stderr'e gider).
       }
     }
-    if (responses.size < 4) {
+    if (responses.size < 6) {
       await new Promise((res) => setTimeout(res, 200));
     }
   }
@@ -264,6 +266,21 @@ test('10 supervisor available — mcpdev serve launcher ile canlı supervisor E2
     projects?: Array<{ id: string }>;
   };
   assert.ok(persisted.projects?.some((p) => p.id === 'demo'), 'registry dosyası demo kaydını taşımalı');
+
+  // Resources (live supervisor): resources/list launcher kayıtlı projeyi konkre
+  // resource olarak katar; resources/read manifest'i (host path içermeden) okur.
+  const listed = responses.get(5)?.result as { resources?: Array<{ uri: string; name: string; mimeType?: string }> };
+  assert.ok(Array.isArray(listed?.resources), 'resources/list resources dizisi dönmeli');
+  const manifestResource = listed?.resources?.find((r) => r.uri === 'minecraft://project/demo/manifest');
+  assert.ok(manifestResource, 'resources/list demo projesinin manifest resource unu içermeli');
+  assert.equal(manifestResource?.mimeType, 'application/json');
+
+  const readResult = responses.get(6)?.result as { contents?: Array<{ text?: string }> };
+  assert.ok(Array.isArray(readResult?.contents) && readResult.contents.length === 1, 'read tek içerik döndürür');
+  const readText = readResult.contents?.[0]?.text ?? '';
+  assert.match(readText, /"project_id": "demo"/, 'manifest project_id taşımalı');
+  assert.match(readText, /"trust_level": "approved-fixture"/, 'manifest trust seviyesini taşımalı');
+  assert.ok(!/root_path|rootPath/.test(readText), 'manifest raw host path İÇERMEMELİ');
 });
 
 test('11 tools/call success — system_health tam yanıt döndürür', async () => {
@@ -327,4 +344,57 @@ test('14 clean disconnect — client.close() ardından server exit 0 olur', asyn
   await session.client.callTool({ name: 'system_health', arguments: {} });
   await session.close();
   assert.equal(session.child.exitCode, 0, 'temiz kapanışta exit 0 beklenir');
+});
+
+test('15 resources/templates/list — 9 şablon mimeType ile beyan edilir', async () => {
+  const session = await startSession();
+  try {
+    const result = await session.client.listResourceTemplates();
+    const templates = result.resourceTemplates;
+    assert.equal(templates.length, 9, `şablon sayısı 9 olmalı (5 run + operation + project + runtime + artifact)`);
+    const expected = [
+      'minecraft://run/{run_id}/status',
+      'minecraft://run/{run_id}/logs',
+      'minecraft://run/{run_id}/events',
+      'minecraft://run/{run_id}/report',
+      'minecraft://run/{run_id}/evidence',
+      'minecraft://operation/{operation_id}',
+      'minecraft://project/{project_id}/manifest',
+      'minecraft://runtime/{server_instance_id}/capabilities',
+      'minecraft://artifact/{build_artifact_id}',
+    ].sort();
+    const actual = templates.map((t) => t.uriTemplate).sort();
+    assert.deepEqual(actual, expected, 'tüm URI şablonları yayınlanmalı');
+    for (const t of templates) {
+      assert.equal(t.mimeType, 'application/json', `${t.uriTemplate} mimeType taşımalı`);
+    }
+  } finally {
+    await session.close();
+  }
+});
+
+test('16 resources/list — supervisor kapalıyken boş, dayanıklı liste döner', async () => {
+  const session = await startSession();
+  try {
+    const result = await session.client.listResources();
+    assert.ok(Array.isArray(result.resources), 'resources dizisi dönmeli');
+    assert.deepEqual(result.resources, [], 'supervisor yoksa konkre resource bilinemez');
+  } finally {
+    await session.close();
+  }
+});
+
+test('17 resources/read — tanınmayan URI RESOURCE_NOT_FOUND döner', async () => {
+  const session = await startSession();
+  try {
+    await assert.rejects(
+      session.client.readResource({ uri: 'minecraft://unknown/thing' }),
+      (err: unknown) => {
+        const e = err as { code?: number; message?: string };
+        return e.code === -32602 && /resource not found/i.test(e.message ?? '');
+      },
+    );
+  } finally {
+    await session.close();
+  }
 });

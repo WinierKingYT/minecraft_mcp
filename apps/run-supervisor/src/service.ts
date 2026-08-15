@@ -13,6 +13,7 @@ import { rm } from 'node:fs/promises';
 import { parse as parseYaml } from 'yaml';
 import { ActorClient } from './actor-client.js';
 import { ScenarioEngine, type ScenarioEngineOptions } from './scenario-engine.js';
+import type { ScenarioRunEvidence } from './scenario-evidence.js';
 import type {
   BridgeEventsParams,
   BridgeQueryParams,
@@ -67,6 +68,24 @@ import type {
   PermissionSetOpResult,
   ProjectListParams,
   ProjectListResult,
+  RunListParams,
+  RunListResult,
+  RunResourceEntry,
+  RunGetParams,
+  RunGetResult,
+  RunStepLog,
+  RunEvent,
+  OperationListParams,
+  OperationListResult,
+  OperationSummary,
+  OperationGetParams,
+  OperationGetResult,
+  BuildResolveParams,
+  BuildResolveResult,
+  BuildListParams,
+  BuildListResult,
+  RuntimeListParams,
+  RuntimeListResult,
 } from '@mcpdev/contracts';
 import { loadCompatibilityProfile, listCompatibilityProfiles, assertProfileUsable, type CompatibilityProfile } from './compatibility.js';
 import { resolveJavaForProfile, type JavaInstallation } from './java-toolchain.js';
@@ -161,6 +180,21 @@ export class SupervisorService {
   readonly #permissionAdapter: PermissionAdapter;
   readonly #startedAtMs = Date.now();
   readonly #builds = new BuildRegistry();
+  /**
+   * Operation ledger — bridge.query üzerinden geçen işlemlerin kaydı.
+   * MCP Resources operation/{operation_id} kaynağının arka verisi.
+   * Args redaction'dan geçmiş hâliyle kaydedilir.
+   */
+  readonly #operations = new Map<string, {
+    readonly operationId: string;
+    readonly operation: string;
+    readonly runtimeId: string;
+    readonly timestamp: number;
+    readonly status: 'pending' | 'completed' | 'failed';
+    readonly args: Readonly<Record<string, unknown>>;
+    readonly result?: Readonly<Record<string, unknown>>;
+    readonly error?: string;
+  }>();
   #java: JavaInstallation | null = null;
   #registryLoaded: Promise<void> | null = null;
   #projectsLoaded: Promise<void> | null = null;
@@ -314,6 +348,13 @@ export class SupervisorService {
       'permission.detach': (params) => this.permissionDetach(params as PermissionDetachParams),
       'permission.check': (params) => this.permissionCheck(params as PermissionCheckParams),
       'permission.set_op': (params) => this.permissionSetOp(params as PermissionSetOpParams),
+      'run.list': (params) => this.runList(params as RunListParams),
+      'run.get': (params) => this.runGet(params as RunGetParams),
+      'operation.list': (params) => this.operationList(params as OperationListParams),
+      'operation.get': (params) => this.operationGet(params as OperationGetParams),
+      'build.resolve': (params) => this.buildResolve(params as BuildResolveParams),
+      'build.list': (params) => this.buildList(params as BuildListParams),
+      'runtime.list': (params) => this.runtimeList(params as RuntimeListParams),
     };
   }
 
@@ -509,7 +550,29 @@ export class SupervisorService {
     if (!entry.running) {
       throw Object.assign(new Error('Runtime çalışmıyor.'), { code: 'RUNTIME_NOT_RUNNING' });
     }
-    return entry.running.client.query(params.operation, params.arguments ?? {});
+
+    // Operation ledger: her bridge.query bir operation/{operation_id} kaynağıdır.
+    const operationId = `op_${randomBytes(12).toString('hex')}`;
+    const record: { operationId: string; operation: string; runtimeId: string; timestamp: number; status: 'pending' | 'completed' | 'failed'; args: Readonly<Record<string, unknown>>; result?: Readonly<Record<string, unknown>>; error?: string } = {
+      operationId,
+      operation: params.operation,
+      runtimeId: params.runtimeImageId,
+      timestamp: Date.now(),
+      status: 'pending',
+      args: params.arguments ?? {},
+    };
+    this.#operations.set(operationId, record);
+
+    try {
+      const result = await entry.running.client.query(params.operation, params.arguments ?? {});
+      record.status = 'completed';
+      record.result = result;
+      return result;
+    } catch (err) {
+      record.status = 'failed';
+      record.error = err instanceof Error ? err.message : String(err);
+      throw err;
+    }
   }
 
   async bridgeEvents(params: BridgeEventsParams): Promise<{ events: Array<Record<string, unknown>> }> {
@@ -1227,6 +1290,189 @@ export class SupervisorService {
       checksum: manifest.integrity.sha256,
       createdAt: manifest.retention.createdAt,
     };
+  }
+
+  // ─── Resources IPC ────────────────────────────────────────────────────
+
+  async runtimeList(_params: RuntimeListParams): Promise<RuntimeListResult> {
+    await this.#ensureRegistryLoaded();
+    const runtimes = this.#registry.list().map((entry) => this.#registry.summarize(entry));
+    return { runtimes };
+  }
+
+  async runList(_params: RunListParams): Promise<RunListResult> {
+    if (!this.#evidence) {
+      return { runs: [] };
+    }
+    const runIds = await this.#evidence.listRunIds();
+    const runs: RunResourceEntry[] = [];
+    for (const runId of runIds) {
+      const [manifests, main] = await Promise.all([
+        this.#evidence.getManifestsByRunId(runId),
+        this.#findMainRunEvidence(runId),
+      ]);
+      runs.push({
+        runId,
+        status: main?.status ?? 'failed',
+        scenarioId: main?.scenarioId ?? null,
+        projectId: main?.projectId ?? null,
+        startedAt: main?.startedAt ?? null,
+        completedAt: main?.completedAt ?? null,
+        evidenceCount: manifests.length,
+      });
+    }
+    return { runs };
+  }
+
+  async runGet(params: RunGetParams): Promise<RunGetResult> {
+    if (!this.#evidence) {
+      throw this.#runNotFound(params.runId);
+    }
+    const manifests = await this.#evidence.getManifestsByRunId(params.runId);
+    if (manifests.length === 0) {
+      throw this.#runNotFound(params.runId);
+    }
+
+    const main = await this.#findMainRunEvidence(params.runId);
+
+    const logs: RunStepLog[] = [];
+    const events: RunEvent[] = [];
+    for (const phase of main?.phases ?? []) {
+      for (const step of phase.steps) {
+        logs.push({
+          phase: step.phase,
+          stepName: step.stepName,
+          status: step.status,
+          durationMs: step.durationMs,
+          operation: step.bridgeRequest?.operation ?? null,
+          error: step.error ?? null,
+          suggestedAction: step.suggestedAction ?? null,
+        });
+        events.push({
+          kind: 'step',
+          stepName: step.stepName,
+          passed: step.status === 'passed',
+          message: step.error ?? step.stepName,
+          durationMs: step.durationMs,
+        });
+      }
+    }
+    for (const assertion of main?.assertions ?? []) {
+      events.push({
+        kind: 'assertion',
+        stepName: assertion.stepName,
+        passed: assertion.passed,
+        message: assertion.message,
+        ...(assertion.expected !== undefined ? { expected: assertion.expected } : {}),
+        ...(assertion.actual !== undefined ? { actual: assertion.actual } : {}),
+        durationMs: assertion.durationMs,
+      });
+    }
+
+    const evidenceIds = manifests.map((m) => m.evidenceId).sort();
+
+    return {
+      runId: params.runId,
+      scenarioId: main?.scenarioId ?? null,
+      scenarioPath: main?.scenarioPath ?? null,
+      projectId: main?.projectId ?? null,
+      runtimeImageId: main?.runtimeImageId ?? null,
+      bridgeBootId: main?.bridgeBootId ?? null,
+      status: main?.status ?? 'failed',
+      startedAt: main?.startedAt ?? null,
+      completedAt: main?.completedAt ?? null,
+      durationMs: main?.durationMs ?? 0,
+      summary: {
+        totalSteps: main?.totalSteps ?? 0,
+        passed: main?.totalPassed ?? 0,
+        failed: main?.totalFailed ?? 0,
+        skipped: main?.totalSkipped ?? 0,
+        evidenceCount: evidenceIds.length,
+      },
+      logs,
+      events,
+      evidenceIds,
+    };
+  }
+
+  async operationList(_params: OperationListParams): Promise<OperationListResult> {
+    const operations: OperationSummary[] = [...this.#operations.values()]
+      .sort((a, b) => a.timestamp - b.timestamp)
+      .map((o) => ({
+        operationId: o.operationId,
+        operation: o.operation,
+        runtimeId: o.runtimeId,
+        status: o.status,
+        timestamp: o.timestamp,
+      }));
+    return { operations };
+  }
+
+  async operationGet(params: OperationGetParams): Promise<OperationGetResult> {
+    const record = this.#operations.get(params.operationId);
+    if (!record) {
+      throw Object.assign(new Error(`Operation kaydı bulunamadı: ${params.operationId}.`), {
+        code: 'OPERATION_NOT_FOUND',
+      });
+    }
+    return {
+      operationId: record.operationId,
+      operation: record.operation,
+      runtimeId: record.runtimeId,
+      status: record.status,
+      timestamp: record.timestamp,
+      args: record.args,
+      ...(record.result ? { result: record.result } : {}),
+      ...(record.error ? { error: record.error } : {}),
+    };
+  }
+
+  async buildResolve(params: BuildResolveParams): Promise<BuildResolveResult> {
+    return this.#builds.describe(params.buildId);
+  }
+
+  async buildList(_params: BuildListParams): Promise<BuildListResult> {
+    const builds: BuildListResult['builds'] = this.#builds.list().map((b) => ({
+      buildId: b.buildId,
+      projectId: b.projectId,
+      mode: b.mode,
+      backend: b.backend,
+      status: b.status,
+      createdAt: b.createdAt,
+    }));
+    return { builds };
+  }
+
+  #runNotFound(runId: string): Error {
+    return Object.assign(new Error(`Run kaydı bulunamadı: ${runId}.`), { code: 'RUN_NOT_FOUND' });
+  }
+
+  /**
+   * Run'ın ana kaydını (phases taşıyan ScenarioRunEvidence) bulur.
+   * Scenario runner her adım/assertion için ayrı kanıt yazar; run özeti
+   * `phases` dizisiyle ayırt edilir.
+   */
+  async #findMainRunEvidence(runId: string): Promise<ScenarioRunEvidence | null> {
+    if (!this.#evidence) {
+      return null;
+    }
+    const manifests = await this.#evidence.getManifestsByRunId(runId);
+    for (const manifest of manifests) {
+      try {
+        const { text } = await this.#evidence.get(manifest.evidenceId);
+        const parsed = JSON.parse(text) as unknown;
+        if (
+          typeof parsed === 'object' &&
+          parsed !== null &&
+          Array.isArray((parsed as { phases?: unknown }).phases)
+        ) {
+          return parsed as ScenarioRunEvidence;
+        }
+      } catch {
+        // Bozuk/eksik kanıt yok sayılır; sonraki kayıt denenir.
+      }
+    }
+    return null;
   }
 
   /** Supervisor kapanırken çalışan tüm runtime'ları temiz kapatır. */
