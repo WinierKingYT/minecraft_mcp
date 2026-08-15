@@ -110,17 +110,17 @@
 
 V1.1 yedi yatay yeteneği paketler. V1'den ayrı çıkış, V1 sınırına (destructive agent tool, orphan, path escape, secret leak) dokunmadığı sürece yapılabilir.
 
-- [ ] Event subscription — filtrelenen olaylar doğru istemciye ulaşır
-- [ ] Runtime pool — runtime yeniden kullanımı image bazlı ve reuse-count limitli
-- [ ] İkinci Paper profili — multi-profile diverjans `checkSecondProfile` ile teşhis edilir
-- [ ] Performance profiler — metrikler çıkar
-- [ ] Permission — geçici izin, `runtime_discard` ile geri alınır (kalıcı izin yok)
-- [ ] Copy-on-write fixture — immutable
-- [ ] Actor inventory — envanter izlenir
-- [ ] MCP yüzeyi — read-only V1.1 tool'ları developer profilinde; mutation tool'ları debug'da; R4 `pool_evict`/`pool_reset` hiçbir profilde yok
-- [ ] Capability registry yeşil — `validate-registry.mjs` (46 capability, 109 error, 3 profil)
-- [ ] E2E + entegrasyon + unit testleri istikrarlı
-- [ ] Doctor V1.1 check'leri (`compatibility_profiles`, `capability_registry`) geçer
+- [x] Event subscription — filtrelenen olaylar doğru istemciye ulaşır (`event-subscription.test.ts`; `integration-v11.test.ts`)
+- [x] Runtime pool — runtime yeniden kullanımı image bazlı ve reuse-count limitli (`runtime-pool.test.ts`)
+- [x] İkinci Paper profili — multi-profile diverjans `checkSecondProfile` ile teşhis edilir (`apps/cli/src/doctor.ts`; `compatibility-profiles.test.ts` ≥3 profil)
+- [x] Performance profiler — metrikler çıkar (`performance-profiler.test.ts`)
+- [x] Permission — geçici izin, `runtime_discard` ile geri alınır (kalıcı izin yok) (`permission-adapter.test.ts`)
+- [x] Copy-on-write fixture — immutable (`cow-fixture.test.ts`)
+- [x] Actor inventory — envanter izlenir (`actor-inventory.test.ts`)
+- [x] MCP yüzeyi — read-only V1.1 tool'ları developer profilinde; mutation tool'ları debug'da; R4 `pool_evict`/`pool_reset` hiçbir profilde yok (`packages/capability-registry/profiles.yaml`; `v11-tools.test.ts`; `v11-e2e.test.ts`)
+- [x] Capability registry yeşil — `validate-registry.mjs` (51 capability, 113 error, 3 profil)
+- [x] E2E + entegrasyon + unit testleri istikrarlı (`v11-e2e.test.ts` CT-MCP-V11-E2E-001; `integration-v11.test.ts` CT-INT-V11-001)
+- [x] Doctor V1.1 check'leri (`compatibility_profiles`, `capability_registry`) geçer (`doctor.test.ts` — checkSecondProfile, checkCapabilityRegistry)
 
 ## Release artifact'leri
 

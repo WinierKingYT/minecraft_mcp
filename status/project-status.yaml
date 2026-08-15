@@ -68,6 +68,8 @@ milestones:
     status: completed
     completed_at: 2026-08-11
     evidence: "7 yatay yetenek + MCP tool hatları + 46 capability, 109 error kodu, 3 profil"
+    checklist_synced_at: 2026-08-15
+    checklist_note: "release-checklist V1.1 maddeleri 113-123 doğrulandı ve [x] — tüm kanıtlar mevcut: event-subscription, runtime-pool, checkSecondProfile doctor, performance-profiler, permission (runtime_discard), cow-fixture, actor-inventory, MCP yüzeyi (pool_evict/pool_reset hiçbir profilde yok), registry (51/113/3), v11-tools+v11-e2e, doctor V1.1"
 
 verification:
   profiles:
