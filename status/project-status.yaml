@@ -83,7 +83,7 @@ milestones:
       - "M2B conditional sonucu kesin: SPIKE-ACTOR-001 kısmen başarılı — doğrulanan capability'ler V1'de (milestone-acceptance.md E18)"
     release_notes:
       - "Public V1 paketleme/kurulum/release katmanları prototype kanalında tamamlandı (mcpdev install/uninstall, docs/operations/install.md)"
-      - "changelog + migration notes: henüz sürümlenmiş paket yok (kanal: prototype) — ilk sürümlü pakette doldurulacak"
+      - "İlk sürümlü dağıtım: tag v0.1.0-prototype.0 → GitHub Release (tarball'lar + Bridge JAR + SBOM + checksum'lar); CHANGELOG v0.1.0 + migration-notes güncel (kanal: prototype)"
 
 verification:
   profiles:

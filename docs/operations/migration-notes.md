@@ -1,10 +1,10 @@
-# Migration notes (prototype kanalı)
+# Migration notes (v0.1.0 — prototype kanalı)
 
-Bu dosya, prototype kanalındaki arayüz değişikliklerini özetler. İlk sürümlü
-pakete geçişte bu notlar `0.1.0` migration bölümüne taşınır.
+Bu dosya, v0.1.0'ın (kanal `prototype`, tag `v0.1.0-prototype.0`) getirdiği
+arayüz değişikliklerini özetler.
 
-Henüz sürümlenmiş bir paket bulunmadığı için aşağıdakiler *development-time*
-değişiklikleridir; sürümlenmiş bir config veya araç yüzeyinden veri taşıma
+Bu sürüme kadar sürümlenmiş bir paket dağıtılmadı; aşağıdakiler *development-time*
+değişiklikleridir. Önceki sürümlenmiş bir config veya araç yüzeyinden veri taşıma
 zorunluluğu yoktur.
 
 ## Config ve yüzey değişiklikleri

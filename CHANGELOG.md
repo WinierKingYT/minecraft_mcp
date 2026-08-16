@@ -2,11 +2,10 @@
 
 Kanal: `prototype` · Tek durum kaynağı: [`status/project-status.yaml`](status/project-status.yaml).
 
-Henüz sürümlenmiş bir paket dağıtılmadığı için sürüm numarası yerine milestone
-bazında değişiklikler listelenir. İlk sürümlü paket (ör. `0.1.0`) üretildiğinde
-bu dosya karşılık gelen sürüm başlığına taşınır.
+## v0.1.0 — 2026-08-16
 
-## 0.1.0-prototype — 2026-08-16
+İlk sürümlü dağıtım (GitHub Release tarball'ları — tag `v0.1.0-prototype.0`).
+Paket sürümü `0.1.0-prototype.0`, kanal `prototype`.
 
 ### Eklendi
 
