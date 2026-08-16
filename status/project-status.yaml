@@ -32,16 +32,18 @@ milestones:
     completed_at: 2026-08-16
     evidence: "7/7 acceptance kapalı (m2b-actor-scenarios.test.ts — fixture doğrulama, tam yaşam döngüsü, blok kırma, native permission, 100 actor, crash cleanup); DSL-10 engine düzeltmesi (cleanup her terminal durumda koşar, scenario-engine.ts #runCleanup); live Paper koşumu docs/operations/m2b-demo.md"
   M3:
-    status: in_progress
+    status: completed
+    completed_at: 2026-08-16
     evidence:
       - "CI matrix: typescript (ubuntu+windows), security (ubuntu+windows), java, secrets, sbom, checksum, doctor job'ları"
       - "Doctor: 10 health check, pin'li sürüm kontrolleri (2026-08-12); CI doctor job'ı setup-java ile pinned Java 25'i doğrular"
       - "SBOM: generate-sbom.mjs + CI job (>=50 component gate)"
       - "dependency-scan: scripts/dependency-scan.mjs + CI job (OSV) — pnpm+gradle lockfile purl'ları; HIGH+ bulgular allowlist'te değilse gate kırmızı; security/dependency-scan.allowlist.yaml (2 build-time-only HIGH, gerekçeli)"
       - "Malicious container testi: malicious-container.test.ts (ST-MALICIOUS-CONTAINER-001/002/003) — hostile-probe fixture build edilebilirliği + izolasyon argümanları her platformda; canlı probe (env/socket/network/ro/disk/pid) Docker varsa; security job'da"
+      - "Kapanış run'ı 31936226316: 13/13 job success (M2B fix dahil) — son CI durumu green"
     security_regression:
-      last_verified_commit: 00aa30d   # 2026-08-13 — 12/12 job yeşil (paper-smoke dahil); öncesi dcfc35e
-      latest_main_run: green          # run 31741636210 — tüm kapılar success
+      last_verified_commit: 45d2296   # 2026-08-16 — 13/13 job yeşil (M2B + flaky-test fix); öncesi 00aa30d
+      latest_main_run: green          # run 31936226316 — tüm kapılar success
     open_items: []
   M3-paper-smoke:
     status: completed

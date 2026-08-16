@@ -96,11 +96,15 @@ Actor lifecycle · login · command · native permission · block break · messa
 
 > M2B koşulu sağlandı: ADR-0006 ile uyumlu tasarım spike'la doğrulandı. Başlangıç zamanlaması M2A çıktısına bağlıdır.
 
+> **Durum (M2B tamamlandı — 2026-08-16):** Actor scenario'ları kapalı — `m2b-actor-scenarios.test.ts` (6 test): fixture doğrulama (`scenarios/actor/*.yaml` + capability registry), tam yaşam döngüsü (create→get_state→look→move→chat→disconnect_all), blok kırma (BlockBreakEvent → block.break), native permission (yetkisiz komut `dispatch_ok=false`), 100 actor lifecycle, actor crash cleanup (ACTOR_CRASHED'da bile cleanup koşar). DSL-10 engine düzeltmesi: cleanup her terminal durumda koşar (`#runCleanup`); cleanup adımı ana status'ü gizlemez. Live Paper koşumu `docs/operations/m2b-demo.md` (`runM2ADemo` + `scenarioFiles`). Kapanış kanıtları: `docs/delivery/milestone-acceptance.md` (7/7).
+
 ## M3 — Security Hardening and Beta
 
 **Tahmin:** 15–25 iş günü → **12–20** (container kontrolleri ve hostile-probe kanıtları spike'larda üretildi; CI matrix ve üç gerçek proje denemesi ana yük olarak kalıyor)
 
 Full security regression · malicious fixtures · quotas · CI matrix · lifecycle stress · installer · doctor · SBOM · üç gerçek proje · dokümantasyon.
+
+> **Durum (M3 tamamlandı — 2026-08-16):** Security hardening + beta kapıları yeşil. CI matrix 13 job (typescript/security ubuntu+windows, secrets, sbom, checksum, doctor, paper-smoke, e2e-minimal) — son run `31936226316` success. Doctor 10 health check (pin'li sürümler), SBOM ≥50 component gate, dependency-scan (OSV, HIGH+ allowlist kuralı), malicious container testleri (hermetic her platformda + canlı Docker probe), M3-paper-smoke (gerçek Paper 5 lifecycle), M3-e2e-minimal (official MCP Client zinciri). Kanıtlar `status/project-status.yaml` M3 bloğunda.
 
 ## V1 — Stable Local Release
 

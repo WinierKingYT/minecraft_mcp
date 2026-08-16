@@ -68,6 +68,8 @@ M2B kapanış detayı: `docs/operations/m2b-demo.md` (canlı Paper koşumu), can
 - [x] Üç gerçek proje (`fixtures/projects/`, `three-project-validation.test.ts` — 39 tests)
 - [x] Dependency vulnerability scan (`dependency-scan` CI job — `scripts/dependency-scan.mjs`, OSV; pnpm+gradle lockfile purl'ları; HIGH+ bulgular allowlist'te değilse gate kırmızı)
 
+M3 kapanışı: CI 13/13 job success (run `31936226316`, 2026-08-16 — M2B fix dahil); `security_regression.last_verified_commit: 45d2296`.
+
 ## V1.1
 
 V1.1, V1 sınırına dokunmadan yedi yatay yeteneği paketler: event-driven gözlem, runtime yeniden kullanımı, multi-profile diverjans, performans görünürlüğü, geçici izin yönetimi, immutable fixture'lar ve actor envanteri.
