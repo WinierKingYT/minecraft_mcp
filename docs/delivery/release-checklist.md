@@ -126,6 +126,14 @@ V1.1 yedi yatay yeteneği paketler. V1'den ayrı çıkış, V1 sınırına (dest
 
 MCP package · Supervisor package · Bridge JAR · Actor package (M2B açıksa) · compatibility profile · capability registry · JSON schemas · error catalog · SBOM · checksums · changelog · migration notes · known limitations · install/uninstall · incident response.
 
+> **GitHub Release dağıtım notu (v0.1.0-prototype.0):** Tarball'lar GitHub Release
+> üzerinden arşiv olarak dağıtılır (`.github/workflows/release.yml`, tag `v*`).
+> Monorepo `@mcpdev/*` workspace paketleri npm registry'ye yayınlanmadığı için bu
+> paketler **standalone `npm install <tarball>` ile kurulamaz** — paket tarball'ları
+> arşiv/denetim kanıtıdır; kurulum yolu repo kökünden `mcpdev install`'dır
+> (`docs/operations/install.md`). Registry yayını gerekirse `private: true`
+> kaldırılarak ayrı bir sürümle eklenir.
+
 ## Sürümlenen bileşenler
 
 ```text
