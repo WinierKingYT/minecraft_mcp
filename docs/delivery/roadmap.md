@@ -114,6 +114,8 @@ Koşullar: stable MCP 2.x SDK **veya** açık release-blocker çözümü · P0/P
 
 > SDK durumu (SPIKE-MCP-SDK-2026-001): stable 2.0.0 mevcut fakat `2026-07-28` revizyonunu desteklemiyor — kendi transport korunuyor; SDK geçişi gecikme, V1'i bloke eden bir madde değil. `mcp.sdk_prototype.linked: false` kalır; SDK revizyon desteği eklediğinde `true` olur.
 
+> **Durum (V1 tamamlandı — 2026-08-16):** Stable Local Release kapanışı — `release-checklist.md` tüm maddeler `[x]` ve kanıt zinciri yeşil (CI 13/13, run `31936226316`). V1 çıkış koşulları karşılandı: P0/P1 closed, no destructive agent tools, no orphan (0/100), no path escape, no secret leak, deterministik scenario'lar, install/uninstall, incident response, üç gerçek proje. M2B conditional sonucu kesin (SPIKE-ACTOR-001 kısmen başarılı; doğrulanan capability'ler V1'de). Kanal `prototype` — ilk sürümlü pakette changelog + migration notes doldurulacak.
+
 ## Nihai uygulama sırası
 
 ```text

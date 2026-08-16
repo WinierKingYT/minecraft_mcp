@@ -2,8 +2,8 @@
 
 Yapay zekâ kodlama ajanlarının Paper eklentilerini **gerçek Paper üzerinde derleyip çalıştırmasını**, sınırlandırılmış test eylemleriyle doğrulamasını ve **kanıtlanabilir** başarısızlık raporu üretmesini sağlayan yerel geliştirme altyapısı.
 
-> **Durum:** `prototype` — çekirdek (M0–M2A) tamamlandı; ürünleştirme aşamasında.
-> Gerçek Paper üzerinde build/runtime/scenario/evidence zinciri çalışıyor (M2A kapandı),
+> **Durum:** `prototype` — çekirdek (M0–M3) ve V1.1 yatay yetenekleri tamamlandı; V1 release kapanışı yapıldı (2026-08-16).
+> Gerçek Paper üzerinde build/runtime/scenario/evidence zinciri çalışıyor (M2A/M2B kapandı),
 > MCP protokol yüzeyi resmî `@modelcontextprotocol/*` 2.0.0 SDK'sı üzerindedir (ADR-0010,
 > conformance 57/57, protokol `2026-07-28`). Public V1, paketleme/kurulum/release
 > katmanları tamamlanana kadar `prototype` kanalında kalır.

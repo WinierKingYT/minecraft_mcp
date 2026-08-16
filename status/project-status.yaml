@@ -73,6 +73,17 @@ milestones:
     evidence: "7 yatay yetenek + MCP tool hatları + 46 capability, 109 error kodu, 3 profil"
     checklist_synced_at: 2026-08-15
     checklist_note: "release-checklist V1.1 maddeleri 113-123 doğrulandı ve [x] — tüm kanıtlar mevcut: event-subscription, runtime-pool, checkSecondProfile doctor, performance-profiler, permission (runtime_discard), cow-fixture, actor-inventory, MCP yüzeyi (pool_evict/pool_reset hiçbir profilde yok), registry (51/113/3), v11-tools+v11-e2e, doctor V1.1"
+  V1:
+    status: completed
+    completed_at: 2026-08-16
+    evidence:
+      - "release-checklist.md tüm maddeler [x] — Ürün/JTBD, Compatibility (3 verified profil), MCP (stdio, conformance 57/57, resmî SDK 2.0.0), Supervisor, Execution (container backend + güvenlik), Gradle, Paper, Scenario, Security (path escape/secret leak/orphan yok), Release (install/uninstall, doctor, üç gerçek proje)"
+      - "V1 çıkış koşulları karşılandı: P0/P1 closed, no destructive agent tools (allow_agent_destructive_tools: false sabit), no orphan (0/100 lifecycle), no path escape, no secret leak, deterministik scenario'lar"
+      - "CI 13/13 job success (run 31936226316) — M3 kapanışıyla birlikte V1 kanıt zinciri yeşil"
+      - "M2B conditional sonucu kesin: SPIKE-ACTOR-001 kısmen başarılı — doğrulanan capability'ler V1'de (milestone-acceptance.md E18)"
+    release_notes:
+      - "Public V1 paketleme/kurulum/release katmanları prototype kanalında tamamlandı (mcpdev install/uninstall, docs/operations/install.md)"
+      - "changelog + migration notes: henüz sürümlenmiş paket yok (kanal: prototype) — ilk sürümlü pakette doldurulacak"
 
 verification:
   profiles:
