@@ -132,38 +132,38 @@ async function run() {
     note: `maven-metadata içinde 26.2.build.${profile.paper.build}-stable`,
   });
 
-  // Maven Wrapper koordinatları — ST-MAVEN-001..006.
+  // Maven Wrapper koordinatları — ST-MAVEN-001..006 (ADR-0012 modeli).
   const maven = profile.maven;
   if (maven) {
-    const distUrl = maven.distribution_url;
+    const distUrl = maven.distribution?.url;
     results.push({
-      field: 'maven.wrapper_version',
-      pass: distUrl?.includes(`apache-maven-${maven.wrapper_version}-bin.zip`) === true,
-      note: `distribution_url ${maven.wrapper_version} pin taşıyor`,
+      field: 'maven.version',
+      pass: distUrl?.includes(`apache-maven-${maven.version}-bin.zip`) === true,
+      note: `distribution_url ${maven.version} pin taşıyor`,
     });
     results.push({
-      field: 'maven.distribution_sha256',
-      pass: maven.distribution_sha256 != null && /^[0-9a-f]{64}$/i.test(maven.distribution_sha256),
-      note: `profilde ${maven.distribution_sha256?.slice(0, 12)}...`,
+      field: 'maven.distribution.sha256',
+      pass: maven.distribution?.sha256 != null && /^[0-9a-f]{64}$/i.test(maven.distribution.sha256),
+      note: `profilde ${maven.distribution?.sha256?.slice(0, 12)}...`,
     });
     results.push({
-      field: 'maven.wrapper_jar_sha256',
-      pass: maven.wrapper_jar_sha256 != null && /^[0-9a-f]{64}$/i.test(maven.wrapper_jar_sha256),
-      note: `profilde ${maven.wrapper_jar_sha256?.slice(0, 12)}...`,
+      field: 'maven.wrapper.jar_sha256',
+      pass: maven.wrapper?.jar_sha256 != null && /^[0-9a-f]{64}$/i.test(maven.wrapper.jar_sha256),
+      note: `profilde ${maven.wrapper?.jar_sha256?.slice(0, 12)}...`,
     });
 
     if (VERIFY_JAR && distUrl) {
-      const tmp = join(process.env.TEMP ?? '/tmp', `apache-maven-${maven.wrapper_version}-bin.zip`);
+      const tmp = join(process.env.TEMP ?? '/tmp', `apache-maven-${maven.version}-bin.zip`);
       process.stderr.write(`      Maven dağıtımı indiriliyor: ${distUrl}\n`);
       try {
         const actual = await downloadToHash(distUrl, tmp);
         results.push({
-          field: 'maven.distribution_sha256',
-          pass: actual === (maven.distribution_sha256 ?? '').toLowerCase(),
+          field: 'maven.distribution.sha256',
+          pass: actual === (maven.distribution?.sha256 ?? '').toLowerCase(),
           note: `indirilen sha256=${actual.slice(0, 12)}...`,
         });
       } catch (err) {
-        results.push({ field: 'maven.distribution_sha256', pass: false, note: err.message });
+        results.push({ field: 'maven.distribution.sha256', pass: false, note: err.message });
       }
     }
   }

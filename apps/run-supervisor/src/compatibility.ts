@@ -36,11 +36,19 @@ export interface CompatibilityProfile {
     readonly wrapper_jar_sha256?: string;
   };
   readonly maven?: {
-    readonly wrapper_version: string;
-    readonly distribution_sha256: string | null;
-    readonly wrapper_jar_sha256?: string;
-    readonly distribution_url?: string;
-    readonly distribution_url_allowlist?: readonly string[];
+    /** Apache Maven dağıtım sürümü (build runtime). */
+    readonly version: string;
+    readonly distribution: {
+      readonly url?: string;
+      /** bin.zip SHA-256; dağıtım doğrulaması bu değere karşı yapılır. */
+      readonly sha256: string | null;
+      readonly host_allowlist?: readonly string[];
+    };
+    /** Maven Wrapper aracı (launcher) — dağıtım sürümünden ayrı sürüm hattı. */
+    readonly wrapper: {
+      readonly version: string;
+      readonly jar_sha256?: string;
+    };
   };
   readonly mcp: { readonly protocol_version: string; readonly transport: string };
   readonly protocols: Readonly<Record<string, number>>;

@@ -11,6 +11,9 @@
 | [0007](0007-security-claims.md) | Güvenlik iddiaları ve dürüstlük kuralları | accepted |
 | [0008](0008-stateless-protocol-and-stable-sdk.md) | Stateless protokol yüzeyi ve stable SDK durumu | accepted |
 | [0009](0009-node-security-pin.md) | Node pini güvenlik sürümüne taşındı | accepted |
+| [0010](0010-mcp-sdk-2-adoption.md) | MCP SDK 2.0.0'a geçiş ve official-client conformance kapanışı | accepted |
+| [0011](0011-maven-wrapper-profile.md) | Maven Wrapper profil bloğu ve build-system seçimi | superseded by ADR-0012 |
+| [0012](0012-maven-profile-model-refactor.md) | Maven profil bloğu: dağıtım ve wrapper sürümlerinin ayrılması | accepted |
 
 ## Şablon
 

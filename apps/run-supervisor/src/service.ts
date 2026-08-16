@@ -773,7 +773,7 @@ export class SupervisorService {
       javaVersion: profile.java.runtime_major,
       nodeVersion: profile.node.version,
       gradleVersion: profile.gradle.wrapper_version,
-      mavenVersion: profile.maven?.wrapper_version ?? null,
+      mavenVersion: profile.maven?.version ?? null,
     };
   }
 
@@ -880,10 +880,10 @@ export class SupervisorService {
 
     if (buildSystem === 'maven') {
       const validation = await validateMavenProject(project.canonicalRoot, {
-        distributionHostAllowlist: this.#profile.maven?.distribution_url_allowlist ?? ['repo.maven.apache.org'],
-        expectedVersion: this.#profile.maven?.wrapper_version ?? '',
-        expectedDistributionSha256: this.#profile.maven?.distribution_sha256 ?? null,
-        knownWrapperJarSha256: this.#profile.maven?.wrapper_jar_sha256 ? [this.#profile.maven.wrapper_jar_sha256] : [],
+        distributionHostAllowlist: this.#profile.maven?.distribution.host_allowlist ?? ['repo.maven.apache.org'],
+        expectedVersion: this.#profile.maven?.version ?? '',
+        expectedDistributionSha256: this.#profile.maven?.distribution.sha256 ?? null,
+        knownWrapperJarSha256: this.#profile.maven?.wrapper.jar_sha256 ? [this.#profile.maven.wrapper.jar_sha256] : [],
       });
 
       return {

@@ -1,6 +1,6 @@
 # ADR-0011 — Maven Wrapper profil bloğu ve project_validate build-system seçimi
 
-**Durum:** accepted
+**Durum:** superseded by [ADR-0012](0012-maven-profile-model-refactor.md)
 **Tarih:** 2026-08-16
 **Supersedes:** yok — [ADR-0007](0007-security-claims.md) kapsamını genişletir
 **Bağlam:** [`../delivery/beyond-v1.md`](../delivery/beyond-v1.md)
