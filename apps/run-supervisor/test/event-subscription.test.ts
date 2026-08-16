@@ -51,6 +51,15 @@ function createMockFetcher(events: Array<Record<string, unknown>> = []) {
   };
 }
 
+/**
+ * Cursor-aware fetcher: only returns events newer than `after`, so repeated
+ * polls never duplicate buffered events (keeps timing-based tests deterministic).
+ */
+function cursorAwareFetch(events: Array<Record<string, unknown>>) {
+  return async (_bootId: string, after: number): Promise<Array<Record<string, unknown>>> =>
+    events.filter((e) => (e['sequence'] as number) > after);
+}
+
 function createOptions(overrides: Partial<EventSubscriptionManagerOptions> = {}): EventSubscriptionManagerOptions {
   const mockFetcher = createMockFetcher();
   return {
@@ -131,7 +140,7 @@ describe('EventSubscriptionManager: event filtering', () => {
 
     manager = new EventSubscriptionManager(
       createOptions({
-        fetchEvents: async () => events,
+        fetchEvents: cursorAwareFetch(events),
       }),
     );
 
@@ -159,7 +168,7 @@ describe('EventSubscriptionManager: event filtering', () => {
 
     manager = new EventSubscriptionManager(
       createOptions({
-        fetchEvents: async () => events,
+        fetchEvents: cursorAwareFetch(events),
       }),
     );
 
@@ -187,7 +196,7 @@ describe('EventSubscriptionManager: event filtering', () => {
 
     manager = new EventSubscriptionManager(
       createOptions({
-        fetchEvents: async () => events,
+        fetchEvents: cursorAwareFetch(events),
       }),
     );
 
@@ -219,7 +228,7 @@ describe('EventSubscriptionManager: buffer limits', () => {
 
     manager = new EventSubscriptionManager(
       createOptions({
-        fetchEvents: async () => events,
+        fetchEvents: cursorAwareFetch(events),
         maxEventsPerSubscription: 10,
       }),
     );
@@ -242,7 +251,7 @@ describe('EventSubscriptionManager: buffer limits', () => {
 
     manager = new EventSubscriptionManager(
       createOptions({
-        fetchEvents: async () => events,
+        fetchEvents: cursorAwareFetch(events),
       }),
     );
 
@@ -351,7 +360,7 @@ describe('EventSubscriptionManager: event delivery', () => {
 
     manager = new EventSubscriptionManager(
       createOptions({
-        fetchEvents: async () => events,
+        fetchEvents: cursorAwareFetch(events),
       }),
     );
 
