@@ -55,6 +55,11 @@ export interface M2ADemoOptions {
   readonly pluginScenario?: boolean;
   /** Config error scenario'larını da koş (scenarios/configuration/*, DSL-12). */
   readonly errorScenarios?: boolean;
+  /**
+   * Verilirse varsayılan world/smoke scenario listesi yerine bu dosyalar koşulur
+   * (repo köküne göre göreli). M2B için: scenarios/actor/*.yaml.
+   */
+  readonly scenarioFiles?: readonly string[];
   /** Verilirse scenario raporları (JSON/Markdown/JUnit) bu dizine yazılır. */
   readonly reportDir?: string;
   readonly startupTimeoutMs?: number;
@@ -176,11 +181,13 @@ export async function runM2ADemo(options: M2ADemoOptions): Promise<M2ADemoEviden
       log(`build : ${buildId}, sha256=${artifactSha256}`);
     }
 
-    const scenarioPaths: string[] = [
-      resolve(options.repoRoot, 'scenarios', 'world', 'read-block.yaml'),
-      resolve(options.repoRoot, 'scenarios', 'world', 'chunk-ticket.yaml'),
-    ];
-    if (buildId) {
+    const scenarioPaths: string[] = options.scenarioFiles
+      ? options.scenarioFiles.map((f) => resolve(options.repoRoot, f))
+      : [
+          resolve(options.repoRoot, 'scenarios', 'world', 'read-block.yaml'),
+          resolve(options.repoRoot, 'scenarios', 'world', 'chunk-ticket.yaml'),
+        ];
+    if (options.scenarioFiles === undefined && buildId) {
       scenarioPaths.push(resolve(options.repoRoot, 'scenarios', 'smoke', 'plugin-enables.yaml'));
     }
     if (options.errorScenarios === true) {

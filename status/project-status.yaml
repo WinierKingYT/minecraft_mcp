@@ -28,8 +28,9 @@ milestones:
     evidence: "6 scenario canlı, 8/8 assertion, evidence provenance (11 kanıt)"
     notes: "20x determinism koşusu kapsam dışı (roadmap)"
   M2B:
-    status: pending
-    condition: "SPIKE-ACTOR-001 başarılı — ✅ closed, kısmen başarılı (E18); kalan capability'ler V1.1'de derinleşiyor"
+    status: completed
+    completed_at: 2026-08-16
+    evidence: "7/7 acceptance kapalı (m2b-actor-scenarios.test.ts — fixture doğrulama, tam yaşam döngüsü, blok kırma, native permission, 100 actor, crash cleanup); DSL-10 engine düzeltmesi (cleanup her terminal durumda koşar, scenario-engine.ts #runCleanup); live Paper koşumu docs/operations/m2b-demo.md"
   M3:
     status: in_progress
     evidence:
@@ -106,4 +107,4 @@ registry:
   persistence: "kalıcı proje registry (P0-4k, cf68f99)"
   host_path_visibility: "agent yüzeyi raw host path almaz (root_path sızıntısı kapatıldı, 2026-08-12)"
 
-updated_at: 2026-08-15
+updated_at: 2026-08-16

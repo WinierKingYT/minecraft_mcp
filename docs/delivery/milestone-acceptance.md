@@ -46,13 +46,15 @@ Bu kriterler [`roadmap.md`](roadmap.md) ve [`release-checklist.md`](release-chec
 
 ## M2B
 
-- [ ] Actor 100 lifecycle
-- [ ] Join/quit
-- [ ] Command
-- [ ] Permission
-- [ ] Block interaction
-- [ ] Message capture
-- [ ] Actor crash cleanup
+- [x] Actor 100 lifecycle (`m2b-actor-scenarios.test.ts` — 100 `test_actor.create`, hepsi connected, `disconnect_all` ile hepsi bağlantısız)
+- [x] Join/quit (`m2b-actor-scenarios.test.ts` — tam yaşam döngüsü: create → get_state → look → move → chat → disconnect_all → `connected: false`)
+- [x] Command (`m2b-actor-scenarios.test.ts` — `plugin.command` actor bağlamında dispatch edilir)
+- [x] Permission (`m2b-actor-scenarios.test.ts` — yetkisiz gamemode `dispatch_ok=false`, player.command event'i; ADR-0006)
+- [x] Block interaction (`m2b-actor-scenarios.test.ts` — `player.break_block` blok air olur, `block.break` event'i)
+- [x] Message capture (`scenario-engine.test.ts` — `assert.player_message` ring buffer gerçek capture; `m2b-actor-scenarios.test.ts` — chat + player.message event'i)
+- [x] Actor crash cleanup (`m2b-actor-scenarios.test.ts` — DSL-10: `when` fazında ACTOR_CRASHED olsa da `test_actor.disconnect_all` cleanup'i koşar; engine düzeltmesi `scenario-engine.ts` `#runCleanup`)
+
+M2B kapanış detayı: `docs/operations/m2b-demo.md` (canlı Paper koşumu), canlı doğrulama `m2a-demo` kalıbıyla.
 
 ## M3
 

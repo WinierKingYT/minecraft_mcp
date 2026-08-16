@@ -166,6 +166,7 @@ export class ScenarioEngine {
     }
 
     let scenario: ScenarioDefinition | undefined;
+    let timeoutMs = DEFAULT_TIMEOUT_MS;
 
     try {
       // 1. Parse scenario
@@ -175,7 +176,7 @@ export class ScenarioEngine {
       }
 
       scenario = validation.scenario;
-      const timeoutMs = parseDuration(scenario.timeout) || DEFAULT_TIMEOUT_MS;
+      timeoutMs = parseDuration(scenario.timeout) || DEFAULT_TIMEOUT_MS;
 
       // Evidence collector'ı güncelle
       if (this.#evidenceCollector) {
@@ -213,6 +214,7 @@ export class ScenarioEngine {
         this.#evidenceCollector?.addStepResult(result);
         if (result.status === 'failed' || result.status === 'error') {
           this.#evidenceCollector?.completePhase('given');
+          await this.#runCleanup(scenario, timeoutMs, runId);
           return await this.#finalize(runId, startTime, 'failed', scenario);
         }
       }
@@ -228,6 +230,7 @@ export class ScenarioEngine {
         this.#evidenceCollector?.addStepResult(result);
         if (result.status === 'failed' || result.status === 'error') {
           this.#evidenceCollector?.completePhase('when');
+          await this.#runCleanup(scenario, timeoutMs, runId);
           return await this.#finalize(runId, startTime, 'failed', scenario);
         }
       }
@@ -257,20 +260,11 @@ export class ScenarioEngine {
         );
       }
       this.#evidenceCollector?.completePhase('then');
-      // 8. cleanup adımlarını çalıştır
-      if (scenario.cleanup.length > 0) {
-        this.#log('INFO', 'scenario.phase_started', { phase: 'cleanup', run_id: runId });
-        this.#evidenceCollector?.startPhase('cleanup');
-        for (let i = 0; i < scenario.cleanup.length; i++) {
-          const step = scenario.cleanup[i]!;
-          const result = await this.#executeStep(step, 'cleanup', i, timeoutMs);
-          this.#steps.push(result);
-          this.#evidenceCollector?.addStepResult(result);
-        }
-        this.#evidenceCollector?.completePhase('cleanup');
-      }
+      // 8. cleanup adımlarını çalıştır (DSL-10: her terminal durumda denenir)
+      await this.#runCleanup(scenario, timeoutMs, runId);
 
-      const failedCount = this.#steps.filter((s) => s.status === 'failed' || s.status === 'error').length;
+      const failedCount = this.#steps
+        .filter((s) => s.phase !== 'cleanup' && (s.status === 'failed' || s.status === 'error')).length;
       const status = failedCount > 0 ? 'failed' : 'completed';
 
       return await this.#finalize(runId, startTime, status as 'completed' | 'failed', scenario);
@@ -284,8 +278,35 @@ export class ScenarioEngine {
         ...(this.#runErrorCode ? { error_code: this.#runErrorCode } : {}),
         message: err instanceof Error ? err.message : String(err),
       });
+      if (scenario) {
+        // DSL-10: engine hatasında da cleanup denenir (runtime varsa).
+        await this.#runCleanup(scenario, timeoutMs, runId);
+      }
       return this.#finalize(runId, startTime, 'failed', scenario);
     }
+  }
+
+  /**
+   * Cleanup adımlarını çalıştırır (DSL-10).
+   *
+   * Cleanup her terminal durumda denenir: given/when hatası, assertion
+   * hatası veya engine hatası olsun. Cleanup adımının kendisi başarısız
+   * olursa bu, ana scenario sonucunu gizlemez (KPI-12) — cleanup adımları
+   * sonuç listesine kendi phase'leriyle eklenir; ana durum, cleanup dışı
+   * adımlardan hesaplanır.
+   */
+  async #runCleanup(scenario: ScenarioDefinition, timeoutMs: number, runId: string): Promise<void> {
+    if (scenario.cleanup.length === 0) return;
+
+    this.#log('INFO', 'scenario.phase_started', { phase: 'cleanup', run_id: runId });
+    this.#evidenceCollector?.startPhase('cleanup');
+    for (let i = 0; i < scenario.cleanup.length; i++) {
+      const step = scenario.cleanup[i]!;
+      const result = await this.#executeStep(step, 'cleanup', i, timeoutMs);
+      this.#steps.push(result);
+      this.#evidenceCollector?.addStepResult(result);
+    }
+    this.#evidenceCollector?.completePhase('cleanup');
   }
 
   /**
