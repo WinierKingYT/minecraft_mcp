@@ -93,6 +93,7 @@ export function createProfileTools(info: ProfileToolsInfo): Array<[ToolDefinitio
           java_version: result.javaVersion,
           node_version: result.nodeVersion,
           gradle_version: result.gradleVersion,
+          maven_version: result.mavenVersion,
         });
       } catch (err) {
         const error = err as { code?: string; message?: string };

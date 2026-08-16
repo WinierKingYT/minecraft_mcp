@@ -43,6 +43,14 @@ async function fetchText(url) {
   return res.text();
 }
 
+async function downloadToHash(url, tmp) {
+  const { writeFile } = await import('node:fs/promises');
+  const res = await fetch(url, { headers: { 'User-Agent': UA } });
+  if (!res.ok) throw new Error(`indirme -> HTTP ${res.status}: ${url}`);
+  await writeFile(tmp, Buffer.from(await res.arrayBuffer()));
+  return sha256OfFile(tmp);
+}
+
 async function sha256OfFile(filePath) {
   const { createReadStream } = await import('node:fs');
   const hash = createHash('sha256');
@@ -123,6 +131,42 @@ async function run() {
     pass: mavenMeta.includes(`26.2.build.${profile.paper.build}-stable`),
     note: `maven-metadata içinde 26.2.build.${profile.paper.build}-stable`,
   });
+
+  // Maven Wrapper koordinatları — ST-MAVEN-001..006.
+  const maven = profile.maven;
+  if (maven) {
+    const distUrl = maven.distribution_url;
+    results.push({
+      field: 'maven.wrapper_version',
+      pass: distUrl?.includes(`apache-maven-${maven.wrapper_version}-bin.zip`) === true,
+      note: `distribution_url ${maven.wrapper_version} pin taşıyor`,
+    });
+    results.push({
+      field: 'maven.distribution_sha256',
+      pass: maven.distribution_sha256 != null && /^[0-9a-f]{64}$/i.test(maven.distribution_sha256),
+      note: `profilde ${maven.distribution_sha256?.slice(0, 12)}...`,
+    });
+    results.push({
+      field: 'maven.wrapper_jar_sha256',
+      pass: maven.wrapper_jar_sha256 != null && /^[0-9a-f]{64}$/i.test(maven.wrapper_jar_sha256),
+      note: `profilde ${maven.wrapper_jar_sha256?.slice(0, 12)}...`,
+    });
+
+    if (VERIFY_JAR && distUrl) {
+      const tmp = join(process.env.TEMP ?? '/tmp', `apache-maven-${maven.wrapper_version}-bin.zip`);
+      process.stderr.write(`      Maven dağıtımı indiriliyor: ${distUrl}\n`);
+      try {
+        const actual = await downloadToHash(distUrl, tmp);
+        results.push({
+          field: 'maven.distribution_sha256',
+          pass: actual === (maven.distribution_sha256 ?? '').toLowerCase(),
+          note: `indirilen sha256=${actual.slice(0, 12)}...`,
+        });
+      } catch (err) {
+        results.push({ field: 'maven.distribution_sha256', pass: false, note: err.message });
+      }
+    }
+  }
 }
 
 run()

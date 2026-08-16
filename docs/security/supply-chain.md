@@ -29,6 +29,7 @@ GRADLE_VERSION_INCOMPATIBLE
 ## Maven Wrapper
 
 Gradle kurallarının birebir aynısı, Maven projeleri için (`apps/run-supervisor/src/maven-validation.ts`).
+`project_validate` build sistemini wrapper varlığına göre seçer: `mvnw`/`mvnw.cmd` varsa Maven, yoksa Gradle doğrulanır.
 
 Zorunlu varlıklar:
 

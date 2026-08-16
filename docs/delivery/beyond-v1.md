@@ -2,7 +2,7 @@
 
 ## V1.1 adayları
 
-- Maven Wrapper — **kısmen teslim edildi**: doğrulama katmanı + error catalog + testler tamam (ST-MAVEN-001..006); profil `maven:` bölümü ve service/executor bağlantısı ADR + profil yükseltmesi gerektirir (aşağıya bakın)
+- Maven Wrapper — **kısmen teslim edildi**: doğrulama katmanı + error catalog + testler tamam (ST-MAVEN-001..006), profil `maven:` bölümü + `project_validate` `mvnw` tespiti + contract yüzeyi tamam; build yürütme ve dependency-scan purl desteği kaldı (aşağıya bakın)
 - macOS
 - İkinci Paper profile
 - Stable MCP Tasks extension
@@ -16,12 +16,10 @@
 
 ### Maven Wrapper — kalan iş
 
-Doğrulama katmanı teslim edildi; aktif kullanım için aşağıdakiler kalır:
+Doğrulama katmanı ve `project_validate` entegrasyonu teslim edildi; aktif kullanım için aşağıdakiler kalır:
 
-1. Uyumluluk profillerine `maven:` bölümü (`wrapper_version`, `distribution_sha256`, `wrapper_jar_sha256`) — DOC-GATE-02 gereği hareketli sürüm ifadesi kullanılamaz, `verify:compatibility` uzatılır.
-2. `service.ts project_validate` mvnw tespiti ile Gradle/Maven validator seçimi (mevcut davranış yalnızca Gradle doğrular).
-3. `build-executor` Maven planı (`./mvnw package`), container ve artifact selection.
-4. `dependency-scan` için Maven lockfile purl desteği.
+1. `build-executor` Maven planı (`./mvnw package`), container ve artifact selection — executor `gradleValidation` bloğuyla Gradle'a sabitlidir; Maven, no-shell güvenlik modeline ayrı dokunacak.
+2. `dependency-scan` için Maven lockfile purl desteği.
 
 ## V2 adayları
 

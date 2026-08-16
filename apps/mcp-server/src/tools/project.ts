@@ -152,7 +152,9 @@ export function createProjectTools(info: ProjectToolsInfo): Array<[ToolDefinitio
         return toolSuccess(ctx.correlationId, {
           project_id: result.projectId,
           findings: result.findings,
+          build_system: result.buildSystem,
           gradle_version: result.gradleVersion,
+          maven_version: result.mavenVersion,
           java_major: result.javaMajor,
           distribution_sha256_valid: result.distributionSha256Valid,
           lock_file_present: result.lockFilePresent,

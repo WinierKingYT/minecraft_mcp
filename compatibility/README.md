@@ -36,6 +36,7 @@ Script her `pending_fields` alanını resmî kaynaktan çözer:
 | `mcp.sdk_prototype.*` | npm registry |
 | `node.version` | Node.js release schedule |
 | `gradle.wrapper_version`, `gradle.distribution_sha256` | `services.gradle.org` checksum endpoint |
+| `maven.wrapper_version`, `maven.distribution_sha256`, `maven.wrapper_jar_sha256` | `repo.maven.apache.org` maven2 koordinatı (bin.zip SHA-256, `--verify-jar` ile canlı) |
 | `java.runtime_major` | Yerel `java -version` + toolchain kontrolü |
 | `npm_toolchain` | `pnpm install` + commit edilmiş lockfile |
 

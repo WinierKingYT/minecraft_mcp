@@ -154,7 +154,7 @@ test('profile_get başarı yolu doğru IPC method adını kullanır', async () =
   let called = false;
   const info = {
     supervisor: async () => makeFakeSupervisor({
-      'profile.get': () => { called = true; return { id: 'paper-26.2-build-84-v1', status: 'active', minecraftVersion: '1.26.2', paperBuild: '84', verificationStatus: 'verified', javaVersion: '25', nodeVersion: '24', gradleVersion: '9' }; },
+      'profile.get': () => { called = true; return { id: 'paper-26.2-build-84-v1', status: 'active', minecraftVersion: '1.26.2', paperBuild: '84', verificationStatus: 'verified', javaVersion: '25', nodeVersion: '24', gradleVersion: '9', mavenVersion: null }; },
     }),
   };
   const [, fn] = tupleHandler(createProfileTools(info), 'profile_get');

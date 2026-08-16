@@ -32,6 +32,9 @@ verification:
     - java.toolchain_major
     - gradle.wrapper_jar_sha256
     - node.installed_version_matches_pin
+    - maven.wrapper_version
+    - maven.distribution_sha256
+    - maven.wrapper_jar_sha256
   pending_fields: []
 
 minecraft:
@@ -73,6 +76,16 @@ gradle:
   dependency_locking: required
   dependency_verification: required
   verification_mode: strict
+
+maven:
+  wrapper_version: "3.9.16"
+  wrapper_jar_verification: required
+  wrapper_jar_sha256: "3d8f20ce6103913be8b52aef6d994e0c54705fb527324ceb9b835b338739c7a8"
+  distribution_sha256: "5af3b743dd8b876b5c45da33b676251e5f1687712644abb4ee519ca56e1d89ce"
+  distribution_url: "https://repo.maven.apache.org/maven2/org/apache/maven/apache-maven/3.9.16/apache-maven-3.9.16-bin.zip"
+  distribution_url_allowlist:
+    - "repo.maven.apache.org"
+    - "dlcdn.apache.org"
 
 mcp:
   protocol_version: "2026-07-28"

@@ -99,6 +99,7 @@ import { RuntimePool, type PooledRuntime } from './runtime-pool.js';
 import { ProjectRegistry } from './project-registry.js';
 import { PersistentProjectRegistry } from './persistent-project-registry.js';
 import { validateGradleProject } from './gradle-validation.js';
+import { validateMavenProject } from './maven-validation.js';
 import { suggestAction } from './diagnostics.js';
 import { EvidenceStore } from '@mcpdev/evidence-model';
 import { EventSubscriptionManager } from './event-subscription.js';
@@ -772,6 +773,7 @@ export class SupervisorService {
       javaVersion: profile.java.runtime_major,
       nodeVersion: profile.node.version,
       gradleVersion: profile.gradle.wrapper_version,
+      mavenVersion: profile.maven?.wrapper_version ?? null,
     };
   }
 
@@ -870,6 +872,40 @@ export class SupervisorService {
     await this.#ensureProjectsLoaded();
     const project = this.#projects.get(params.projectId);
 
+    // Build sistemini wrapper varlığına göre seç: `mvnw`/`mvnw.cmd` önceliklidir.
+    const mvnwPresent =
+      existsSync(join(project.canonicalRoot, 'mvnw')) ||
+      existsSync(join(project.canonicalRoot, 'mvnw.cmd'));
+    const buildSystem: ProjectValidateResult['buildSystem'] = mvnwPresent ? 'maven' : 'gradle';
+
+    if (buildSystem === 'maven') {
+      const validation = await validateMavenProject(project.canonicalRoot, {
+        distributionHostAllowlist: this.#profile.maven?.distribution_url_allowlist ?? ['repo.maven.apache.org'],
+        expectedVersion: this.#profile.maven?.wrapper_version ?? '',
+        expectedDistributionSha256: this.#profile.maven?.distribution_sha256 ?? null,
+        knownWrapperJarSha256: this.#profile.maven?.wrapper_jar_sha256 ? [this.#profile.maven.wrapper_jar_sha256] : [],
+      });
+
+      return {
+        projectId: project.id,
+        findings: validation.findings.map((f) => ({
+          severity: f.severity,
+          code: f.code,
+          message: f.message,
+          suggestedAction: f.suggestedAction,
+        })),
+        buildSystem,
+        gradleVersion: null,
+        mavenVersion: validation.wrapper.version,
+        javaMajor: this.#profile.java.runtime_major,
+        distributionSha256Valid: validation.wrapper.distributionSha256 !== null,
+        // Maven'da Gradle'daki gibi dosya tabanlı lock/verification-metadata
+        // yoktur (docs/security/supply-chain.md); bu kontroller Gradle'a aittir.
+        lockFilePresent: false,
+        verificationMetadataPresent: false,
+      };
+    }
+
     const validation = await validateGradleProject(project.canonicalRoot, {
       distributionHostAllowlist: ['services.gradle.org'],
       expectedVersion: this.#profile.gradle?.wrapper_version ?? '',
@@ -886,7 +922,9 @@ export class SupervisorService {
         message: f.message,
         suggestedAction: f.suggestedAction,
       })),
+      buildSystem,
       gradleVersion: validation.wrapper.version,
+      mavenVersion: null,
       javaMajor: this.#profile.java.runtime_major,
       distributionSha256Valid: validation.wrapper.distributionSha256 !== null,
       lockFilePresent: true,

@@ -96,7 +96,7 @@ Aşağıdaki maddeler V1 tasarımını **karmaşıklaştırmamalıdır**. En faz
 
 | Kapsam dışı | Not |
 |---|---|
-| Maven | V1.1 — doğrulama katmanı teslim edildi; build yürütme kalan iş |
+| Maven | V1.1 — doğrulama katmanı + `project_validate` seçimi + profil bloğu teslim edildi; build yürütme kalan iş |
 | macOS | V1.1 adayı |
 | Birden fazla Paper hattı | V1.1 adayı |
 | Folia | V2 adayı |

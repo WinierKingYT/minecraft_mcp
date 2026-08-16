@@ -1,7 +1,7 @@
 id: project.validate
-version: 1
+version: 2
 milestone: M1
-summary: Gradle wrapper bütünlüğünü, dependency lock/verification durumunu ve Java/Paper/API uyumluluğunu doğrular.
+summary: Gradle veya Maven wrapper bütünlüğünü, dependency lock/verification durumunu ve Java/Paper/API uyumluluğunu doğrular.
 status: planned
 
 exposure:
@@ -49,6 +49,12 @@ errors:
   - PLUGIN_API_VERSION_MISSING
   - PLUGIN_API_VERSION_INCOMPATIBLE
   - COMPATIBILITY_PROFILE_UNVERIFIED
+  - MVN_WRAPPER_NOT_FOUND
+  - MVN_WRAPPER_JAR_UNVERIFIED
+  - MVN_DISTRIBUTION_URL_UNAPPROVED
+  - MVN_DISTRIBUTION_CHECKSUM_MISSING
+  - MVN_DISTRIBUTION_CHECKSUM_INVALID
+  - MVN_VERSION_INCOMPATIBLE
 
 tests:
   unit: [UT-PROJECT-VALIDATE-001]
@@ -61,3 +67,9 @@ tests:
     - ST-GRADLE-004
     - ST-GRADLE-006
     - ST-GRADLE-007
+    - ST-MAVEN-001
+    - ST-MAVEN-002
+    - ST-MAVEN-003
+    - ST-MAVEN-004
+    - ST-MAVEN-005
+    - ST-MAVEN-006

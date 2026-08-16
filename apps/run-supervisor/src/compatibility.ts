@@ -35,6 +35,13 @@ export interface CompatibilityProfile {
     readonly distribution_sha256: string | null;
     readonly wrapper_jar_sha256?: string;
   };
+  readonly maven?: {
+    readonly wrapper_version: string;
+    readonly distribution_sha256: string | null;
+    readonly wrapper_jar_sha256?: string;
+    readonly distribution_url?: string;
+    readonly distribution_url_allowlist?: readonly string[];
+  };
   readonly mcp: { readonly protocol_version: string; readonly transport: string };
   readonly protocols: Readonly<Record<string, number>>;
 }

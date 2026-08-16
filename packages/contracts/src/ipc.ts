@@ -237,7 +237,10 @@ export interface ValidationFinding {
 export interface ProjectValidateResult {
   readonly projectId: string;
   readonly findings: readonly ValidationFinding[];
+  /** Hangi build sisteminin doğrulandığı — `mvnw` varlığına göre seçilir. */
+  readonly buildSystem: 'gradle' | 'maven';
   readonly gradleVersion: string | null;
+  readonly mavenVersion: string | null;
   readonly javaMajor: number | null;
   readonly distributionSha256Valid: boolean | null;
   readonly lockFilePresent: boolean;
@@ -566,6 +569,7 @@ export interface ProfileGetResult {
   readonly javaVersion: number;
   readonly nodeVersion: string;
   readonly gradleVersion: string;
+  readonly mavenVersion: string | null;
 }
 
 // ============================================================================

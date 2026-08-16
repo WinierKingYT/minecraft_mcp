@@ -36,6 +36,9 @@ verification:
     - java.toolchain_major
     - gradle.wrapper_jar_sha256
     - node.installed_version_matches_pin
+    - maven.wrapper_version
+    - maven.distribution_sha256
+    - maven.wrapper_jar_sha256
   pending_fields: []
 
 minecraft:
@@ -92,6 +95,22 @@ gradle:
   dependency_locking: required
   dependency_verification: required
   verification_mode: strict
+
+# Maven Wrapper — build kanalı (docs/security/supply-chain.md).
+# 3.9.16, resmî yayın dağıtımından yedek değil: bin.zip SHA-256 5af3b74...
+# ile archive.apache.org dist listesinden; maven-wrapper-3.3.2.jar ise
+# repo.maven.apache.org maven2 koordinatından doğrulandı (ST-MAVEN-001..006).
+maven:
+  wrapper_version: "3.9.16"
+  wrapper_jar_verification: required
+  # Wrapper JAR build'den önce çalışan kod; maven-wrapper 3.3.2 yayını.
+  wrapper_jar_sha256: "3d8f20ce6103913be8b52aef6d994e0c54705fb527324ceb9b835b338739c7a8"
+  # DOĞRULANDI: apache-maven-3.9.16-bin.zip SHA-256
+  distribution_sha256: "5af3b743dd8b876b5c45da33b676251e5f1687712644abb4ee519ca56e1d89ce"
+  distribution_url: "https://repo.maven.apache.org/maven2/org/apache/maven/apache-maven/3.9.16/apache-maven-3.9.16-bin.zip"
+  distribution_url_allowlist:
+    - "repo.maven.apache.org"
+    - "dlcdn.apache.org"
 
 mcp:
   # DOĞRULANDI: 2026-07-28 revizyonu 28 Temmuz 2026'da FINAL olarak
