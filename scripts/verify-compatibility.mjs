@@ -166,6 +166,28 @@ async function run() {
         results.push({ field: 'maven.distribution.sha256', pass: false, note: err.message });
       }
     }
+
+    // Wrapper aracı (launcher) pin'inin kanıtı: profil `wrapper.jar_sha256`
+    // değerini resmî `org.apache.maven.wrapper:maven-wrapper` koordinatından
+    // canlı indirip karşılaştırır (ADR-0012/0013). Regex yalnızca "görünüm"
+    // kontrolüydü; bu doğrulama pin'i gerçek kanıta bağlar.
+    const wrapperJarUrl =
+      `https://repo.maven.apache.org/maven2/org/apache/maven/wrapper/maven-wrapper/` +
+      `${maven.wrapper?.version}/maven-wrapper-${maven.wrapper?.version}.jar`;
+    const wrapperJarTmp = join(process.env.TEMP ?? '/tmp', `maven-wrapper-${maven.wrapper?.version}.jar`);
+    if (VERIFY_JAR) {
+      process.stderr.write(`      Wrapper JAR indiriliyor: ${wrapperJarUrl}\n`);
+      try {
+        const actual = await downloadToHash(wrapperJarUrl, wrapperJarTmp);
+        results.push({
+          field: 'maven.wrapper.jar_sha256',
+          pass: actual === (maven.wrapper?.jar_sha256 ?? '').toLowerCase(),
+          note: `indirilen maven-wrapper JAR sha256=${actual.slice(0, 12)}...`,
+        });
+      } catch (err) {
+        results.push({ field: 'maven.wrapper.jar_sha256', pass: false, note: err.message });
+      }
+    }
   }
 }
 

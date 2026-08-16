@@ -11,6 +11,15 @@
  *     modunda projede bulunmayabilir; yalnızca mevcutsa doğrulanır.
  *   - Maven'ın standardı gereği lock/verification-metadata Gradle'daki gibi
  *     dosya tabanlı değildir; bu kontroller Gradle tarafına aittir.
+ *
+ * Yürütme güven modeli (ADR-0013, "supervisor-only"): proje `mvnw`/`mvnw.cmd`
+ * script'leri ASLA çalıştırılmaz — Gradle önceliyle aynı kural
+ * (trusted-local-backend.ts: `gradlew` script'leri çalıştırılmaz, verified
+ * wrapper JAR launcher'dır; bkz. GRADLE_WRAPPER_MAIN). Maven'da `bin` modunda
+ * verified wrapper JAR launcher olur; `only-script` modunda supervisor dağıtımı
+ * kendi verified dağıtımından provision eder. Script, ürünün trust boundary'sinde
+ * olmadığından script checksum'u anlamlı bir güvenlik iddiası üretmez;
+ * `MVN_WRAPPER_SCRIPT_UNVERIFIED` bu yüzden BİLİNÇLİ olarak tanımlanmamıştır.
  */
 
 import { createHash } from 'node:crypto';
@@ -37,6 +46,8 @@ export interface MavenValidationResult {
     readonly version: string | null;
     readonly distributionUrl: string | null;
     readonly distributionSha256: string | null;
+    /** `maven-wrapper.properties` `distributionType` alanı (bin/script/only-script/source). */
+    readonly distributionType: string | null;
     readonly wrapperJarSha256: string | null;
     readonly wrapperJarPresent: boolean;
   };
@@ -136,7 +147,7 @@ export async function validateMavenProject(
     return {
       ok: false,
       findings,
-      wrapper: { version: null, distributionUrl: null, distributionSha256: null, wrapperJarSha256: null, wrapperJarPresent: false },
+      wrapper: { version: null, distributionUrl: null, distributionSha256: null, distributionType: null, wrapperJarSha256: null, wrapperJarPresent: false },
     };
   }
 
@@ -164,6 +175,7 @@ export async function validateMavenProject(
   const properties = parseProperties(await readFile(join(root, MAVEN_WRAPPER_PROPERTIES), 'utf8'));
   const distributionUrl = properties.get('distributionUrl') ?? null;
   const distributionSha256 = properties.get('distributionSha256Sum') ?? null;
+  const distributionType = properties.get('distributionType') ?? null;
   const version = distributionUrl ? extractMavenVersion(distributionUrl) : null;
 
   if (!distributionUrl) {
@@ -272,6 +284,6 @@ export async function validateMavenProject(
   return {
     ok: findings.every((f) => f.severity !== 'error'),
     findings,
-    wrapper: { version, distributionUrl, distributionSha256, wrapperJarSha256, wrapperJarPresent },
+    wrapper: { version, distributionUrl, distributionSha256, distributionType, wrapperJarSha256, wrapperJarPresent },
   };
 }

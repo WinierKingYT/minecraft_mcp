@@ -31,11 +31,31 @@ GRADLE_VERSION_INCOMPATIBLE
 Gradle kurallarının birebir aynısı, Maven projeleri için (`apps/run-supervisor/src/maven-validation.ts`).
 `project_validate` build sistemini wrapper varlığına göre seçer: `mvnw`/`mvnw.cmd` varsa Maven, yoksa Gradle doğrulanır.
 
+### Wrapper yürütme güven modeli (ADR-0013, supervisor-only)
+
+Proje `mvnw`/`mvnw.cmd` script'leri ürün tarafından **asla çalıştırılmaz** —
+Gradle önceliyle aynı kural (`trusted-local-backend.ts`, `gradlew` script'leri
+çalıştırılmaz; checksum'ı doğrulanmış `gradle-wrapper.jar` launcher'dir).
+
+- `bin` modunda: doğrulanmış `.mvn/wrapper/maven-wrapper.jar` launcher olabilir.
+- `only-script` modunda: supervisor dağıtımı kendi verified dağıtımından
+  (profil `maven.distribution.*`) provision eder; projenin `distributionUrl`'si
+  sürüm uyumu için doğrulanmaya devam eder.
+- `distributionType` wrapper özelliklerinden ayrıştırılır ve doğrulama sonucunda
+  kanıt kaydı olarak taşınır.
+- Script, trust boundary'nin dışında olduğundan **`MVN_WRAPPER_SCRIPT_UNVERIFIED`
+  tanımlanmadı** — "script doğrulanamadı" bulgusu ürünü etkileyen bir ihlalmiş
+  gibi yanlış güvenlik iddiası üretirdi (DOC-GATE-06).
+
+Profil `maven.wrapper.jar_sha256` pin'i, `verify:compatibility --verify-jar`
+ile resmî `org.apache.maven.wrapper:maven-wrapper` koordinatından canlı
+indirilen JAR ile karşılaştırılarak kanıta bağlanır.
+
 Zorunlu varlıklar:
 
 - `mvnw` / `mvnw.cmd`
 - `.mvn/wrapper/maven-wrapper.properties`
-- `.mvn/wrapper/maven-wrapper.jar` — **yalnızca mevcutsa** doğrulanır: maven-wrapper 3.2+ `distributionType=only-script` modunda JAR projede bulunmayabilir (JAR build'den önce çalışan kod olduğu için "yok" bulgu değildir; "var fakat doğrulanmamış" bulgudur).
+- `.mvn/wrapper/maven-wrapper.jar` — **yalnızca mevcutsa** doğrulanır: maven-wrapper 3.2+ `distributionType=only-script` modunda JAR projede bulunmayabilir (bu "yok" bulgusu değildir; "var fakat bilinen-iyi checksum'da değil" bulgusudur).
 
 Zorunlu doğrulamalar:
 

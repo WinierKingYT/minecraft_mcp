@@ -34,6 +34,7 @@ const OPTIONS: MavenValidationOptions = {
 interface ProjectOverrides {
   readonly distributionUrl?: string;
   readonly distributionSha256?: string | null;
+  readonly distributionType?: string | null;
   readonly wrapperJar?: Uint8Array;
   readonly omit?: readonly string[];
   readonly pomXml?: string;
@@ -55,11 +56,15 @@ async function mavenProject(overrides: ProjectOverrides = {}): Promise<string> {
   if (!omit.has('properties')) {
     const url = overrides.distributionUrl ?? DIST_URL;
     const sha = overrides.distributionSha256 === null ? null : (overrides.distributionSha256 ?? DIST_SHA);
+    const distributionType =
+      overrides.distributionType === null
+        ? []
+        : [`distributionType=${overrides.distributionType ?? 'only-script'}`];
     await writeFile(
       join(root, '.mvn', 'wrapper', 'maven-wrapper.properties'),
       [
         'wrapperVersion=3.3.2',
-        'distributionType=only-script',
+        ...distributionType,
         `distributionUrl=${url}`,
         sha === null ? '' : `distributionSha256Sum=${sha}`,
         '',
@@ -84,6 +89,7 @@ test('geçerli Maven projesi doğrulamayı geçer', async () => {
   assert.equal(result.ok, true, JSON.stringify(result.findings, null, 2));
   assert.equal(result.wrapper.version, '3.9.9');
   assert.equal(result.wrapper.distributionSha256, DIST_SHA);
+  assert.equal(result.wrapper.distributionType, 'only-script');
   assert.equal(result.wrapper.wrapperJarPresent, true);
 });
 
@@ -109,6 +115,26 @@ test('only-script modunda JAR yokluğu bulgu üretmez', async () => {
 
   assert.equal(result.ok, true, JSON.stringify(result.findings, null, 2));
   assert.equal(result.wrapper.wrapperJarPresent, false);
+});
+
+test('distributionType yüzeyi ayrıştırılır; yoksa null döner', async () => {
+  // Supervisоr-only modelde (ADR-0013) script/JAR asla doğrudan çalıştırılmaz;
+  // `distributionType` git'te yürütme yüzeyinin kanıt kaydıdır (bin vs only-script).
+  const withType = await validateMavenProject(
+    await mavenProject({ distributionType: 'bin', wrapperJarAbsent: false }),
+    OPTIONS,
+  );
+  assert.equal(withType.wrapper.distributionType, 'bin');
+
+  const withoutType = await validateMavenProject(
+    await mavenProject({ distributionType: null, wrapperJarAbsent: true }),
+    OPTIONS,
+  );
+  assert.equal(withoutType.wrapper.distributionType, null);
+
+  // eksik wrapper durumunun erken dönüşü de alanı null taşır
+  const missingWrapper = await validateMavenProject(await mavenProject({ omit: ['jar', 'mvnw'] }), OPTIONS);
+  assert.equal(missingWrapper.wrapper.distributionType, null);
 });
 
 test('ST-MAVEN-003: allowlist dışı distributionUrl reddedilir', async () => {

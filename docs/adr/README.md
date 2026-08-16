@@ -14,6 +14,7 @@
 | [0010](0010-mcp-sdk-2-adoption.md) | MCP SDK 2.0.0'a geçiş ve official-client conformance kapanışı | accepted |
 | [0011](0011-maven-wrapper-profile.md) | Maven Wrapper profil bloğu ve build-system seçimi | superseded by ADR-0012 |
 | [0012](0012-maven-profile-model-refactor.md) | Maven profil bloğu: dağıtım ve wrapper sürümlerinin ayrılması | accepted |
+| [0013](0013-wrapper-execution-trust-model.md) | Wrapper yürütme güven modeli: supervisor-only | accepted |
 
 ## Şablon
 
