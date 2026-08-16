@@ -16,7 +16,7 @@ import { join, relative, resolve } from 'node:path';
 const args = process.argv.slice(2);
 let outputPath = resolve('checksums.sha256');
 
-for (let i = 2; i < args.length; i++) {
+for (let i = 0; i < args.length; i++) {
   if (args[i] === '--output' && args[i + 1]) {
     outputPath = resolve(args[i + 1]);
     i++;
