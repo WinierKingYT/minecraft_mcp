@@ -17,6 +17,7 @@
         "project",
         "build",
         "gradle",
+        "maven",
         "runtime",
         "bridge",
         "plugin",

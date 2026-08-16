@@ -26,6 +26,46 @@ GRADLE_DISTRIBUTION_CHECKSUM_INVALID
 GRADLE_VERSION_INCOMPATIBLE
 ```
 
+## Maven Wrapper
+
+Gradle kurallarının birebir aynısı, Maven projeleri için (`apps/run-supervisor/src/maven-validation.ts`).
+
+Zorunlu varlıklar:
+
+- `mvnw` / `mvnw.cmd`
+- `.mvn/wrapper/maven-wrapper.properties`
+- `.mvn/wrapper/maven-wrapper.jar` — **yalnızca mevcutsa** doğrulanır: maven-wrapper 3.2+ `distributionType=only-script` modunda JAR projede bulunmayabilir (JAR build'den önce çalışan kod olduğu için "yok" bulgu değildir; "var fakat doğrulanmamış" bulgudur).
+
+Zorunlu doğrulamalar:
+
+- Wrapper JAR checksum verification (mevcutsa)
+- `distributionUrl` allowlist (`repo.maven.apache.org`)
+- `distributionSha256Sum` mevcut ve geçerli
+- Profilde kilitli Maven sürümü
+- `pom.xml` üzerinde dinamik sürüm (aralık, `LATEST`/`RELEASE`, `n.+`) ve SNAPSHOT taraması
+
+Bilinçli kapsam farkları:
+
+- Maven'ın standardı gereği Gradle'daki `verification-metadata.xml` / `gradle.lockfile` kuralı uygulanmaz; o kontroller Gradle tarafına aittir.
+- Wrapper JAR `only-script` modunda bulunmayabilir (yukarıya bakın).
+
+Hata kodları:
+
+```text
+MVN_WRAPPER_NOT_FOUND
+MVN_WRAPPER_JAR_UNVERIFIED
+MVN_DISTRIBUTION_URL_UNAPPROVED
+MVN_DISTRIBUTION_CHECKSUM_MISSING
+MVN_DISTRIBUTION_CHECKSUM_INVALID
+MVN_VERSION_INCOMPATIBLE
+```
+
+Paylaşılan kodlar (Gradle ile aynı kural ailesi):
+
+```text
+DYNAMIC_DEPENDENCY_FORBIDDEN
+CHANGING_MODULE_FORBIDDEN
+
 ## Dependency locking
 
 - Lock files release profilinde zorunludur

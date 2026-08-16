@@ -1,0 +1,87 @@
+version: 1
+errors:
+  - code: MVN_WRAPPER_NOT_FOUND
+    owner: maven
+    category: not_found
+    message: "Maven Wrapper dosyaları bulunamadı."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "mvnw, mvnw.cmd ve maven-wrapper.properties dosyalarını projeye ekleyin; yalnızca wrapper desteklenir."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: none
+    tests: [ST-MAVEN-001]
+
+  - code: MVN_WRAPPER_JAR_UNVERIFIED
+    owner: maven
+    category: integrity
+    message: "maven-wrapper.jar checksum doğrulaması başarısız."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "Wrapper'ı resmî Maven dağıtımından yeniden üretin; doğrulanmamış wrapper JAR ile build çalıştırılmaz."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: none
+    terminal_state: FAILED
+    tests: [ST-MAVEN-002]
+
+  - code: MVN_DISTRIBUTION_URL_UNAPPROVED
+    owner: maven
+    category: permission
+    message: "distributionUrl allowlist dışında."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "distributionUrl değerini repo.maven.apache.org üzerindeki resmî dağıtıma çevirin."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: none
+    tests: [ST-MAVEN-003]
+
+  - code: MVN_DISTRIBUTION_CHECKSUM_MISSING
+    owner: maven
+    category: integrity
+    message: "distributionSha256Sum tanımlı değil."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "maven-wrapper.properties dosyasına distributionSha256Sum ekleyin."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: none
+    tests: [ST-MAVEN-004]
+
+  - code: MVN_DISTRIBUTION_CHECKSUM_INVALID
+    owner: maven
+    category: integrity
+    message: "Maven dağıtımının checksum'ı beklenen değerle eşleşmiyor."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "Dağıtımı yeniden indirin ve resmî checksum ile karşılaştırın; eşleşmeyen dağıtım kullanılmaz."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: none
+    terminal_state: FAILED
+    tests: [ST-MAVEN-005]
+
+  - code: MVN_VERSION_INCOMPATIBLE
+    owner: maven
+    category: validation
+    message: "Wrapper sürümü uyumluluk profilindeki sürümle eşleşmiyor."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "Wrapper'ı profildeki Maven sürümüne güncelleyin; release profili farklı sürüme izin vermez."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: none
+    tests: [ST-MAVEN-006]
