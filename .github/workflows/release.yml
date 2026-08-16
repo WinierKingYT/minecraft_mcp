@@ -1,0 +1,170 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  # -------------------------------------------------------------------------
+  # Release — sürümlü dağıtım (GitHub Release tarball'ları).
+  #
+  # Tag tetiklemeli: `git tag v0.1.0-... && git push origin v0.1.0-...`
+  #
+  # Aynı kapılar pr.yml'deki gibi koşulur (contracts, typecheck, test, build,
+  # SBOM, checksum). Kök dışında: tüm workspace paketleri pack'lenir, Bridge
+  # JAR + compatibility profilleri + schemas toplanır ve tek GitHub Release'e
+  # asset olarak yüklenir.
+  # -------------------------------------------------------------------------
+  package:
+    name: Build and package release artifacts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Read pinned Java and Node versions
+        id: profile
+        run: |
+          java_major="$(grep -A2 '^java:' compatibility/paper-26.2-build-84-v1.yaml | grep 'runtime_major:' | head -1 | sed 's/.*runtime_major: *\([0-9]*\).*/\1/')"
+          echo "java=${java_major}" >> "$GITHUB_OUTPUT"
+          node_version="$(grep -A2 '^node:' compatibility/paper-26.2-build-84-v1.yaml | grep 'version:' | head -1 | sed 's/.*version: *"\?\([^"]*\)"\?.*/\1/')"
+          echo "node=${node_version}" >> "$GITHUB_OUTPUT"
+          echo "Pinned Java: ${java_major}, Node: ${node_version}"
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: ${{ steps.profile.outputs.java }}
+
+      - uses: pnpm/action-setup@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ steps.profile.outputs.node }}
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run gen
+
+      # Release gate'leri — aynı doküman/registry/schema kapıları
+      - name: Contract and documentation gates
+        run: |
+          pnpm run check:parse
+          pnpm run check:registry
+          pnpm run check:schemas
+          pnpm run check:docs
+          pnpm run gen:check
+
+      - run: pnpm run typecheck
+      - run: pnpm run test
+
+      # Bridge JAR — kendi supply-chain kuralımız (cold cache, kasıtlı)
+      - uses: gradle/actions/wrapper-validation@v6
+      - name: Build bridge (soğuk cache — kasıtlı)
+        working-directory: bridge/paper
+        run: ./gradlew --no-daemon build
+
+      # Release asset'leri topla
+      - name: Prepare release directory
+        run: |
+          mkdir -p release/packages release/bridge release/compatibility release/schemas
+          echo "Release tag: ${GITHUB_REF_NAME}"
+
+      - name: Pack workspace packages
+        run: |
+          for pkg in apps/cli apps/mcp-server apps/run-supervisor \
+                      packages/contracts packages/error-catalog \
+                      packages/capability-registry packages/config-schema \
+                      packages/evidence-model packages/generated-types; do
+            (cd "$pkg" && pnpm pack --pack-destination "${GITHUB_WORKSPACE}/release/packages")
+          done
+
+      - name: Collect Bridge JAR
+        run: |
+          cp bridge/paper/build/libs/*.jar release/bridge/
+
+      - name: Collect compatibility profiles
+        run: |
+          cp compatibility/*.yaml release/compatibility/
+
+      - name: Collect schemas
+        run: |
+          cp -r packages/contracts/schemas/* release/schemas/ 2>/dev/null || true
+          cp -r packages/error-catalog/schema/* release/schemas/ 2>/dev/null || true
+          cp -r packages/capability-registry/schema/* release/schemas/ 2>/dev/null || true
+          cp -r packages/config-schema/schema/* release/schemas/ 2>/dev/null || true
+
+      - name: Generate SBOM
+        run: node scripts/generate-sbom.mjs --output release/sbom.json
+
+      - name: Verify SBOM has components
+        run: |
+          total=$(node -e "const s=require('./release/sbom.json');console.log(s.metadata.properties.find(p=>p.name==='sbom:total_components').value)")
+          echo "SBOM total components: ${total}"
+          if [ "${total}" -lt "50" ]; then
+            echo "ERROR: SBOM has fewer than 50 components"
+            exit 1
+          fi
+
+      - name: Generate source-artifact checksums (V1 gate)
+        run: node scripts/generate-checksums.mjs --output release/source_checksums.sha256
+
+      - name: Generate release-artifact checksums
+        run: |
+          cd release
+          find packages bridge -type f \( -name "*.tgz" -o -name "*.jar" \) -print0 | \
+            xargs -0 sha256sum > release_artifacts.sha256
+          echo "Release artifact checksums:"
+          cat release_artifacts.sha256
+          cp sbom.json sbom.json.tmp 2>/dev/null || true
+
+      - name: List release artifacts
+        working-directory: release
+        run: |
+          find . -type f | sort
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: release-artifacts
+          path: release/
+          retention-days: 90
+
+  # -------------------------------------------------------------------------
+  # GitHub Release oluşturma — paketleme job'ının asset'lerini ekler.
+  # -------------------------------------------------------------------------
+  release:
+    name: Create GitHub Release
+    needs: package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/download-artifact@v6
+        with:
+          name: release-artifacts
+          path: release/
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref }}
+          name: "mcpdev ${{ github.ref_name }}"
+          body: |
+            Sürümlü dağıtım: ${{ github.ref_name }}
+
+            Release asset'leri: workspace paket tarball'ları (packages/), Bridge
+            JAR (bridge/), compatibility profilleri, JSON schemas, SBOM
+            (sbom.json) ve checksums (v1_checksums.sha256).
+
+            Kanıt zinciri: pr.yml gate'leri + doküman kapıları release öncesi
+            yeşil olmadan build tamamlanmaz.
+          draft: false
+          prerelease: true
+          files: |
+            release/packages/*
+            release/bridge/*
+            release/sbom.json
+            release/source_checksums.sha256
+            release/release_artifacts.sha256
