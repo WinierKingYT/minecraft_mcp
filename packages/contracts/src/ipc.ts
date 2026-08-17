@@ -242,6 +242,7 @@ export interface ProjectValidateResult {
   readonly gradleVersion: string | null;
   readonly mavenVersion: string | null;
   readonly javaMajor: number | null;
+  /** Dağıtım checksum'ı mevcut VE profille eşleşiyor (presence ≠ valid). */
   readonly distributionSha256Valid: boolean | null;
   readonly lockFilePresent: boolean;
   readonly verificationMetadataPresent: boolean;

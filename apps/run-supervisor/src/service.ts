@@ -101,6 +101,7 @@ import { PersistentProjectRegistry } from './persistent-project-registry.js';
 import { validateGradleProject } from './gradle-validation.js';
 import { validateMavenProject } from './maven-validation.js';
 import { detectBuildSystem } from './build-system-detection.js';
+import { distributionChecksumValid } from './validation-report.js';
 import { suggestAction } from './diagnostics.js';
 import { EvidenceStore } from '@mcpdev/evidence-model';
 import { EventSubscriptionManager } from './event-subscription.js';
@@ -912,7 +913,13 @@ export class SupervisorService {
         gradleVersion: null,
         mavenVersion: validation.wrapper.version,
         javaMajor: this.#profile.java.runtime_major,
-        distributionSha256Valid: validation.wrapper.distributionSha256 !== null,
+        // "checksum mevcut" değil, "doğrulamadan geçti": yalnızca varlık değil,
+        // eşleşme de aranır (presence ≠ valid).
+        distributionSha256Valid: distributionChecksumValid(
+          validation.wrapper.distributionSha256,
+          validation.findings,
+          'MVN_DISTRIBUTION_CHECKSUM_INVALID',
+        ),
         // Maven'da Gradle'daki gibi dosya tabanlı lock/verification-metadata
         // yoktur (docs/security/supply-chain.md); bu kontroller Gradle'a aittir.
         lockFilePresent: false,
@@ -940,7 +947,13 @@ export class SupervisorService {
       gradleVersion: validation.wrapper.version,
       mavenVersion: null,
       javaMajor: this.#profile.java.runtime_major,
-      distributionSha256Valid: validation.wrapper.distributionSha256 !== null,
+      // "checksum mevcut" değil, "doğrulamadan geçti": yalnızca varlık değil,
+      // eşleşme de aranır (presence ≠ valid).
+      distributionSha256Valid: distributionChecksumValid(
+        validation.wrapper.distributionSha256,
+        validation.findings,
+        'GRADLE_DISTRIBUTION_CHECKSUM_INVALID',
+      ),
       lockFilePresent: true,
       verificationMetadataPresent: true,
     };
