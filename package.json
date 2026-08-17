@@ -21,7 +21,8 @@
     "typecheck": "pnpm run -r typecheck",
     "test": "pnpm run -r test",
     "build": "pnpm run -r build",
-    "build:standalone": "node scripts/build-standalone.mjs"
+    "build:standalone": "node scripts/build-standalone.mjs",
+    "publish:standalone": "node scripts/publish-standalone.mjs"
   },
   "devDependencies": {
     "@types/node": "24.7.0",
