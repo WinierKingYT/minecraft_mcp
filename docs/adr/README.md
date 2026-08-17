@@ -15,6 +15,7 @@
 | [0011](0011-maven-wrapper-profile.md) | Maven Wrapper profil bloğu ve build-system seçimi | superseded by ADR-0012 |
 | [0012](0012-maven-profile-model-refactor.md) | Maven profil bloğu: dağıtım ve wrapper sürümlerinin ayrılması | accepted |
 | [0013](0013-wrapper-execution-trust-model.md) | Wrapper yürütme güven modeli: supervisor-only | accepted |
+| [0014](0014-standalone-distribution.md) | Tek npm paketi (standalone) dağıtımı ve layout self-location | accepted |
 
 ## Şablon
 

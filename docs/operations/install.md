@@ -4,8 +4,61 @@
 değişikliği yapmaz** — yalnızca proje içi dizinler, bağımlılıklar ve build çıktıları
 oluşturur/siler. Kod, config ve lock dosyalarına dokunulmaz.
 
+İki kullanım akışı vardır:
+
+1. **Standalone (npm paketi)** — kullanıcı akışı: tek tarball ile
+   `mcpdev` komutu kurulur (bkz. [ADR-0014](../adr/0014-standalone-distribution.md)).
+   Repo clone'u, pnpm veya build gerekmez; yalnızca Node.js ve Java gereklidir.
+2. **Workspace (repo) geliştirici akışı** — repo kökünden `node apps/cli/...`
+   ile çalıştırılır ve projeyi derler.
+
+## Standalone kurulum (npm paketi)
+
+```text
+npm install -g <tarball>   # global; veya kendi projesine: npm install <tarball>
+```
+
+Paket `mcpdev` binary'sini sağlar; self-location her iki dizinde de çalışır ve
+veri kökünü `$MCPDEV_DATA_DIR` veya `~/.mcpdev` olarak seçer:
+
+```text
+mcpdev install      # veri dizinlerini hazırlar (config, paper-cache, artifacts, evidence)
+mcpdev doctor       # sağlık kontrolü (layout: standalone)
+mcpdev eula accept  # Minecraft EULA kabulü (operatör kararı)
+mcpdev serve        # MCP Server + Supervisor (stdio)
+mcpdev config <client>  # istemci config'ine mcpdev tanımını yazar (bkz. alt bölüm)
+mcpdev uninstall    # yalnızca veri dizinlerini kaldırır
+```
+
+Gereksinim: Node.js >= 22 ve Java (profildeki major). İlk `serve` öncesi
+`mcpdev install` ile veri kökü hazırlanır; `doctor` eksikleri raporlar.
+
+### MCP istemcilerine bağlama: `mcpdev config <client>`
+
+| client | Hedef dosya | Şekil |
+|---|---|---|
+| `claude` | Claude Desktop (`claude_desktop_config.json`) | `mcpServers.mcpdev` `{command, args:[…,"serve"]}` |
+| `vscode` | `.vscode/mcp.json` (workspace) | `servers.mcpdev` `{type:"stdio", …}` |
+| `cursor` | `~/.cursor/mcp.json` | `mcpServers.mcpdev` `{command, args:[…,"serve"]}` |
+| `opencode` | `~/.config/opencode/opencode.json` | `mcp.mcpdev` `{type:"local", …}` |
+
+Komut mutlak `node` + derlenmiş giriş noktası kullanır; PATH varsayımı yoktur.
+Aynı `mcpdev` anahtarı zaten farklı bir tanım içeriyorsa komut **üzerine
+yazmaz** — `--force` ister (mevcut config'i bozma). `--json` makine-okunur
+rapor verir (`action`: `created`/`updated`/`identical`/`conflict`).
+
+```text
+mcpdev config opencode --json
+mcpdev config vscode --root <workspace> --force
+```
+
 > Komutlar repo kökünden çalıştırılır. Proje kökü otomatik tespit edilir; farklı bir
 > dizinden çalıştırmak için `--root <path>` kullanılır.
+
+## Workspace (repo) geliştirici akışı
+
+Aşağıdaki adımlar repo geliştiricisi içindir; standalone kullanıcılar bu
+bölümü atlar.
 
 ## Ön koşullar
 

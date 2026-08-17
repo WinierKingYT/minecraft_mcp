@@ -6,6 +6,8 @@
 // npm paketine toplar ve tarball üretir:
 //
 //   dist-standalone/mcpdev-<version>.tgz
+//   dist-standalone/mcpdev-<version>.tgz.sha256   (tarball SHA-256 yan dosyası)
+//   dist-standalone/SHASUMS.sha256                (tarball tekil doğrulama listesi)
 //
 // Dahili paketler node_modules'a gömülür ve `bundleDependencies` ile tarball'a
 // taşınır (registry yayını yoktur); harici bağımlılıklar (yaml, zod,
@@ -16,6 +18,7 @@
 // Ön koşul: `pnpm run build` çalışmış ve bridge JAR derlenmiş olmalı.
 
 import { cp, mkdir, rm, readFile, writeFile, readdir, stat } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
 import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
@@ -151,7 +154,15 @@ async function main() {
   const tarball = join(OUT, `mcpdev-${version}.tgz`);
   const tarBin = 'tar';
   execFileSync(tarBin, ['-czf', tarball, '-C', OUT, 'package'], { stdio: 'inherit' });
+
+  // Tarball SHA-256 — doğrulama için yan dosya + SHASUMS listesi üretilir.
+  const digest = createHash('sha256').update(await readFile(tarball)).digest('hex');
+  const tarballName = `mcpdev-${version}.tgz`;
+  await writeFile(join(OUT, `${tarballName}.sha256`), `${digest}  ${tarballName}\n`);
+  await writeFile(join(OUT, 'SHASUMS.sha256'), `${digest}  ${tarballName}\n`);
+
   process.stdout.write(`✓ standalone tarball: ${tarball}\n`);
+  process.stdout.write(`  sha256: ${digest}\n`);
   process.stdout.write(`  (kullanım: npm install -g ${tarball}  |  npm install ${tarball})\n`);
 }
 

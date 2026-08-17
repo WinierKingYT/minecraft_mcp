@@ -1,5 +1,9 @@
 # M2A scenario → canlı Paper demo
 
+> **Standalone paket:** uçtan uca `mcpdev` akışı (install → eula → serve →
+> `config <client>`) [`install.md`](install.md) standalone bölümünde; bu dosya
+> repo içi driver yüzeyini belgeler.
+
 M2A dikey dilim: **ScenarioEngine'in disposable runtime zincirine bağlanması** — YAML scenario dosyası → runtime provisioning (build + launch) → günlük adım eşlemesi → assertion'lar → runtime dispose + GC. Akış, MCP araçlarının IPC üzerinden çağırdığı handler'ların (`SupervisorService.handlers()`) birebir aynısını kullanır — `scenario_run` araç yüzeyiyle aynı kod yolundan geçer.
 
 Bu akış **gerçek Gradle build ve gerçek Paper** başlatır; normal `pnpm run check` içinde koşmaz:

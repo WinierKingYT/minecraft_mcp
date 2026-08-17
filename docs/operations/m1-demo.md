@@ -1,5 +1,9 @@
 # M1 build → launch demo
 
+> **Standalone paket:** uçtan uca `mcpdev` akışı (install → eula → serve →
+> `config <client>`) [`install.md`](install.md) standalone bölümünde; bu dosya
+> repo içi driver yüzeyini belgeler.
+
 M1 dikey dilim: **build edilen plugin'in disposable runtime'da başlatılması**.
 Akış, MCP araçlarının IPC üzerinden çağırdığı handler'ların (`SupervisorService.handlers()`) birebir aynısını kullanır — `build_id` → `plugin_launch` zinciri araç yüzeyiyle aynı kod yolundan geçer.
 

@@ -98,6 +98,7 @@
 - [x] Windows/Linux CI — `typescript` + `security` matrix [ubuntu, windows]
 - [x] SBOM — `generate-sbom.mjs`; CI `sbom` job (>=50 component)
 - [x] Checksums — `generate-checksums.mjs`; CI `checksum` job
+- [x] Standalone paket — `build-standalone.mjs` (tarball + SHASUMS/`.sha256`); CI `standalone` job (temiz kurulum → doctor layout standalone → config); ADR-0014
 - [x] Install/uninstall — `mcpdev install`/`mcpdev uninstall` (`apps/cli/`); kılavuz: `docs/operations/install.md`
 - [x] Doctor — `doctor.test.ts`; CI `doctor` job; `docs/operations/troubleshooting.md`
 - [x] Troubleshooting — `docs/operations/troubleshooting.md`
@@ -128,11 +129,11 @@ MCP package · Supervisor package · Bridge JAR · Actor package (M2B açıksa) 
 
 > **GitHub Release dağıtım notu (v0.1.0-prototype.0):** Tarball'lar GitHub Release
 > üzerinden arşiv olarak dağıtılır (`.github/workflows/release.yml`, tag `v*`).
-> Monorepo `@mcpdev/*` workspace paketleri npm registry'ye yayınlanmadığı için bu
-> paketler **standalone `npm install <tarball>` ile kurulamaz** — paket tarball'ları
-> arşiv/denetim kanıtıdır; kurulum yolu repo kökünden `mcpdev install`'dır
-> (`docs/operations/install.md`). Registry yayını gerekirse `private: true`
-> kaldırılarak ayrı bir sürümle eklenir.
+> Phase 2'den itibaren **standalone `mcpdev` tarball'ı** `npm install <tgz>` ile
+> kurulabilir ([ADR-0014](../adr/0014-standalone-distribution.md),
+> [`scripts/build-standalone.mjs`](../../scripts/build-standalone.mjs)); bundle
+> içindeki `@mcpdev/*` paketleri registry yayını gerektirmez. Yayın kararı
+> (npm / GitHub Packages registry) ayrı bir sürümle alınır.
 
 ## Sürümlenen bileşenler
 

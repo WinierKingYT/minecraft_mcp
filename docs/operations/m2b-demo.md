@@ -1,5 +1,9 @@
 # M2B actor → canlı Paper demo
 
+> **Standalone paket:** uçtan uca `mcpdev` akışı (install → eula → serve →
+> `config <client>`) [`install.md`](install.md) standalone bölümünde; bu dosya
+> repo içi driver yüzeyini belgeler.
+
 M2B dikey dilim: **protocol actor'ların gerçek Paper'da NMS ile dünyaya join olması** — `test_actor.create` (offline identity ile gerçek protokol istemcisi), oyuncu bağlamında komut/mesaj/hareket, native permission semantiği ve crash cleanup. Akış, `scenario_run` araç yüzeyiyle aynı kod yolundan geçer (`NmsActorHandler` + `ScenarioEngine` DSL-10 cleanup).
 
 Bu akış **gerçek Gradle build ve gerçek Paper** başlatır; normal `pnpm run check` içinde koşmaz (tüm M2B kapanış testleri mock-bridge engine testleridir — `m2b-actor-scenarios.test.ts`, CI'da koşar):

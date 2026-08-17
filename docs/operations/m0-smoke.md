@@ -1,5 +1,10 @@
 # M0 gerçek Paper smoke
 
+> **Standalone paket:** uçtan uca `mcpdev` akışı (install → eula → serve →
+> `config <client>`) [`install.md`](install.md) standalone bölümünde; bu dosya
+> repo içi driver yüzeyini belgeler (ADR-0014'e göre paketle aynı yürütme
+> kuralları geçerlidir).
+
 Bu akış **gerçek Paper** başlatır ve normal `pnpm run check` içinde koşmaz. Nedeni iki tanedir:
 
 1. Minecraft EULA kabulü gerektirir — bu bir kullanıcı kararıdır, ürün kendiliğinden vermez.
