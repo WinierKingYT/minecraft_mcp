@@ -89,3 +89,31 @@ errors:
     redaction:
       profile: none
     tests: [UT-PROJECT-VALIDATE-001]
+
+  - code: BUILD_SYSTEM_NOT_FOUND
+    owner: project
+    category: not_found
+    message: "Desteklenen bir build sistemi bulunamadı."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "Gradle için gradlew/gradlew.bat, Maven için mvnw/mvnw.cmd ekleyin; yalnızca wrapper-pinned build sistemleri desteklenir."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: none
+    tests: [ST-BUILD-SYS-001]
+
+  - code: BUILD_SYSTEM_AMBIGUOUS
+    owner: project
+    category: conflict
+    message: "Hem Gradle hem Maven wrapper bulunuyor; build sistemi belirsiz."
+    tool_result:
+      is_error: true
+      retryable: false
+      suggested_action: "Yalnızca bir build sisteminin wrapper dosyalarını kökte bırakın; sessiz seçim yapılmaz."
+    json_rpc_mapping:
+      protocol_error: false
+    redaction:
+      profile: none
+    tests: [ST-BUILD-SYS-002]

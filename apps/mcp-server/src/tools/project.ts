@@ -124,7 +124,7 @@ export function createProjectTools(info: ProjectToolsInfo): Array<[ToolDefinitio
     {
       name: 'project_validate',
       title: 'Project validate',
-      description: 'Gradle wrapper bütünlüğünü, dependency lock/verification durumunu ve Java/Paper/API uyumluluğunu doğrular.',
+      description: 'Gradle veya Maven wrapper bütünlüğünü, dependency lock/verification durumunu ve Java/Paper/API uyumluluğunu doğrular; build sistemi wrapper varlığına göre explicit seçilir.',
       inputSchema: {
         type: 'object',
         additionalProperties: false,

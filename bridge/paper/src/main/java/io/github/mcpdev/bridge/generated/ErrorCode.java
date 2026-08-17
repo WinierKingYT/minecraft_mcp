@@ -24,6 +24,8 @@ public enum ErrorCode {
     BUILD_FAILED(500, false),
     BUILD_MODE_UNSUPPORTED(500, false),
     BUILD_NOT_FOUND(500, false),
+    BUILD_SYSTEM_AMBIGUOUS(500, false),
+    BUILD_SYSTEM_NOT_FOUND(500, false),
     BUILD_TIMEOUT(500, true),
     CAPABILITY_UNAVAILABLE(500, false),
     CHANGING_MODULE_FORBIDDEN(500, false),

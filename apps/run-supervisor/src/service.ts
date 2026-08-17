@@ -100,6 +100,7 @@ import { ProjectRegistry } from './project-registry.js';
 import { PersistentProjectRegistry } from './persistent-project-registry.js';
 import { validateGradleProject } from './gradle-validation.js';
 import { validateMavenProject } from './maven-validation.js';
+import { detectBuildSystem } from './build-system-detection.js';
 import { suggestAction } from './diagnostics.js';
 import { EvidenceStore } from '@mcpdev/evidence-model';
 import { EventSubscriptionManager } from './event-subscription.js';
@@ -872,11 +873,24 @@ export class SupervisorService {
     await this.#ensureProjectsLoaded();
     const project = this.#projects.get(params.projectId);
 
-    // Build sistemini wrapper varlığına göre seç: `mvnw`/`mvnw.cmd` önceliklidir.
-    const mvnwPresent =
-      existsSync(join(project.canonicalRoot, 'mvnw')) ||
-      existsSync(join(project.canonicalRoot, 'mvnw.cmd'));
-    const buildSystem: ProjectValidateResult['buildSystem'] = mvnwPresent ? 'maven' : 'gradle';
+    // Build sistemi wrapper varlığına göre seçilir; dört durum açıkça ayrılır,
+    // sessiz varsayım yoktur (BUILD_SYSTEM_NOT_FOUND / BUILD_SYSTEM_AMBIGUOUS).
+    const detection = detectBuildSystem(project.canonicalRoot);
+    if (detection.state === 'not-found') {
+      throw Object.assign(
+        new Error(
+          'Desteklenen bir build sistemi bulunamadı; proje kökünde gradlew/gradlew.bat veya mvnw/mvnw.cmd gerekli.',
+        ),
+        { code: 'BUILD_SYSTEM_NOT_FOUND' },
+      );
+    }
+    if (detection.state === 'ambiguous') {
+      throw Object.assign(
+        new Error('Hem Gradle hem Maven wrapper bulunuyor; build sistemi belirsiz. Yalnızca birini bırakın.'),
+        { code: 'BUILD_SYSTEM_AMBIGUOUS' },
+      );
+    }
+    const buildSystem: ProjectValidateResult['buildSystem'] = detection.state === 'maven' ? 'maven' : 'gradle';
 
     if (buildSystem === 'maven') {
       const validation = await validateMavenProject(project.canonicalRoot, {

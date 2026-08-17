@@ -26,10 +26,25 @@ GRADLE_DISTRIBUTION_CHECKSUM_INVALID
 GRADLE_VERSION_INCOMPATIBLE
 ```
 
+## Build sistemi tespiti
+
+`project_validate` build sistemini wrapper varlığına göre **explicit** seçer;
+sessiz varsayım yoktur:
+
+| Wrapper | Sonuç |
+|---|---|
+| `gradlew`/`gradlew.bat` var, `mvnw`/`mvnw.cmd` yok | Gradle doğrulanır |
+| `mvnw`/`mvnw.cmd` var, `gradlew`/`gradlew.bat` yok | Maven doğrulanır |
+| Hiçbiri yok | `BUILD_SYSTEM_NOT_FOUND` |
+| İkisi birden var | `BUILD_SYSTEM_AMBIGUOUS` |
+
+"İkisi birden var" durumunda `mvnw` önceliğiyle sessizce Maven seçilmez:
+conflict, operatöre açık hata olarak döner. Mantık
+`apps/run-supervisor/src/build-system-detection.ts` içindedir.
+
 ## Maven Wrapper
 
 Gradle kurallarının birebir aynısı, Maven projeleri için (`apps/run-supervisor/src/maven-validation.ts`).
-`project_validate` build sistemini wrapper varlığına göre seçer: `mvnw`/`mvnw.cmd` varsa Maven, yoksa Gradle doğrulanır.
 
 ### Wrapper yürütme güven modeli (ADR-0013, supervisor-only)
 
@@ -81,11 +96,14 @@ MVN_DISTRIBUTION_CHECKSUM_INVALID
 MVN_VERSION_INCOMPATIBLE
 ```
 
-Paylaşılan kodlar (Gradle ile aynı kural ailesi):
+Paylaşılan kodlar (her iki build sistemi):
 
 ```text
+BUILD_SYSTEM_NOT_FOUND
+BUILD_SYSTEM_AMBIGUOUS
 DYNAMIC_DEPENDENCY_FORBIDDEN
 CHANGING_MODULE_FORBIDDEN
+```
 
 ## Dependency locking
 

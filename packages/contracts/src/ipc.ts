@@ -237,7 +237,7 @@ export interface ValidationFinding {
 export interface ProjectValidateResult {
   readonly projectId: string;
   readonly findings: readonly ValidationFinding[];
-  /** Hangi build sisteminin doğrulandığı — `mvnw` varlığına göre seçilir. */
+  /** Hangi build sisteminin doğrulandığı — wrapper varlığıyla explicit seçilir. */
   readonly buildSystem: 'gradle' | 'maven';
   readonly gradleVersion: string | null;
   readonly mavenVersion: string | null;
