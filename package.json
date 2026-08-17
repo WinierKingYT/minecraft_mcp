@@ -20,7 +20,8 @@
     "check": "pnpm run check:parse && pnpm run check:registry && pnpm run check:schemas && pnpm run check:docs && pnpm run gen:check && pnpm run -r typecheck && pnpm run -r test",
     "typecheck": "pnpm run -r typecheck",
     "test": "pnpm run -r test",
-    "build": "pnpm run -r build"
+    "build": "pnpm run -r build",
+    "build:standalone": "node scripts/build-standalone.mjs"
   },
   "devDependencies": {
     "@types/node": "24.7.0",

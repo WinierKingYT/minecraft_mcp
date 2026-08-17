@@ -38,6 +38,8 @@ interface StartOptions {
   readonly projectRegistryFilePath?: string;
   readonly eulaFile?: string;
   readonly dependencyCacheDir?: string;
+  readonly artifactStoreDir?: string;
+  readonly fixtureManifestPath?: string;
 }
 
 function log(level: string, event: string, fields?: Record<string, unknown>): void {
@@ -88,6 +90,12 @@ async function start(options: StartOptions): Promise<never> {
     ...(options.eulaFile !== undefined ? { eulaFile: options.eulaFile } : {}),
     ...(options.dependencyCacheDir !== undefined
       ? { dependencyCacheDir: resolve(options.dependencyCacheDir) }
+      : {}),
+    ...(options.artifactStoreDir !== undefined
+      ? { artifactStoreDir: resolve(options.artifactStoreDir) }
+      : {}),
+    ...(options.fixtureManifestPath !== undefined
+      ? { fixtureManifestPath: resolve(options.fixtureManifestPath) }
       : {}),
   });
 
@@ -144,6 +152,8 @@ function main(): void {
       'evidence-dir': { type: 'string' },
       'eula-file': { type: 'string' },
       'dependency-cache-dir': { type: 'string' },
+      'artifact-store-dir': { type: 'string' },
+      'manifest-path': { type: 'string' },
       version: { type: 'string' },
       help: { type: 'boolean', short: 'h', default: false },
     },
@@ -174,6 +184,12 @@ function main(): void {
       ...(values['eula-file'] !== undefined ? { eulaFile: values['eula-file'] as string } : {}),
       ...(values['dependency-cache-dir'] !== undefined
         ? { dependencyCacheDir: values['dependency-cache-dir'] as string }
+        : {}),
+      ...(values['artifact-store-dir'] !== undefined
+        ? { artifactStoreDir: values['artifact-store-dir'] as string }
+        : {}),
+      ...(values['manifest-path'] !== undefined
+        ? { fixtureManifestPath: values['manifest-path'] as string }
         : {}),
       ...(values.version !== undefined ? { version: values.version as string } : {}),
     }).catch((err) => {

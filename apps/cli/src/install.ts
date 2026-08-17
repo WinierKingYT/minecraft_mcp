@@ -1,19 +1,25 @@
 /**
  * mcpdev install — set up MCP development infrastructure.
  *
- * Creates the directory structure, verifies prerequisites, and compiles
- * the project if needed.
+ * Workspace düzeni: dizin yapısını oluşturur, ön koşulları doğrular, pnpm
+ * bağımlılıklarını kurar ve projeyi derler.
+ *
+ * Standalone düzeni (tek npm paketi): kullanıcı veri kökü (~/.mcpdev) altında
+ * konfigürasyon/çalışma dizinlerini oluşturur; paket içeriği read-only olarak
+ * kabul edilir (derleme/pnpm yok).
  */
 
 import { existsSync, mkdirSync, writeFileSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
+import { detectLayout } from './layout.js';
 
 const execFileAsync = promisify(execFile);
 
 export interface InstallOptions {
   readonly root?: string | undefined;
+  readonly layout?: ReturnType<typeof detectLayout>;
 }
 
 interface StepResult {
@@ -31,11 +37,50 @@ async function execCommand(cmd: string, args: string[], cwd: string): Promise<st
   return `${stdout}\n${stderr}`;
 }
 
+/** Standalone: kullanıcı veri kökü altında çalışma dizinlerini hazırlar. */
+function installStandalone(layout: { dataDir: string }): StepResult[] {
+  const steps: StepResult[] = [];
+  const dirs = [
+    join(layout.dataDir, 'config'),
+    join(layout.dataDir, 'paper-cache'),
+    join(layout.dataDir, 'artifacts'),
+    join(layout.dataDir, 'evidence'),
+  ];
+  for (const dir of dirs) {
+    if (!existsSync(dir)) {
+      mkdirSync(dir, { recursive: true });
+      steps.push({ name: 'data-dir', status: 'done', message: `Created ${dir}` });
+    } else {
+      steps.push({ name: 'data-dir', status: 'skip', message: `Exists ${dir}` });
+    }
+  }
+  return steps;
+}
+
 export async function runInstall(options: InstallOptions): Promise<void> {
+  const layout = options.layout ?? detectLayout();
+
+  process.stdout.write('\x1b[1mmcpdev install\x1b[0m\n\n');
+
+  if (layout.kind === 'standalone') {
+    const steps = installStandalone(layout);
+    const icons: Record<string, string> = {
+      done: '\x1b[32m✔\x1b[0m',
+      skip: '\x1b[90m-\x1b[0m',
+      fail: '\x1b[31m✖\x1b[0m',
+    };
+    for (const step of steps) {
+      process.stdout.write(`  ${icons[step.status]!} ${step.message}\n`);
+    }
+    process.stdout.write('\n  \x1b[32mInstall complete!\x1b[0m\n');
+    process.stdout.write('  Run \x1b[1mmcpdev doctor\x1b[0m to verify the setup.\n');
+    return;
+  }
+
   const root = options.root ?? process.cwd();
   const steps: StepResult[] = [];
 
-  process.stdout.write('\x1b[1mmcpdev install\x1b[0m\n\n');
+  process.stdout.write(`  Layout: workspace (${root})\n\n`);
 
   // Step 1: Verify project root
   const pkgPath = join(root, 'package.json');

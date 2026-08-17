@@ -26,6 +26,9 @@ data/
 *.jar
 !**/gradle/wrapper/gradle-wrapper.jar
 
+# Standalone dağıtım (Phase 2)
+dist-standalone/
+
 # Secrets
 .env
 .env.*

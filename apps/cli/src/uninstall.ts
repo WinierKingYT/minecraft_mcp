@@ -1,16 +1,22 @@
 /**
  * mcpdev uninstall — remove MCP development infrastructure artifacts.
  *
- * Removes build outputs, generated files, and runtime directories.
- * Does NOT remove source code, configs, or lock files.
+ * Workspace düzeni: build çıktıları, generated dosyalar ve runtime dizinlerini
+ * kaldırır (kaynak/config/lock dosyalarına dokunmaz).
+ *
+ * Standalone düzeni: kullanıcı veri kökündeki (~/.mcpdev) çalışma dizinlerini
+ * (paper-cache, artifacts, evidence, config) kaldırır; paket içeriği kaldırılmaz
+ * (npm uninstall ayrı bir işlemdir).
  */
 
 import { existsSync, rmSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
+import { detectLayout } from './layout.js';
 
 export interface UninstallOptions {
   readonly root?: string | undefined;
   readonly json?: boolean | undefined;
+  readonly layout?: ReturnType<typeof detectLayout>;
 }
 
 interface StepResult {
@@ -82,6 +88,7 @@ function formatBytes(bytes: number): string {
 }
 
 export async function runUninstall(options: UninstallOptions): Promise<void> {
+  const layout = options.layout ?? detectLayout();
   const root = options.root ?? process.cwd();
   const json = options.json ?? false;
   const steps: StepResult[] = [];
@@ -90,57 +97,71 @@ export async function runUninstall(options: UninstallOptions): Promise<void> {
     process.stdout.write('\x1b[1mmcpdev uninstall\x1b[0m\n\n');
   }
 
-  // Verify project root
-  const pkgPath = join(root, 'package.json');
-  if (!existsSync(pkgPath)) {
-    process.stderr.write(`  \x1b[31m✖\x1b[0m Not a valid project root: ${root}\n`);
-    process.exit(1);
-  }
-
-  // Directories to remove
-  const dirsToRemove = [
-    'node_modules',
-    'apps/mcp-server/dist',
-    'apps/run-supervisor/dist',
-    'apps/cli/dist',
-    'bridge/paper/build',
-    'packages/contracts/dist',
-    'packages/capability-registry/dist',
-    'packages/error-catalog/dist',
-  ];
-
-  for (const relDir of dirsToRemove) {
-    const dir = join(root, relDir);
-    const { removed, bytes } = removeDir(dir);
-    if (removed) {
-      steps.push({ name: relDir, status: 'done', message: `Removed ${relDir}`, bytesRemoved: bytes });
-    } else {
-      steps.push({ name: relDir, status: 'skip', message: `Not found: ${relDir}` });
+  // Standalone: kullanıcı veri kökündeki çalışma dizinlerini kaldırır.
+  if (layout.kind === 'standalone') {
+    const dataDirs = ['paper-cache', 'artifacts', 'evidence', 'config'];
+    for (const rel of dataDirs) {
+      const dir = join(layout.dataDir, rel);
+      const { removed, bytes } = removeDir(dir);
+      if (removed) {
+        steps.push({ name: rel, status: 'done', message: `Removed ${rel}`, bytesRemoved: bytes });
+      } else {
+        steps.push({ name: rel, status: 'skip', message: `Not found: ${rel}` });
+      }
     }
-  }
-
-  // Remove generated files
-  const genFiles = [
-    'packages/error-catalog/generated/errors.json',
-    'packages/contracts/generated/bridge-protocol.json',
-    'packages/contracts/generated/mcp-bridge-schema.json',
-  ];
-
-  for (const relFile of genFiles) {
-    const file = join(root, relFile);
-    if (existsSync(file)) {
-      const size = statSync(file).size;
-      rmSync(file, { force: true });
-      steps.push({ name: relFile, status: 'done', message: `Removed ${relFile}`, bytesRemoved: size });
-    } else {
-      steps.push({ name: relFile, status: 'skip', message: `Not found: ${relFile}` });
+  } else {
+    // Verify project root
+    const pkgPath = join(root, 'package.json');
+    if (!existsSync(pkgPath)) {
+      process.stderr.write(`  \x1b[31m✖\x1b[0m Not a valid project root: ${root}\n`);
+      process.exit(1);
     }
-  }
 
-  // Remove SBOM
-  const { removed: sbomRemoved, bytes: sbomBytes } = removeGlob('sbom.json', root);
-  if (sbomRemoved) {
-    steps.push({ name: 'sbom', status: 'done', message: 'Removed sbom.json', bytesRemoved: sbomBytes });
+    // Directories to remove
+    const dirsToRemove = [
+      'node_modules',
+      'apps/mcp-server/dist',
+      'apps/run-supervisor/dist',
+      'apps/cli/dist',
+      'bridge/paper/build',
+      'packages/contracts/dist',
+      'packages/capability-registry/dist',
+      'packages/error-catalog/dist',
+    ];
+
+    for (const relDir of dirsToRemove) {
+      const dir = join(root, relDir);
+      const { removed, bytes } = removeDir(dir);
+      if (removed) {
+        steps.push({ name: relDir, status: 'done', message: `Removed ${relDir}`, bytesRemoved: bytes });
+      } else {
+        steps.push({ name: relDir, status: 'skip', message: `Not found: ${relDir}` });
+      }
+    }
+
+    // Remove generated files
+    const genFiles = [
+      'packages/error-catalog/generated/errors.json',
+      'packages/contracts/generated/bridge-protocol.json',
+      'packages/contracts/generated/mcp-bridge-schema.json',
+    ];
+
+    for (const relFile of genFiles) {
+      const file = join(root, relFile);
+      if (existsSync(file)) {
+        const size = statSync(file).size;
+        rmSync(file, { force: true });
+        steps.push({ name: relFile, status: 'done', message: `Removed ${relFile}`, bytesRemoved: size });
+      } else {
+        steps.push({ name: relFile, status: 'skip', message: `Not found: ${relFile}` });
+      }
+    }
+
+    // Remove SBOM
+    const { removed: sbomRemoved, bytes: sbomBytes } = removeGlob('sbom.json', root);
+    if (sbomRemoved) {
+      steps.push({ name: 'sbom', status: 'done', message: 'Removed sbom.json', bytesRemoved: sbomBytes });
+    }
   }
 
   // Print results

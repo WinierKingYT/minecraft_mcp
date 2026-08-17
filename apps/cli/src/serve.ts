@@ -15,17 +15,19 @@
  */
 
 import { spawn, type ChildProcess } from 'node:child_process';
-import { mkdtempSync, mkdirSync } from 'node:fs';
+import { existsSync, mkdtempSync, mkdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { readControlFile, type SupervisorEndpoint } from '@mcpdev/contracts';
 import { defaultEulaDataDir, eulaFilePath } from './eula.js';
+import { detectLayout, firstProfileId, type McpdevLayout } from './layout.js';
 
 export interface ServeOptions {
-  readonly repoRoot: string;
-  readonly profileId: string;
-  readonly bridgeJarPath: string;
-  readonly paperCacheDir: string;
+  /** Repo/content kökü; verilmezse layout.contentRoot (standalone). */
+  readonly repoRoot?: string;
+  readonly profileId?: string;
+  readonly bridgeJarPath?: string;
+  readonly paperCacheDir?: string;
   readonly runtimeRootDir?: string;
   readonly projectId?: string;
   readonly projectRoot?: string;
@@ -37,9 +39,9 @@ export interface ServeOptions {
   readonly version?: string;
   readonly toolProfile?: string;
   readonly logLevel?: string;
-  /** Supervisor giriş noktası (varsayılan: workspace düzeni). */
+  /** Supervisor giriş noktası (varsayılan: layout düzeni). */
   readonly supervisorEntry?: string;
-  /** MCP Server giriş noktası (varsayılan: workspace düzeni). */
+  /** MCP Server giriş noktası (varsayılan: layout düzeni). */
   readonly mcpServerEntry?: string;
   /** Kontrol dosyası dizini; verilmezse her oturuma özel temp dizin. */
   readonly controlDir?: string;
@@ -47,6 +49,12 @@ export interface ServeOptions {
   readonly startupTimeoutMs?: number;
   /** stderr'e yazılan log satırları (testlerde susturulur). */
   readonly log?: (line: string) => void;
+  /** Artifact store dizini (V1.1); standalone'da varsayılan ~/.mcpdev/artifacts. */
+  readonly artifactStoreDir?: string;
+  /** Fixture manifest yolu (V1.1); verilmezse supervisor varsayılanı. */
+  readonly manifestPath?: string;
+  /** Self-location sonucu (testlerde enjekte edilir). */
+  readonly layout?: McpdevLayout;
 }
 
 export interface ServeResult {
@@ -60,15 +68,80 @@ const POLL_INTERVAL_MS = 100;
 export function defaultSupervisorEntry(): string {
   const override = process.env['MCPDEV_SUPERVISOR_ENTRY'];
   if (override && override.trim() !== '') return override;
-  const repoRoot = resolve(import.meta.dirname, '..', '..', '..', '..');
-  return join(repoRoot, 'apps', 'run-supervisor', 'dist', 'src', 'main.js');
+  return detectLayout().supervisorEntry;
 }
 
 export function defaultMcpServerEntry(): string {
   const override = process.env['MCPDEV_MCP_SERVER_ENTRY'];
   if (override && override.trim() !== '') return override;
-  const repoRoot = resolve(import.meta.dirname, '..', '..', '..', '..');
-  return join(repoRoot, 'apps', 'mcp-server', 'dist', 'src', 'index.js');
+  return detectLayout().mcpServerEntry;
+}
+
+/**
+ * Layout-aware serve varsayılanları. Standalone düzende content kökü ve
+ * kullanıcı veri kökü (~/.mcpdev) üzerinden doldurulur; workspace'te yalnızca
+ * verilmişse kullanılır (mevcut zorunlu-arg davranışı korunur).
+ */
+export interface ResolvedServeDefaults {
+  readonly repoRoot: string;
+  readonly profileId: string;
+  readonly bridgeJarPath: string;
+  readonly paperCacheDir: string;
+  readonly artifactStoreDir?: string;
+  readonly supervisorEntry: string;
+  readonly mcpServerEntry: string;
+}
+
+export function resolveServeDefaults(options: ServeOptions): ResolvedServeDefaults {
+  const layout = options.layout ?? detectLayout();
+  const supervisorEntry = options.supervisorEntry ?? layout.supervisorEntry;
+  const mcpServerEntry = options.mcpServerEntry ?? layout.mcpServerEntry;
+
+  if (layout.kind === 'standalone') {
+    const profileId = options.profileId ?? firstProfileId(layout.contentRoot);
+    const bridgeJarPath = options.bridgeJarPath ?? layout.bridgeJarPath;
+    if (profileId === undefined) {
+      throw new Error('--profile-id gerekli: content/compatibility içinde profil bulunamadı');
+    }
+    if (bridgeJarPath === undefined || !existsSync(bridgeJarPath)) {
+      throw new Error(`Bridge JAR bulunamadı: ${bridgeJarPath ?? layout.bridgeJarPath}`);
+    }
+    return {
+      repoRoot: options.repoRoot ?? layout.contentRoot,
+      profileId,
+      bridgeJarPath,
+      paperCacheDir: options.paperCacheDir ?? join(layout.dataDir, 'paper-cache'),
+      artifactStoreDir:
+        options.artifactStoreDir ?? join(layout.dataDir, 'artifacts'),
+      supervisorEntry,
+      mcpServerEntry,
+    };
+  }
+
+  const repoRoot = options.repoRoot;
+  const profileId = options.profileId;
+  const bridgeJarPath = options.bridgeJarPath;
+  const paperCacheDir = options.paperCacheDir;
+  const missing = [
+    repoRoot === undefined ? '--repo-root' : null,
+    profileId === undefined ? '--profile-id' : null,
+    bridgeJarPath === undefined ? '--bridge-jar' : null,
+    paperCacheDir === undefined ? '--paper-cache' : null,
+  ].filter((v): v is string => v !== null);
+  if (missing.length > 0) {
+    throw new Error(`eksik zorunlu seçenekler: ${missing.join(', ')}`);
+  }
+  return {
+    repoRoot: repoRoot as string,
+    profileId: profileId as string,
+    bridgeJarPath: bridgeJarPath as string,
+    paperCacheDir: paperCacheDir as string,
+    ...(options.artifactStoreDir !== undefined
+      ? { artifactStoreDir: options.artifactStoreDir }
+      : {}),
+    supervisorEntry,
+    mcpServerEntry,
+  };
 }
 
 /**
@@ -126,8 +199,15 @@ export async function runServe(options: ServeOptions): Promise<ServeResult> {
   const log = options.log ?? ((line: string) => process.stderr.write(`[serve] ${line}\n`));
   const startupTimeoutMs = options.startupTimeoutMs ?? DEFAULT_STARTUP_TIMEOUT_MS;
 
-  const supervisorEntry = options.supervisorEntry ?? defaultSupervisorEntry();
-  const mcpServerEntry = options.mcpServerEntry ?? defaultMcpServerEntry();
+  const {
+    repoRoot,
+    profileId,
+    bridgeJarPath,
+    paperCacheDir,
+    artifactStoreDir,
+    supervisorEntry,
+    mcpServerEntry,
+  } = resolveServeDefaults(options);
   ensureControlDir(options);
 
   if (options.projectId !== undefined && options.projectRoot === undefined) {
@@ -139,10 +219,12 @@ export async function runServe(options: ServeOptions): Promise<ServeResult> {
 
   const supervisorArgs = [
     'start',
-    '--repo-root', resolve(options.repoRoot),
-    '--profile-id', options.profileId,
-    '--bridge-jar', resolve(options.bridgeJarPath),
-    '--paper-cache', resolve(options.paperCacheDir),
+    '--repo-root', resolve(repoRoot),
+    '--profile-id', profileId,
+    '--bridge-jar', resolve(bridgeJarPath),
+    '--paper-cache', resolve(paperCacheDir),
+    ...(artifactStoreDir !== undefined ? ['--artifact-store-dir', resolve(artifactStoreDir)] : []),
+    ...(options.manifestPath !== undefined ? ['--manifest-path', resolve(options.manifestPath)] : []),
     ...(options.runtimeRootDir !== undefined ? ['--runtime-root', resolve(options.runtimeRootDir)] : []),
     ...(options.projectId !== undefined ? ['--project-id', options.projectId] : []),
     ...(options.projectRoot !== undefined ? ['--project-root', resolve(options.projectRoot)] : []),
@@ -185,7 +267,7 @@ export async function runServe(options: ServeOptions): Promise<ServeResult> {
     stdio: ['inherit', 'inherit', 'inherit'],
     env: {
       ...process.env,
-      MCPDEV_ROOT: resolve(options.repoRoot),
+      MCPDEV_ROOT: resolve(repoRoot),
       ...(options.toolProfile !== undefined ? { MCPDEV_TOOL_PROFILE: options.toolProfile } : {}),
       ...(options.logLevel !== undefined ? { MCPDEV_LOG_LEVEL: options.logLevel } : {}),
     },

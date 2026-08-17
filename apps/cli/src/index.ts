@@ -33,10 +33,12 @@ eula subcommands:
   accept       Accept the Minecraft EULA (records a local, per-user decision)
 
 serve options:
-  --repo-root <path>       Repo root (MCPDEV_ROOT for mcp-server)
-  --profile-id <id>        Compatibility profile id
-  --bridge-jar <path>      Paper Bridge plugin JAR
-  --paper-cache <dir>      Paper JAR cache directory
+  --repo-root <path>       Repo/content root (MCPDEV_ROOT for mcp-server)
+  --profile-id <id>        Compatibility profile id (default: standalone verified profile)
+  --bridge-jar <path>      Paper Bridge plugin JAR (default: standalone bundled JAR)
+  --paper-cache <dir>      Paper JAR cache directory (default: <data-dir>/paper-cache)
+  --artifact-store-dir <dir>  Artifact store directory (default: <data-dir>/artifacts in standalone)
+  --manifest-path <path>   Fixture manifest path (V1.1; default: repoRoot/fixtures/manifests)
   --project-id <id>        Project id (registers the project; launcher surface)
   --project-root <path>    Project root (required together with --project-id)
   --registry-file <path>   Persistent project registry file
@@ -71,6 +73,8 @@ async function main(): Promise<void> {
       'eula-file': { type: 'string' },
       'data-dir': { type: 'string' },
       'dependency-cache-dir': { type: 'string' },
+      'artifact-store-dir': { type: 'string' },
+      'manifest-path': { type: 'string' },
     },
     allowPositionals: true,
     strict: true,
@@ -82,10 +86,13 @@ async function main(): Promise<void> {
   }
 
   if (values.version) {
-    // Read version from package.json
+    // Read version from the package root (workspace: apps/cli; standalone: pkg kökü).
     const { readFileSync } = await import('node:fs');
     const { join } = await import('node:path');
-    const pkg = JSON.parse(readFileSync(join(import.meta.dirname, '..', 'package.json'), 'utf-8'));
+    const { detectLayout } = await import('./layout.js');
+    const layout = detectLayout();
+    const pkgRoot = layout.kind === 'standalone' ? layout.root : join(import.meta.dirname, '..');
+    const pkg = JSON.parse(readFileSync(join(pkgRoot, 'package.json'), 'utf-8'));
     process.stdout.write(`${pkg['version']}\n`);
     process.exit(0);
   }
@@ -112,17 +119,14 @@ async function main(): Promise<void> {
       });
       break;
     case 'serve': {
-      const required = ['repo-root', 'profile-id', 'bridge-jar', 'paper-cache'] as const;
-      const missing = required.filter((key) => values[key] === undefined);
-      if (missing.length > 0) {
-        process.stderr.write(`serve: eksik zorunlu seçenekler: ${missing.join(', ')}\n`);
-        process.exit(2);
-      }
+      // Gerekli argümanlar runServe içinde layout-aware çözülür: standalone
+      // düzeni content kökü + kullanıcı veri kökünden doldurur; workspace
+      // düzeni eksikleri hata mesajıyla bildirir.
       const { exitCode } = await runServe({
-        repoRoot: values['repo-root'] as string,
-        profileId: values['profile-id'] as string,
-        bridgeJarPath: values['bridge-jar'] as string,
-        paperCacheDir: values['paper-cache'] as string,
+        ...(values['repo-root'] !== undefined ? { repoRoot: values['repo-root'] as string } : {}),
+        ...(values['profile-id'] !== undefined ? { profileId: values['profile-id'] as string } : {}),
+        ...(values['bridge-jar'] !== undefined ? { bridgeJarPath: values['bridge-jar'] as string } : {}),
+        ...(values['paper-cache'] !== undefined ? { paperCacheDir: values['paper-cache'] as string } : {}),
         ...(values['project-id'] !== undefined ? { projectId: values['project-id'] as string } : {}),
         ...(values['project-root'] !== undefined ? { projectRoot: values['project-root'] as string } : {}),
         ...(values['registry-file'] !== undefined ? { registryFile: values['registry-file'] as string } : {}),
@@ -131,6 +135,12 @@ async function main(): Promise<void> {
         ...(values['eula-file'] !== undefined ? { eulaFile: values['eula-file'] as string } : {}),
         ...(values['dependency-cache-dir'] !== undefined
           ? { dependencyCacheDir: values['dependency-cache-dir'] as string }
+          : {}),
+        ...(values['artifact-store-dir'] !== undefined
+          ? { artifactStoreDir: values['artifact-store-dir'] as string }
+          : {}),
+        ...(values['manifest-path'] !== undefined
+          ? { manifestPath: values['manifest-path'] as string }
           : {}),
         ...(values['tool-profile'] !== undefined ? { toolProfile: values['tool-profile'] as string } : {}),
         ...(values['log-level'] !== undefined ? { logLevel: values['log-level'] as string } : {}),

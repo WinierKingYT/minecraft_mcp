@@ -5,10 +5,11 @@
  * pass/fail/warn for each. Output is human-readable by default, JSON with --json.
  */
 
-import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
+import { detectLayout } from './layout.js';
 
 const execFileAsync = promisify(execFile);
 
@@ -16,6 +17,7 @@ export interface DoctorOptions {
   readonly json: boolean;
   readonly verbose: boolean;
   readonly root?: string | undefined;
+  readonly layout?: ReturnType<typeof detectLayout>;
 }
 
 export interface CheckResult {
@@ -245,10 +247,11 @@ function checkCompatibilityProfile(root: string): CheckResult {
   };
 }
 
-function checkMcpServerBinary(root: string): CheckResult {
+function checkMcpServerBinary(root: string, entry?: string): CheckResult {
   const possiblePaths = [
     join(root, 'apps', 'mcp-server', 'dist', 'src', 'index.js'),
     join(root, 'node_modules', '.bin', 'minecraft-plugin-dev-mcp'),
+    ...(entry !== undefined ? [entry] : []),
   ];
 
   for (const p of possiblePaths) {
@@ -265,10 +268,11 @@ function checkMcpServerBinary(root: string): CheckResult {
   };
 }
 
-function checkSupervisorBinary(root: string): CheckResult {
+function checkSupervisorBinary(root: string, entry?: string): CheckResult {
   const possiblePaths = [
     join(root, 'apps', 'run-supervisor', 'dist', 'src', 'main.js'),
     join(root, 'node_modules', '.bin', 'mcpdev-supervisor'),
+    ...(entry !== undefined ? [entry] : []),
   ];
 
   for (const p of possiblePaths) {
@@ -329,8 +333,11 @@ export function checkCapabilityRegistry(root: string): CheckResult {
   };
 }
 
-function checkBridgeJar(root: string): CheckResult {
+function checkBridgeJar(root: string, path?: string): CheckResult {
   const libsDir = join(root, 'bridge', 'paper', 'build', 'libs');
+  if (path !== undefined && existsSync(path)) {
+    return { name: 'bridge_jar', status: 'pass', message: `Bridge JAR found (${path})` };
+  }
   if (existsSync(libsDir)) {
     const jars = readdirSync(libsDir).filter((f) => f.endsWith('.jar'));
     if (jars.length > 0) {
@@ -346,29 +353,58 @@ function checkBridgeJar(root: string): CheckResult {
   };
 }
 
+/** Standalone: kullanıcı veri kökü çalışma dizinlerini doğrular. */
+export function checkLayoutDataDir(dataDir: string): CheckResult {
+  const requiredDirs = ['config', 'paper-cache', 'artifacts', 'evidence'];
+  const missing = requiredDirs.filter((d) => !existsSync(join(dataDir, d)));
+  if (missing.length > 0) {
+    return {
+      name: 'layout_data_dir',
+      status: 'warn',
+      message: `Data dir eksik: ${dataDir} (${missing.join(', ')})`,
+      details: 'Run mcpdev install to create runtime directories',
+    };
+  }
+  return {
+    name: 'layout_data_dir',
+    status: 'pass',
+    message: `Data dir hazır (${dataDir})`,
+  };
+}
+
 // ─── Doctor runner ─────────────────────────────────────────────────────
 
 export async function runDoctor(options: DoctorOptions): Promise<void> {
+  const layout = options.layout ?? detectLayout();
   const root = options.root ?? process.cwd();
+  const standalone = layout.kind === 'standalone';
+  const contentBase = standalone ? layout.contentRoot : root;
+  const nodeCheckRoot = standalone ? layout.contentRoot : root;
 
   const checks: CheckResult[] = [];
 
-  // Run checks sequentially (some depend on environment state)
-  checks.push(checkProjectRoot(root));
-  checks.push(await checkNodeVersion(root));
-  checks.push(await checkJava(root));
-  checks.push(await checkPnpm(root));
-  checks.push(checkCompatibilityProfile(root));
-  checks.push(checkMcpServerBinary(root));
-  checks.push(checkSupervisorBinary(root));
-  checks.push(checkBridgeJar(root));
-  checks.push(checkSecondProfile(root));
-  checks.push(checkCapabilityRegistry(root));
+  // Workspace: proje kökü + pnpm/capability checks; standalone: veri kökü check.
+  if (standalone) {
+    checks.push(checkLayoutDataDir(layout.dataDir));
+  } else {
+    checks.push(checkProjectRoot(root));
+    checks.push(await checkPnpm(root));
+    checks.push(checkCapabilityRegistry(root));
+  }
+  checks.push(await checkNodeVersion(nodeCheckRoot));
+  checks.push(await checkJava(contentBase));
+  checks.push(checkCompatibilityProfile(contentBase));
+  checks.push(checkMcpServerBinary(contentBase, standalone ? layout.mcpServerEntry : undefined));
+  checks.push(checkSupervisorBinary(contentBase, standalone ? layout.supervisorEntry : undefined));
+  checks.push(checkBridgeJar(contentBase, standalone ? layout.bridgeJarPath : undefined));
+  checks.push(checkSecondProfile(contentBase));
 
   if (options.json) {
     const output = {
       timestamp: new Date().toISOString(),
+      layout: layout.kind,
       root,
+      contentRoot: layout.contentRoot,
       checks,
       summary: {
         total: checks.length,
