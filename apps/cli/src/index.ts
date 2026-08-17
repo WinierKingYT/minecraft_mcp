@@ -11,6 +11,7 @@ import { runInstall } from './install.js';
 import { runUninstall } from './uninstall.js';
 import { runServe } from './serve.js';
 import { runEula } from './eula.js';
+import { runConfig } from './config.js';
 
 const HELP = `Usage: mcpdev <command> [options]
 
@@ -20,13 +21,21 @@ Commands:
   doctor    Run health checks and report status
   serve     Start Supervisor + MCP Server (stdio) for an MCP client
   eula      Manage the Minecraft EULA acceptance (operator action)
+  config    Write/verify the MCP server stdio definition for a client
 
 Options:
   --help       Show this help message
   --version    Show version
-  --json       Output as JSON (doctor/uninstall)
+  --json       Output as JSON (doctor/uninstall/config)
   --verbose    Show detailed output (doctor only)
+  --force      Overwrite an existing different server definition (config)
   --root <path>  Project root directory (default: current directory)
+
+config subcommands (client):
+  claude       Claude Desktop (mcpServers.mcpdev)
+  vscode       VSCode workspace (.vscode/mcp.json, servers.mcpdev)
+  cursor       Cursor global (~/.cursor/mcp.json, mcpServers.mcpdev)
+  opencode     opencode global (~/.config/opencode/opencode.json, mcp.mcpdev)
 
 eula subcommands:
   status       Show whether the Minecraft EULA has been accepted
@@ -57,6 +66,7 @@ async function main(): Promise<void> {
       help: { type: 'boolean', short: 'h', default: false },
       version: { type: 'boolean', short: 'v', default: false },
       json: { type: 'boolean', default: false },
+      force: { type: 'boolean', default: false },
       verbose: { type: 'boolean', default: false },
       root: { type: 'string', short: 'r' },
       'repo-root': { type: 'string' },
@@ -159,6 +169,23 @@ async function main(): Promise<void> {
         command: subcommand,
         ...(values['profile-id'] !== undefined ? { profileId: values['profile-id'] as string } : {}),
         ...(values['data-dir'] !== undefined ? { dataDir: values['data-dir'] as string } : {}),
+      });
+      process.exit(exitCode);
+      break;
+    }
+    case 'config': {
+      const client = positionals[1];
+      if (client !== 'claude' && client !== 'vscode' && client !== 'cursor' && client !== 'opencode') {
+        process.stderr.write(
+          `config: bilinmeyen client "${client ?? '(none)'}" (claude|vscode|cursor|opencode)\n`,
+        );
+        process.exit(2);
+      }
+      const exitCode = await runConfig({
+        client,
+        json: values.json ?? false,
+        force: values.force ?? false,
+        workspaceRoot: (values.root as string | undefined) ?? process.cwd(),
       });
       process.exit(exitCode);
       break;
